@@ -48,3 +48,8 @@ __pycache__/
 
 # macOS Finder droppings
 .DS_Store
+
+# Firebase CLI artifacts (the console project itself is in .firebaserc)
+.firebase/
+firebase-debug.log
+firestore-debug.log

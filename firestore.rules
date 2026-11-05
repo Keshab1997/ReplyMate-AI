@@ -1,0 +1,58 @@
+rules_version = '2';
+
+// ReplyMate AI — Firestore security rules.
+//
+// Deployed model: the one written down in docs/FIREBASE_SETUP.md §3. That
+// document is the source of truth; edit it and this file together, then
+// `firebase deploy --only firestore:rules`.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function adminEmails() {
+      return get(/databases/$(database)/documents/admin_config/access)
+          .data.get('emails', []);
+    }
+    function adminUids() {
+      return get(/databases/$(database)/documents/admin_config/access)
+          .data.get('uids', []);
+    }
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.email in adminEmails() ||
+        request.auth.uid in adminUids()
+      );
+    }
+
+    // The allowlist itself: any signed-in user may read it (it contains no
+    // secrets, and the app needs it to decide whether to show the admin
+    // entry); only admins may change it.
+    match /admin_config/{doc} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // ARCHITECTURE A TRADE-OFF (see docs/API_SECURITY.md "Key-pool
+    // decision"): the client must read keys to call providers directly, so
+    // every signed-in user can read the pool. Treat pooled keys as
+    // disposable free-tier consumables, never as production credentials.
+    // Writes stay admin-only.
+    match /admin_api_keys/{keyId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+    match /admin_key_groups/{group} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // The app writes its own error batches; only admins read them.
+    match /api_error_logs/{logId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
