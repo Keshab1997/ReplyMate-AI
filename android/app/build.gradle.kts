@@ -1,10 +1,30 @@
 import java.io.FileInputStream
 import java.util.Properties
 
+// The google-services plugin is applied conditionally below: the repo ships
+// WITHOUT google-services.json on purpose, so the app is a full guest app
+// until that file is dropped in, and a missing file must never break CI
+// builds (same pattern as docify). The plugins {} block cannot be
+// conditional, so the classpath lives in buildscript.
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.google.gms:google-services:4.4.2")
+    }
+}
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// Firebase (Google Sign-in for the admin gate + Firestore key pool).
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
 }
 
 // The upload keystore lives outside git: android/key.properties and

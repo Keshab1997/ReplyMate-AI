@@ -39,6 +39,21 @@ dependencies:
   # Local preferences only (selected apps, defaults, onboarding flag).
   # No message content is ever persisted (docs/DATABASE_DESIGN.md).
   shared_preferences: ^2.3.3
+  # Firebase: guest-mode invariant applies - without google-services.json the
+  # app runs fully, AI generation and the admin section explain themselves
+  # instead of crashing (same pattern as docify).
+  firebase_core: ^4.15.0
+  cloud_firestore: ^6.1.0
+  firebase_auth: ^6.7.0
+  google_sign_in: ^7.2.0
+  # Firestore-backed admin API-key pool with failover, cooldowns, health
+  # checks and a ready-made admin screen (extracted from SpeakEasy).
+  admin_api_key_manager:
+    git:
+      url: https://github.com/Keshab1997/admin_api_key_manager
+      ref: master
+  hive_flutter: ^1.1.0
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:
