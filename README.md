@@ -40,6 +40,12 @@ Make replying to messages faster, easier, and more natural without taking contro
 
 Early planning and feasibility stage. Features will be implemented in phases after Android-device testing.
 
+## Development
+
+The repository intentionally ships **without `google-services.json`**. Without it the app builds and runs as a full guest shell: every screen works, and AI generation plus the admin section explain that they are not configured instead of failing. Dropping the file from your Firebase project into `android/app/` enables Firebase Auth, the Firestore key pool and the admin gate; see [docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md) for the exact console steps, collections and rules.
+
+Real-device verification for the notification prototype lives in [docs/PHASE1_DEVICE_TESTS.md](docs/PHASE1_DEVICE_TESTS.md); the agent workflow and check policy live in [AGENTS.md](AGENTS.md).
+
 ## Privacy Principles
 
 - No automatic sending
