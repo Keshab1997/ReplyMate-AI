@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_theme.dart';
 import '../../core/constants/reply_options.dart';
+import '../../core/firebase/firebase_providers.dart';
 import '../../shared/widgets/choice_chips.dart';
+import '../admin/admin_gate_screen.dart';
 import '../../shared/widgets/permission_status_card.dart';
 import '../../shared/widgets/section_label.dart';
 import '../app_selection/app_selection_screen.dart';
@@ -96,6 +98,17 @@ class SettingsScreen extends ConsumerWidget {
               ),
               child: const Text('Supported apps'),
             ),
+            const SizedBox(height: AppTheme.spaceLg),
+            if (ref.watch(firebaseReadyProvider))
+              OutlinedButton.icon(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const AdminGateScreen(),
+                  ),
+                ),
+                icon: const Icon(Icons.shield_outlined),
+                label: const Text('Admin'),
+              ),
             const SizedBox(height: AppTheme.spaceLg),
             const SectionLabel('Privacy'),
             Card(
