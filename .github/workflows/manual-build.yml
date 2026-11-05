@@ -25,11 +25,12 @@ jobs:
       build-apk: ${{ inputs.format == 'apk' }}
       build-aab: ${{ inputs.format == 'aab' }}
       artifact-retention-days: 14
-      # Firebase is optional in this app (guest mode without it), so a build
-      # with no file still succeeds — but a shipped artifact without the file
-      # has no key pool and no admin entry. The secret is injected when set.
-      google-services-json-base64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
     secrets:
+      # Firebase is optional in this app (guest mode without it), so a build
+      # with no file still succeeds. The reusable workflow prefers its
+      # google-services-json-base64 input and falls back to this secret, and a
+      # secret is the only one of the two a caller can actually fill in here:
+      # the `secrets` context is not available in a reusable call's `with:`.
       GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}

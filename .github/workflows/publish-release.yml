@@ -45,7 +45,8 @@ jobs:
       play-status: completed
       # A release without the Firebase config is an offline-only app: no admin
       # entry, no key pool. Turning the preflight check on makes a missing
-      # secret fail the run instead of shipping that silently.
+      # secret fail the run instead of shipping that silently. The config
+      # itself arrives through `secrets: inherit` below — a caller cannot read
+      # the `secrets` context inside `with:`.
       preflight-require-firebase: true
-      google-services-json-base64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
     secrets: inherit
