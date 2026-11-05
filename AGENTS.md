@@ -275,10 +275,21 @@ Everything above the end marker is maintained by
 `scripts/install-agent-pack.sh` (re-run the one-liner to update it; your text
 down here is never touched).
 
-- **App:** replymate — one line about what it does.
+- **App:** replymate — AI reply assistant: drafts Bengali / Hindi / English
+  replies from notification context, text selection, the share sheet or
+  paste; the user reviews and sends every reply, the app never does.
 - **App directory:** `.` (change this line if the Flutter app lives in a
   subdirectory).
-- **Extra project rules:** _(fill in: invariants, store metadata that must stay
-  in sync, screenshots that must be regenerated, …)_
-- **Extra verification:** _(fill in: anything CI cannot see — copy changes,
-  Play Console steps, manual checks …)_
+- **Extra project rules:** guest-mode invariant — `google-services.json`
+  never enters git and its absence must never break a build or a screen;
+  no automatic message sending anywhere, in any layer; the native listener
+  processes only packages on the user's allowlist; quick reply is attempted
+  only against a live RemoteInput action; capability claims in UI copy and
+  docs stay honest (missing / truncated / grouped / redacted content is
+  shown, never hidden); admin access only through the Firestore
+  `admin_config/access` allowlist.
+- **Extra verification:** Phase 1 is not done until the real-device checklist
+  in `docs/PHASE1_DEVICE_TESTS.md` has no `_pending_` rows — CI cannot see
+  notifications, quick reply or the selection menu. Before any release:
+  Play Console declaration for notification-listener access, prominent
+  in-app disclosure for AI processing, privacy policy published.
