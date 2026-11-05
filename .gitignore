@@ -1,0 +1,47 @@
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+*.lock
+# Android
+/android/app/debug
+/android/app/profile
+/android/app/release
+/android/local.properties
+# Gradle build cache and wrapper
+.gradle/
+**/android/.gradle/
+android/.cxx/
+# Gradle's own report dir (root /build/ is ignored, this one was not)
+android/build/
+# Secrets
+secrets/
+*.pem
+*.jks
+*.keystore
+.env
+# Release signing — holds the upload keystore passwords in plain text
+android/key.properties
+android/app/upload-keystore.jks
+# IDE
+.idea/
+*.iml
+# Agent screenshots
+.openchamber/
+
+
+# Firebase config — local only, never committed (app runs guest without it)
+android/app/google-services.json
+
+# Python tooling (tool/*.py)
+__pycache__/
+*.pyc
+
+# flutter-builder: replaced tool files are kept here
+.agent-pack-backups/
+# flutter-builder: see_screen.py downloads screenshots here
+.agent-screens/
