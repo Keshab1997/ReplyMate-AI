@@ -4,6 +4,25 @@ Everything the code expects from a Firebase project, in the order to click it.
 The repo never contains `google-services.json`; the file lives on each
 developer machine and in CI secrets only.
 
+## 0. This repository's project
+
+Already done, recorded here so nobody creates a second one:
+
+| | |
+|---|---|
+| Project ID | `replymate-ai-app` (`.firebaserc` pins it) |
+| Console | https://console.firebase.google.com/project/replymate-ai-app/overview |
+| Android app | `com.keshabstudios.replymate`, app id `1:654180008241:android:52af6ec8af989390c8b010` |
+| SHA-1s | upload key `74:54:39:…:4C:6B:A4`, debug key `8D:F0:13:…:0F:4E` |
+| Firestore | `(default)`, `asia-south1`, rules in `firestore.rules` |
+| Admin allowlist | `admin_config/access` → `{"emails": ["keshabsarkar2018@gmail.com"], "uids": []}` |
+| Repository secret | `GOOGLE_SERVICES_JSON_BASE64` (the file above, base64) |
+
+`replymate-ai` itself is taken by an unrelated project — that is why the id has
+the `-app` suffix. The rules deploy with `firebase deploy --only firestore:rules`;
+the two collections fill in as soon as the admin screen writes the first key,
+because Firestore has no way to create an empty collection.
+
 ## 1. Console steps
 
 1. Create a project (any name; the package identity comes from Android).

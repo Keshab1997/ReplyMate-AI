@@ -43,4 +43,9 @@ jobs:
       play-package-name: ${{ inputs.package_name }}
       play-whats-new-directory: ${{ inputs.upload_to_play_internal && 'distribution/whatsnew' || '' }}
       play-status: completed
+      # A release without the Firebase config is an offline-only app: no admin
+      # entry, no key pool. Turning the preflight check on makes a missing
+      # secret fail the run instead of shipping that silently.
+      preflight-require-firebase: true
+      google-services-json-base64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
     secrets: inherit
