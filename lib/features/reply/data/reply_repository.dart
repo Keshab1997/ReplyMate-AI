@@ -1,3 +1,5 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../domain/reply_request.dart';
 
 /// Outcome of a generation attempt. Never throws: every failure mode in
@@ -50,4 +52,10 @@ class NotConfiguredReplyRepository implements ReplyRepository {
   }
 }
 
-final ReplyRepository replyRepository = const NotConfiguredReplyRepository();
+/// The repository the UI talks to. main() overrides it with
+/// [KeyPoolReplyRepository] when Firebase boots; tests override it with
+/// fakes. Nothing ever constructs a repository inside a widget.
+final Provider<ReplyRepository> replyRepositoryProvider =
+    Provider<ReplyRepository>(
+      (Ref ref) => const NotConfiguredReplyRepository(),
+    );

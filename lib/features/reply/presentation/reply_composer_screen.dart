@@ -84,7 +84,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
       _generating = true;
       _failure = null;
     });
-    final result = await replyRepository.generate(request);
+    final result = await ref.read(replyRepositoryProvider).generate(request);
     if (!mounted) return;
     setState(() => _generating = false);
     switch (result) {
