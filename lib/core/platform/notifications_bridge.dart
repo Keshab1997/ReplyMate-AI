@@ -1,0 +1,124 @@
+import 'dart:async';
+
+import 'package:flutter/services.dart';
+
+import '../constants/app_constants.dart';
+
+/// A messaging app the native layer can actually see installed.
+class CandidateApp {
+  const CandidateApp({required this.packageName, required this.label});
+
+  final String packageName;
+  final String label;
+}
+
+/// Dart half of the single platform channel. Every method degrades to a safe
+/// empty answer when the plugin is missing (tests, web preview, desktop) so
+/// the UI can render and explain instead of crashing.
+///
+/// Contract: docs/PLATFORM_CHANNELS.md.
+class NotificationsBridge {
+  NotificationsBridge({MethodChannel? channel})
+    : _channel = channel ?? const MethodChannel(AppConstants.channelName);
+
+  final MethodChannel _channel;
+  final StreamController<Map<String, Object?>> _events =
+      StreamController<Map<String, Object?>>.broadcast();
+
+  /// Native -> Dart events: `listener_connected`, `listener_disconnected`,
+  /// `notification_captured`.
+  Stream<Map<String, Object?>> get events => _events.stream;
+
+  /// Starts forwarding `onEvent` calls into [events]. Idempotent.
+  void startListening() {
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'onEvent' && call.arguments is Map) {
+        _events.add(Map<String, Object?>.from(call.arguments as Map));
+      }
+      return null;
+    });
+  }
+
+  Future<bool> isListenerEnabled() async {
+    try {
+      return await _channel.invokeMethod<bool>('isListenerEnabled') ?? false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
+
+  Future<void> openListenerSettings() async {
+    try {
+      await _channel.invokeMethod<void>('openListenerSettings');
+    } on MissingPluginException {
+      // No native layer (tests / web): nothing to open.
+    }
+  }
+
+  Future<List<CandidateApp>> candidateApps() async {
+    try {
+      final result = await _channel.invokeMethod<List<Object?>>(
+        'candidateApps',
+      );
+      if (result == null) return const [];
+      return result
+          .whereType<Map<Object?, Object?>>()
+          .map(
+            (map) => CandidateApp(
+              packageName: map['packageName'] as String? ?? '',
+              label: map['label'] as String? ?? '',
+            ),
+          )
+          .where((app) => app.packageName.isNotEmpty)
+          .toList();
+    } on MissingPluginException {
+      return const [];
+    }
+  }
+
+  /// Pushes the user's app selection down to the native listener, which only
+  /// processes packages on this list.
+  Future<void> setAllowedPackages(List<String> packages) async {
+    try {
+      await _channel.invokeMethod<void>('setAllowedPackages', {
+        'packages': packages,
+      });
+    } on MissingPluginException {
+      // Native layer absent: the selection still persists on the Dart side.
+    }
+  }
+
+  /// Attempts a RemoteInput quick reply. False means "no valid action or the
+  /// send failed" - the UI must then offer copy / open-app (docs/USER_FLOWS
+  /// flow 3).
+  Future<bool> sendQuickReply(String text) async {
+    try {
+      return await _channel.invokeMethod<bool>('sendQuickReply', {
+            'text': text,
+          }) ??
+          false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
+
+  /// Text handed over by PROCESS_TEXT or ACTION_SEND, consumed once.
+  Future<LaunchContextMap?> consumeLaunchContext() async {
+    try {
+      final result = await _channel.invokeMethod<Map<Object?, Object?>>(
+        'consumeLaunchContext',
+      );
+      return result;
+    } on MissingPluginException {
+      return null;
+    }
+  }
+
+  void dispose() {
+    _channel.setMethodCallHandler(null);
+    _events.close();
+  }
+}
+
+/// Raw map shape of a launch context; parsed into `LaunchContext` by callers.
+typedef LaunchContextMap = Map<Object?, Object?>;
