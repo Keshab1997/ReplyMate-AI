@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- ReplyMate AI's own notifications (status / all-keys-failed alerts).
+         Separate from notification-listener access: one never implies the
+         other (docs/ANDROID_NATIVE_SERVICES.md). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
     <application
         android:label="ReplyMate AI"
         android:name="${applicationName}"
@@ -24,7 +29,34 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Entry point 2: long-press -> select text in another app and
+                 "ReplyMate AI" appears in the floating selection menu. The
+                 selected text arrives as EXTRA_PROCESS_TEXT. -->
+            <intent-filter>
+                <action android:name="android.intent.action.PROCESS_TEXT"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="text/plain"/>
+            </intent-filter>
+            <!-- Entry point 3: the share sheet of any app that can share text. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="text/plain"/>
+            </intent-filter>
         </activity>
+
+        <!-- Entry point 1: notification-based message context. The binding
+             permission is Android's own; the user still grants access through
+             Settings, and only after the permission screen explained why. -->
+        <service
+            android:name=".ReplyMateNotificationListener"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService"/>
+            </intent-filter>
+        </service>
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
@@ -41,5 +73,15 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Package visibility for the app-selection screen: ReplyMate only
+             offers apps it can actually see installed (Android 11+ rules).
+             Deliberately NOT QUERY_ALL_PACKAGES: Play discourages it and the
+             candidate list is fixed and small. -->
+        <package android:name="com.whatsapp"/>
+        <package android:name="org.telegram.messenger"/>
+        <package android:name="com.facebook.orca"/>
+        <package android:name="org.thoughtcrime.securesms"/>
+        <package android:name="com.google.android.apps.messaging"/>
+        <package android:name="com.android.mms"/>
     </queries>
 </manifest>
