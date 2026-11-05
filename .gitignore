@@ -45,3 +45,6 @@ __pycache__/
 .agent-pack-backups/
 # flutter-builder: see_screen.py downloads screenshots here
 .agent-screens/
+
+# macOS Finder droppings
+.DS_Store
