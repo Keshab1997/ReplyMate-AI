@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../app/theme/app_theme.dart';
+import '../../core/firebase/firebase_bootstrap.dart';
 import '../../core/firebase/firebase_providers.dart';
 
 /// The admin section gate (FR: admin section, batch 2).
@@ -18,8 +19,12 @@ class AdminGateScreen extends ConsumerWidget {
 
   Future<String?> _signInWithGoogle() async {
     try {
-      // google_sign_in 7.x: authenticate() replaces signIn(); a cancelled
-      // flow arrives as a GoogleSignInException, not as a null account.
+      // 7.x: initialize() must have completed before authenticate(), or the
+      // flow stalls with no error at all. The bootstrap starts it; this awaits
+      // the same future.
+      if (!await ensureGoogleSignInReady()) {
+        return 'Google sign-in is not available on this build.';
+      }
       final account = await GoogleSignIn.instance.authenticate();
       final idToken = account.authentication.idToken;
       if (idToken == null) return 'Google did not return an identity token.';
@@ -27,7 +32,12 @@ class AdminGateScreen extends ConsumerWidget {
       await FirebaseAuth.instance.signInWithCredential(credential);
       return null;
     } on GoogleSignInException catch (error) {
-      return 'Sign-in was not completed (${error.code}).';
+      // A configuration error (wrong SHA-1, wrong package, no web client) is
+      // reported as `canceled` by the underlying CredentialManager SDK, so the
+      // message says both instead of blaming the user for closing the sheet.
+      return 'Sign-in was not completed (${error.code}). If you did not '
+          'cancel it, the app\'s signing key is probably not registered in '
+          'Firebase.';
     } catch (error) {
       return 'Sign-in failed: $error';
     }
