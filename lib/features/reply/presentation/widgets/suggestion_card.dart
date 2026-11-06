@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_theme.dart';
 
-/// One generated reply: editable text plus the three actions from FR-08.
-/// The quick-reply button is hidden - not just disabled - when the source
-/// notification exposed no valid action, so the UI never promises a
-/// capability Android did not offer.
+/// One generated reply: editable text, copy/share actions, and conditional
+/// quick reply. The quick-reply button is hidden - not just disabled - when
+/// the source notification exposed no valid action, so the UI never promises
+/// a capability Android did not offer.
 class SuggestionCard extends StatefulWidget {
   const SuggestionCard({
     required this.controller,
     required this.quickReplyAvailable,
     required this.onCopy,
+    required this.onShare,
     required this.onQuickReply,
     super.key,
   });
@@ -18,6 +19,7 @@ class SuggestionCard extends StatefulWidget {
   final TextEditingController controller;
   final bool quickReplyAvailable;
   final ValueChanged<String> onCopy;
+  final ValueChanged<String> onShare;
   final ValueChanged<String> onQuickReply;
 
   @override
@@ -49,15 +51,16 @@ class _SuggestionCardState extends State<SuggestionCard> {
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
             const SizedBox(height: AppTheme.spaceSm),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: AppTheme.spaceSm,
+              runSpacing: AppTheme.spaceSm,
               children: [
                 OutlinedButton.icon(
                   onPressed: () => widget.onCopy(widget.controller.text),
                   icon: const Icon(Icons.copy_all_outlined, size: 18),
                   label: const Text('Copy'),
                 ),
-                const SizedBox(width: AppTheme.spaceSm),
                 OutlinedButton.icon(
                   onPressed: () => setState(() => _editing = !_editing),
                   icon: Icon(
@@ -66,15 +69,18 @@ class _SuggestionCardState extends State<SuggestionCard> {
                   ),
                   label: Text(_editing ? 'Done' : 'Edit'),
                 ),
-                if (widget.quickReplyAvailable) ...[
-                  const SizedBox(width: AppTheme.spaceSm),
+                OutlinedButton.icon(
+                  onPressed: () => widget.onShare(widget.controller.text),
+                  icon: const Icon(Icons.share_outlined, size: 18),
+                  label: const Text('Share'),
+                ),
+                if (widget.quickReplyAvailable)
                   FilledButton.icon(
                     onPressed: () =>
                         widget.onQuickReply(widget.controller.text),
                     icon: const Icon(Icons.send_outlined, size: 18),
                     label: const Text('Quick reply'),
                   ),
-                ],
               ],
             ),
           ],

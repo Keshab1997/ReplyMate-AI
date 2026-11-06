@@ -38,6 +38,12 @@ Users may receive messages containing multiple languages. The AI should understa
 - Do not change dates, numbers, or factual details.
 - Avoid unnatural literal translations.
 
+## Current implementation status (2026-11-06)
+
+Reply output can be selected independently in Bengali, Hindi or English. The
+application interface itself is currently English-only; independent UI
+localization remains open work in `ROADMAP.md`.
+
 ## Testing
 
 Test native script rendering, punctuation, line wrapping, and copy/paste behaviour for all three languages.

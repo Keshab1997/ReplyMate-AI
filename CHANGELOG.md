@@ -5,7 +5,7 @@ All notable project changes will be recorded here.
 ## [Unreleased]
 
 ### Implemented in the repository
-- Flutter onboarding, home, permissions, app selection, settings and reply-suggestion flows.
+- Flutter onboarding, home, permissions, app selection, settings and reply-suggestion flows, including a selectable 1–3 suggestion count, copy/edit/share actions and composer-session cleanup of transient message context.
 - Kotlin notification listener, parser and Flutter platform-channel integration, including conditional RemoteInput quick reply and user-initiated share/text-selection entry points.
 - Firebase admin gate and Firestore-backed API-key pool with direct provider API integration for reply generation.
 - Bengali, Hindi and English output-language choices, tone/length controls, request validation and user-visible failure handling.

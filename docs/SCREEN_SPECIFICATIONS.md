@@ -44,6 +44,7 @@ Show:
 - Language selector
 - Tone selector
 - Reply length selector
+- Number-of-suggestions selector
 - Generate button
 - Loading state
 - Error state
@@ -55,6 +56,7 @@ Display generated replies in separate cards.
 Actions:
 - Copy
 - Edit
+- Share through the system chooser
 - Use quick reply if supported
 
 ## 8. Settings Screen

@@ -10,11 +10,12 @@ Make replying to messages faster, easier, and more natural without taking contro
 
 ## Core Features
 
-- AI-generated contextual reply suggestions
-- Bengali, Hindi, and English support
-- Multiple reply tones: Friendly, Professional, Casual, Polite, and Funny
+- AI-generated contextual reply suggestions (choose one to three)
+- Bengali, Hindi, and English reply output
+- Multiple reply tones: Friendly, Professional, Casual, Polite, Funny, and Short and direct
 - Android notification-based message assistance
 - Optional floating reply assistant (planned)
+- Copy, edit, and share generated suggestions
 - User reviews and sends every reply
 - Privacy-first design
 - No automatic message sending
@@ -33,8 +34,8 @@ Make replying to messages faster, easier, and more natural without taking contro
 
 - Flutter for the application UI
 - Kotlin for Android-native integrations
-- Secure backend for AI requests
-- Provider-independent AI integration
+- Firestore-backed API-key pool and OpenAI-compatible provider client in the current MVP
+- Server-side provider proxy and rate limiting remain planned hardening
 
 ## Development Status
 

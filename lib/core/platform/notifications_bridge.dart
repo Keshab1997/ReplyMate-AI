@@ -111,6 +111,33 @@ class NotificationsBridge {
     }
   }
 
+  /// Opens Android's system share sheet for a user-selected reply. The
+  /// return value means only that the chooser opened; the user still chooses
+  /// the destination and confirms any send action.
+  Future<bool> shareText(String text) async {
+    if (text.trim().isEmpty) return false;
+    try {
+      return await _channel.invokeMethod<bool>('shareText', {'text': text}) ??
+          false;
+    } on MissingPluginException {
+      return false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  /// Clears native notification context retained only for a possible reply
+  /// during the current composer session.
+  Future<void> clearRetainedContext() async {
+    try {
+      await _channel.invokeMethod<void>('clearRetainedContext');
+    } on MissingPluginException {
+      // No native layer (tests / web): nothing is retained there.
+    } on PlatformException {
+      // Cleanup is best-effort; the Dart-side buffer is cleared separately.
+    }
+  }
+
   /// Text handed over by PROCESS_TEXT or ACTION_SEND, consumed once.
   Future<LaunchContextMap?> consumeLaunchContext() async {
     try {

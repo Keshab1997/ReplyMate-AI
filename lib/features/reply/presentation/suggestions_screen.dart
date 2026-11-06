@@ -47,6 +47,22 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
         .showSnackBar(const SnackBar(content: Text('Reply copied.')));
   }
 
+  /// Shares the edited suggestion through Android's chooser. Opening the
+  /// chooser is not the same as sending: the user selects an app and confirms.
+  Future<void> _share(String text) async {
+    final opened = await ref.read(notificationsBridgeProvider).shareText(text);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          opened
+              ? 'Share sheet opened. Choose an app to continue.'
+              : 'Sharing is unavailable here. Copy the reply instead.',
+        ),
+      ),
+    );
+  }
+
   /// Quick reply is attempted only against a notification that exposed a
   /// valid action; every failure falls back to copy / open-app with an
   /// honest explanation instead of pretending it worked.
@@ -107,6 +123,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                 controller: _controllers[index],
                 quickReplyAvailable: quickReplyAvailable,
                 onCopy: _copy,
+                onShare: _share,
                 onQuickReply: _quickReply,
               ),
               const SizedBox(height: AppTheme.spaceMd),

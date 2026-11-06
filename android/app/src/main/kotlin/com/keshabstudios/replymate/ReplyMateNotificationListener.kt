@@ -120,6 +120,11 @@ class ReplyMateNotificationListener : NotificationListenerService() {
         }
     }
 
+    /** Releases the retained notification when the reply-composer session ends. */
+    fun clearRetainedReplyAction() {
+        lastReplyable = null
+    }
+
     private fun emit(event: Map<String, Any?>) {
         eventSink?.invoke(event)
     }

@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/reply_options.dart';
 import '../../app_selection/providers/selected_apps_provider.dart';
+import '../../notifications/providers/notification_providers.dart';
 
 /// The user's default reply preferences (FR-07 plus tone/length defaults).
 /// Interface language and AI output language are independent settings in the
@@ -94,6 +95,10 @@ class PreferencesNotifier extends Notifier<ReplyPreferences> {
     await prefs.remove(AppConstants.prefSelectedApps);
     await prefs.remove(AppConstants.prefOnboardingDone);
     state = const ReplyPreferences();
-    await ref.read(selectedAppsProvider.notifier).clear();
+    ref.read(capturedNotificationsProvider.notifier).clear();
+    await ref.read(notificationsBridgeProvider).clearRetainedContext();
+    final selectedApps = ref.read(selectedAppsProvider.notifier);
+    await selectedApps.ready;
+    await selectedApps.clear();
   }
 }

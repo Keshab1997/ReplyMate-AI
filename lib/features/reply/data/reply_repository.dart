@@ -22,18 +22,18 @@ class ReplyFailure extends ReplyResult {
   final bool isRetryable;
 }
 
-/// Where suggestions come from. Batch 1 ships only
-/// [NotConfiguredReplyRepository]; batch 2 swaps in the Firestore-backed
-/// key-pool implementation (admin_api_key_manager) behind this same
-/// interface, so no screen changes when the AI backend arrives.
+/// Where suggestions come from. `main()` selects the Firestore-backed key-pool
+/// repository when Firebase initializes, and leaves the
+/// [NotConfiguredReplyRepository] in place for guest mode. The screen depends
+/// only on this interface in either case.
 abstract interface class ReplyRepository {
   Future<ReplyResult> generate(ReplyRequest request);
 }
 
-/// Honest placeholder: the app is fully usable as a shell, and every
-/// generation attempt explains that the AI backend is not configured yet
-/// instead of showing a fabricated reply (docs/AI_INTEGRATION.md: "Never
-/// display a fabricated reply as a successful AI result").
+/// Honest guest-mode fallback: when Firebase/key-pool configuration is
+/// unavailable, generation explains that state instead of showing a fabricated
+/// reply (docs/AI_INTEGRATION.md: "Never display a fabricated reply as a
+/// successful AI result").
 class NotConfiguredReplyRepository implements ReplyRepository {
   const NotConfiguredReplyRepository();
 
@@ -44,17 +44,17 @@ class NotConfiguredReplyRepository implements ReplyRepository {
       return ReplyFailure(problems.join(' '), isRetryable: false);
     }
     return const ReplyFailure(
-      'AI backend is not configured on this install yet. '
-      'Reply generation arrives with the Firebase key-pool integration; '
-      'until then use copy/paste manually.',
+      'AI reply generation is not configured on this install. '
+      'Firebase or its API-key pool is unavailable; use copy/paste manually '
+      'for now.',
       isRetryable: false,
     );
   }
 }
 
-/// The repository the UI talks to. main() overrides it with
-/// [KeyPoolReplyRepository] when Firebase boots; tests override it with
-/// fakes. Nothing ever constructs a repository inside a widget.
+/// The repository the UI talks to. `main()` selects the key-pool
+/// implementation when Firebase boots; tests override it with fakes. Nothing
+/// ever constructs a repository inside a widget.
 final Provider<ReplyRepository> replyRepositoryProvider =
     Provider<ReplyRepository>(
       (Ref ref) => const NotConfiguredReplyRepository(),

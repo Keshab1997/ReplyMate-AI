@@ -16,18 +16,18 @@
 1. A message notification arrives.
 2. ReplyMate AI receives available notification data.
 3. User opens the assistant.
-4. User selects language and tone.
+4. User selects output language, tone, length and the number of suggestions (one to three).
 5. User taps Generate.
 6. AI suggestions appear.
 7. User edits or selects a suggestion.
-8. User copies or uses a supported quick-reply action.
+8. User copies, shares, or uses a supported quick-reply action.
 
 ## Flow 3: Quick Reply Unavailable
 
 1. User selects a suggestion.
 2. The app checks whether a valid notification reply action exists.
 3. If unavailable, the app explains that quick reply is unsupported.
-4. User can copy the reply or open the original application.
+4. User can copy or share the reply, or open the original application.
 
 ## Flow 4: Permission Revoked
 

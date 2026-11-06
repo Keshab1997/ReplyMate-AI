@@ -25,8 +25,9 @@ class SettingsScreen extends ConsumerWidget {
         title: const Text('Clear local preferences?'),
         content: const Text(
           'Language, tone, length, selected apps and onboarding state are '
-          'removed from this device. Nothing else is stored, so nothing '
-          'else can be removed.',
+          'removed from this device. Any in-memory notification context and '
+          'pending quick-reply action are cleared too; message history is not '
+          'stored.',
         ),
         actions: [
           TextButton(

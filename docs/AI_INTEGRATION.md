@@ -12,11 +12,11 @@ Generate relevant, natural, context-aware message replies.
 
 ## User Controls
 
-The user should be able to choose:
+The user can choose:
 - Output language
 - Reply tone
 - Reply length
-- Number of suggestions
+- Number of suggestions (1–3 in the current composer)
 
 ## Suggested Tones
 

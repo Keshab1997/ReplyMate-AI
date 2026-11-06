@@ -14,7 +14,7 @@ Process only notifications from applications selected by the user.
 
 ## AI Processing
 
-When a user requests AI suggestions, relevant message context may be sent to the configured backend and AI provider.
+When a user requests AI suggestions, relevant message context is sent to the configured AI provider. The current MVP calls the provider from the client using its Firestore key pool; a server-side proxy is planned but is not implemented yet (see `API_SECURITY.md`).
 
 Disclose this before the user uses the feature.
 
@@ -26,6 +26,7 @@ Do not claim that message content never leaves the device when cloud AI processi
 - Do not log raw notification content.
 - Do not collect unnecessary personal information.
 - Keep only the information required to complete the requested action.
+- Clear the in-memory notification buffer and native pending reply action when the composer session closes; never persist message content as conversation history.
 
 ## Permissions
 

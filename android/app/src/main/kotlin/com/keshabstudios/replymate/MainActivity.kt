@@ -46,6 +46,27 @@ class MainActivity : FlutterActivity() {
                         ReplyMateNotificationListener.instance?.sendQuickReply(text, key) == true,
                     )
                 }
+                "shareText" -> {
+                    val text = call.argument<String>("text")?.trim().orEmpty()
+                    if (text.isEmpty()) {
+                        result.success(false)
+                    } else {
+                        try {
+                            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, text)
+                            }
+                            startActivity(Intent.createChooser(sendIntent, "Share reply"))
+                            result.success(true)
+                        } catch (error: Exception) {
+                            result.success(false)
+                        }
+                    }
+                }
+                "clearRetainedContext" -> {
+                    ReplyMateNotificationListener.instance?.clearRetainedReplyAction()
+                    result.success(null)
+                }
                 "consumeLaunchContext" -> {
                     result.success(launchContext)
                     launchContext = null

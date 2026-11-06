@@ -14,7 +14,7 @@ void main() {
         length: ReplyLength.short,
       );
 
-  test('batch 1 never fabricates a reply (docs/AI_INTEGRATION.md)', () async {
+  test('guest mode explains missing key-pool configuration without fabricating a reply', () async {
     final result = await repository.generate(request());
     expect(result, isA<ReplyFailure>());
     final failure = result as ReplyFailure;

@@ -37,8 +37,9 @@ hardening and release tasks are listed below and in
 ## Phase 2 — Flutter MVP
 
 - [x] Implement onboarding, home, permission setup and supported-app selection.
-- [x] Implement language, tone and length preferences.
-- [x] Implement the reply composer, suggestions, edit/copy actions and conditional quick reply.
+- [x] Implement AI reply-language, tone, length and suggestion-count preferences.
+- [x] Implement the reply composer, suggestions, edit/copy/share actions and conditional quick reply.
+- [ ] Add independent Bengali/Hindi/English app-interface localization; the current UI remains English-only.
 - [x] Implement settings, privacy explanation and clearing local preferences.
 
 ## Phase 3 — AI Integration
@@ -50,7 +51,7 @@ hardening and release tasks are listed below and in
 ## Phase 4 — Android Integration
 
 - [x] Implement Flutter–Kotlin methods/events and notification, share-sheet and text-selection entry points.
-- [x] Implement RemoteInput validation, stale-notification protection and copy fallback.
+- [x] Implement RemoteInput validation, stale-notification protection, copy fallback, Android share chooser and composer-close cleanup of transient context.
 - [ ] Verify notification lifecycle and quick-reply behavior across supported apps/devices; see the Phase 1 checklist.
 
 ## Phase 5 — Testing and Release Readiness

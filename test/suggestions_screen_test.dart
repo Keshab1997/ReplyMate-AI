@@ -43,9 +43,13 @@ void main() {
 
   String? clipboardText;
   Map<Object?, Object?>? quickReplyArgs;
+  Map<Object?, Object?>? shareArgs;
+  var shareAvailable = true;
 
   setUp(() {
     quickReplyArgs = null;
+    shareArgs = null;
+    shareAvailable = true;
     // Capture Clipboard.setData instead of touching a real clipboard.
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(SystemChannels.platform, (call) async {
@@ -62,6 +66,9 @@ void main() {
         case 'sendQuickReply':
           quickReplyArgs = call.arguments as Map<Object?, Object?>;
           return false;
+        case 'shareText':
+          shareArgs = call.arguments as Map<Object?, Object?>;
+          return shareAvailable;
         case 'isListenerEnabled':
           return false;
         default:
@@ -153,6 +160,44 @@ void main() {
     await tester.pumpAndSettle();
     expect(clipboardText, 'Sure!');
     expect(find.text('Reply copied.'), findsOneWidget);
+  });
+
+  testWidgets('share sends the edited suggestion to the chooser', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      app(SuggestionsScreen(replies: const ['Sure!'], request: request)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Edited reply');
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Share'));
+    await tester.pumpAndSettle();
+
+    expect(shareArgs?['text'], 'Edited reply');
+    expect(
+      find.text('Share sheet opened. Choose an app to continue.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('share failure offers a copy fallback', (tester) async {
+    shareAvailable = false;
+    await tester.pumpWidget(
+      app(SuggestionsScreen(replies: const ['Sure!'], request: request)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Share'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Sharing is unavailable here. Copy the reply instead.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('edit swaps the card text for an editable field', (tester) async {

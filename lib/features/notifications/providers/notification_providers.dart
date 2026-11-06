@@ -24,7 +24,8 @@ final StreamProvider<Map<String, Object?>> notificationEventsProvider =
     );
 
 /// Captured message contexts, newest first, capped so a chatty device never
-/// grows an unbounded list of other people's messages in memory.
+/// grows an unbounded list of other people's messages in memory. The composer
+/// clears this buffer when its session closes.
 final StateNotifierProvider<
   CapturedNotificationsNotifier,
   List<CapturedNotification>
@@ -86,8 +87,8 @@ class CapturedNotificationsNotifier
 }
 
 /// Text delivered by PROCESS_TEXT / ACTION_SEND, consumed once at startup.
-final FutureProvider<LaunchContext?> launchContextProvider =
-    FutureProvider<LaunchContext?>((Ref ref) async {
+final AutoDisposeFutureProvider<LaunchContext?> launchContextProvider =
+    FutureProvider.autoDispose<LaunchContext?>((Ref ref) async {
       final raw = await ref
           .read(notificationsBridgeProvider)
           .consumeLaunchContext();

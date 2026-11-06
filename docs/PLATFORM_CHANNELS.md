@@ -21,6 +21,8 @@ absent (widget tests, web preview), so the UI explains instead of crashing.
 | `candidateApps` | – | `List<Map>` of `{packageName, label}` | Only packages that are installed **and** visible under the manifest `<queries>` list. Never claims an app it cannot see. |
 | `setAllowedPackages` | `{packages: List<String>}` | `null` | Mirrors the user's allowlist into native prefs; the listener processes only these packages. |
 | `sendQuickReply` | `{text: String, key: String}` | `bool` | Attempts a RemoteInput reply on the notification identified by `key`, and only when that is still the notification the listener holds. `false` = no service / no stored notification / a different notification was captured in the meantime / dead action / throw; the UI then offers copy or open-app. |
+| `shareText` | `{text: String}` | `bool` | Opens Android's system share chooser with the edited reply. `true` means only that the chooser opened; the user chooses a destination and confirms any send. Missing plugin, empty text or launch failure returns `false`. |
+| `clearRetainedContext` | – | `null` | Clears the native reply action held for the current composer session. Called when the composer closes; Dart also clears its in-memory notification buffer. |
 | `consumeLaunchContext` | – | `Map?` `{source, text}` or `null` | Text from `ACTION_PROCESS_TEXT` (`source: process_text`) or `ACTION_SEND` (`source: share`). Consumed once, then cleared. |
 
 `sendQuickReply` is bound to one notification. The listener keeps a single

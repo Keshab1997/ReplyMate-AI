@@ -12,8 +12,9 @@ machine with the Android toolchain.
 Keshab reports that admin, API access and reply generation work on a real
 device. Device model, Android/app version and exact test steps were not
 recorded. This report does not establish notification capture, RemoteInput
-quick-reply delivery, share/text-selection behavior or the rest of this
-checklist; keep those cases pending until their results are recorded.
+quick-reply delivery, inbound or outbound sharing, text-selection behavior,
+composer-close cleanup or the rest of this checklist; keep those cases pending
+until their results are recorded.
 
 ## Getting a build
 
@@ -55,6 +56,8 @@ agent and letting it record them.
 | 14 | Force-stop ReplyMate, send a message, reopen the app | Record whether the notification was missed (Android may not reconnect the listener until reboot on some OEMs) | _pending_ |
 | 15 | Battery-optimization / OEM background restriction enabled | Record listener behaviour per manufacturer | _pending_ |
 | 16 | With the composer open for message A, let a **second** notification from another chat (with a reply action) arrive, then use quick reply | Quick reply is refused; the reply is never delivered to the second chat; copy/open-app fallback is offered instead | _pending_ |
+| 17 | From a generated suggestion, tap **Share** and choose a destination app | The system chooser shows the edited reply; nothing is sent until the user confirms in the destination app | _pending_ |
+| 18 | Open the composer from a notification, close it, then open it again without a new notification | The previous message is not shown and quick reply is unavailable until a fresh notification arrives | _pending_ |
 
 ## Reading the results
 

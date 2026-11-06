@@ -43,7 +43,7 @@ void main() {
   });
 
   testWidgets(
-    'composer validates before generating and explains the missing backend',
+    'composer validates before generating and explains guest-mode configuration',
     (tester) async {
       // A tall test surface: ListView builds lazily, and this test asserts
       // on widgets at the bottom of two different screens.
@@ -60,7 +60,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('Add a message'), findsOneWidget);
 
-      // Real text: batch 1 has no AI backend yet, and says so honestly.
+      // Real text in guest mode: Firebase/key-pool is unavailable, and the
+      // app explains that honestly.
       await tester.enterText(
         find.byType(TextField).first,
         'Can we meet tomorrow?',
