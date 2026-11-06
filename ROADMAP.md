@@ -1,64 +1,67 @@
 # ReplyMate AI Roadmap
 
+_Last reconciled: 2026-11-06_
+
+**Status legend:** `[x]` means implementation exists in the repository; it does
+not mean every device test or release gate has passed. `[ ]` means not yet
+implemented or not yet verified.
+
+## Current snapshot
+
+The core Flutter app, Android notification bridge, admin/key-pool flow and AI
+reply-generation path are implemented. Keshab reports a real-device smoke check
+confirmed admin, API access and reply generation. The device/build details and
+exact test steps were not recorded; this is not a full Phase 1 sign-off.
+
+The current AI path is the documented client-side Firestore key-pool design,
+not a server-side proxy. The remaining device checks, architecture/security
+hardening and release tasks are listed below and in
+[`docs/PHASE1_DEVICE_TESTS.md`](docs/PHASE1_DEVICE_TESTS.md).
+
 ## Phase 0 — Project Foundation
 
-- [ ] Create repository structure
-- [ ] Finalize product requirements
-- [ ] Finalize architecture
-- [ ] Configure Flutter project
-- [ ] Configure Android Kotlin integration
+- [x] Create the repository and Flutter/Android project structure.
+- [x] Document product requirements and the intended system architecture.
+- [x] Configure the Flutter application and Android Kotlin integration.
+- [x] Configure Firebase project wiring and Firestore rules.
+- [ ] Reconcile the target backend architecture docs with the current key-pool implementation.
 
 ## Phase 1 — Android Feasibility
 
-- [ ] Implement a minimal NotificationListenerService
-- [ ] Request notification access
-- [ ] Capture test notifications
-- [ ] Handle missing and redacted content
-- [ ] Detect notification actions
-- [ ] Test RemoteInput on physical Android devices
-
-**Release gate:** Do not proceed with claims of universal quick reply until real-device tests establish what works.
+- [x] Implement the Kotlin `NotificationListenerService` and notification parser.
+- [x] Implement notification-access setup and the selected-app allowlist.
+- [x] Handle missing, grouped, redacted and truncated notification content in code.
+- [x] Detect reply actions and bind quick reply to the notification it belongs to.
+- [ ] Complete and record the real-device checklist, including quick-reply delivery, share/text-selection, permission revocation and OEM lifecycle behavior.
 
 ## Phase 2 — Flutter MVP
 
-- [ ] Onboarding
-- [ ] Home screen
-- [ ] Permission setup screen
-- [ ] Supported-app selection
-- [ ] Language selection
-- [ ] Tone selection
-- [ ] Reply suggestion interface
+- [x] Implement onboarding, home, permission setup and supported-app selection.
+- [x] Implement language, tone and length preferences.
+- [x] Implement the reply composer, suggestions, edit/copy actions and conditional quick reply.
+- [x] Implement settings, privacy explanation and clearing local preferences.
 
 ## Phase 3 — AI Integration
 
-- [ ] Backend API
-- [ ] AI provider adapter
-- [ ] Reply-generation endpoint
-- [ ] Error handling
-- [ ] Rate limiting
-- [ ] Privacy controls
+- [x] Implement the Firestore key-pool/provider client path, request validation, reply parsing and user-visible failures.
+- [x] Confirm by owner report that API access and reply generation work on a real device.
+- [ ] Implement or explicitly defer the server-side proxy, authentication and rate limiting. The current client-readable key-pool trade-off is documented in [`docs/API_SECURITY.md`](docs/API_SECURITY.md).
 
 ## Phase 4 — Android Integration
 
-- [ ] Flutter-to-Kotlin communication
-- [ ] Notification event handling
-- [ ] Reply action validation
-- [ ] Copy and fallback actions
-- [ ] Lifecycle and permission testing
+- [x] Implement Flutter–Kotlin methods/events and notification, share-sheet and text-selection entry points.
+- [x] Implement RemoteInput validation, stale-notification protection and copy fallback.
+- [ ] Verify notification lifecycle and quick-reply behavior across supported apps/devices; see the Phase 1 checklist.
 
-## Phase 5 — Testing
+## Phase 5 — Testing and Release Readiness
 
-- [ ] Functional tests
-- [ ] Physical-device tests
-- [ ] Privacy review
-- [ ] Performance review
-- [ ] Closed testing
+- [x] Add core Dart unit and widget tests.
+- [ ] Finish the manual real-device checklist; only the admin/API/reply-generation smoke test is currently reported here.
+- [ ] Complete privacy/security and performance review.
+- [ ] Publish the privacy policy, complete Play policy declarations and prepare closed testing.
+- [ ] Complete release sign-off. No production release is claimed.
 
-## Phase 6 — Future Features
+## Phase 6 — Future Features (not required for the notification MVP)
 
-- [ ] Floating overlay prototype
-- [ ] More reply styles
-- [ ] More languages
-- [ ] Additional supported apps
-
-Each phase must be tested before moving to the next one.
+- [ ] Prototype the optional floating assistant overlay.
+- [ ] Add more reply styles/languages and supported apps after validation.

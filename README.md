@@ -38,7 +38,11 @@ Make replying to messages faster, easier, and more natural without taking contro
 
 ## Development Status
 
-Early planning and feasibility stage. Features will be implemented in phases after Android-device testing.
+The core app prototype is implemented: Flutter onboarding, home, settings and reply flows; the Kotlin notification listener and platform bridge; and Firebase-backed admin/key-pool integration for AI reply generation.
+
+On 2026-11-06, Keshab reported a real-device smoke check confirming that the admin flow, API request and reply generation work. Device/build details and individual test steps were not recorded. This does **not** verify every notification, quick-reply, share/selection or OEM behavior; see [the Phase 1 device checklist](docs/PHASE1_DEVICE_TESTS.md).
+
+The app is not release-ready. The current AI design lets signed-in clients read a Firestore key pool and call providers directly; the planned server-side proxy and rate limiting are not implemented. See [API security](docs/API_SECURITY.md) and the [roadmap](ROADMAP.md) for remaining work.
 
 ## Development
 

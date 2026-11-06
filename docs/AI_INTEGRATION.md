@@ -71,6 +71,15 @@ The user should be able to choose:
 - Do not generate harmful or deceptive content.
 - Return structured output that the app can validate.
 
+## Current implementation status (2026-11-06)
+
+The request-flow sections above describe the intended backend architecture.
+The current MVP instead reads an enabled key from the Firestore key pool and
+calls an OpenAI-compatible provider from the client; see
+[`API_SECURITY.md`](API_SECURITY.md) for the accepted trade-off and planned
+server-side proxy. Keshab reports API access and reply generation working on a
+real device, but this does not mean the backend proxy or rate limiting exists.
+
 ## Provider Independence
 
 Use a backend adapter so the application is not tightly coupled to one AI provider.

@@ -4,6 +4,12 @@
 
 Build the smallest working feature first. Do not attempt the entire application in one coding task.
 
+> This is the original implementation sequence, not a live progress tracker.
+> The repository now contains the Flutter MVP and Android integration; current
+> implementation and open verification/release work are tracked in
+> [`ROADMAP.md`](../ROADMAP.md). The physical-device gate remains in
+> [`PHASE1_DEVICE_TESTS.md`](PHASE1_DEVICE_TESTS.md).
+
 ## Step 1: Repository Inspection
 
 - Inspect the repository.

@@ -2,12 +2,22 @@
 
 The ROADMAP release gate forbids claiming quick-reply support until real
 devices establish what works. This checklist is how that evidence gets
-collected. The sandbox cannot run it: no Android device, no emulator, and
-local builds are forbidden by AGENTS.md.
+collected. The agent sandbox cannot run it because no Android device or
+emulator is attached. The agent must not run a full local build merely as a
+check (AGENTS.md); a developer can use the local `flutter run` path below on a
+machine with the Android toolchain.
+
+## Owner-reported smoke test (2026-11-06)
+
+Keshab reports that admin, API access and reply generation work on a real
+device. Device model, Android/app version and exact test steps were not
+recorded. This report does not establish notification capture, RemoteInput
+quick-reply delivery, share/text-selection behavior or the rest of this
+checklist; keep those cases pending until their results are recorded.
 
 ## Getting a build
 
-- **Preferred:** Actions → *manual-build* → Run workflow → download the APK
+- **Preferred:** Actions → *Build Android APK or AAB (Manual)* → Run workflow → download the APK
   artifact (signed with the upload keystore from repository secrets).
 - **Local:** `flutter run` on a machine with the Android toolchain, with the
   device in developer mode.

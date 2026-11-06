@@ -62,6 +62,15 @@ Generates suggested replies from the context explicitly provided by the user and
 - The AI backend must not send messages.
 - Sending remains a user-controlled action.
 
+## Current implementation status (2026-11-06)
+
+The backend flow above is the target/hardening architecture, not the current
+runtime path. The MVP currently uses architecture A from
+[`API_SECURITY.md`](API_SECURITY.md): Flutter reads the Firestore key pool and
+calls the configured provider directly. A server-side proxy, authentication
+and rate limiting remain open work. Do not treat the target flow above as an
+implemented backend.
+
 ## Architectural Principle
 
 Keep Android-specific code isolated from Flutter business logic. Use documented interfaces between layers.
