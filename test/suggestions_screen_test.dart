@@ -42,8 +42,10 @@ void main() {
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
 
   String? clipboardText;
+  Map<Object?, Object?>? quickReplyArgs;
 
   setUp(() {
+    quickReplyArgs = null;
     // Capture Clipboard.setData instead of touching a real clipboard.
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(SystemChannels.platform, (call) async {
@@ -53,14 +55,19 @@ void main() {
           }
           return null;
         });
-    binding.defaultBinaryMessenger.setMockMethodCallHandler(
-      bridgeChannel,
-      (call) async => switch (call.method) {
-        'sendQuickReply' => false,
-        'isListenerEnabled' => false,
-        _ => null,
-      },
-    );
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(bridgeChannel, (
+      call,
+    ) async {
+      switch (call.method) {
+        case 'sendQuickReply':
+          quickReplyArgs = call.arguments as Map<Object?, Object?>;
+          return false;
+        case 'isListenerEnabled':
+          return false;
+        default:
+          return null;
+      }
+    });
   });
 
   tearDown(() {
@@ -110,6 +117,29 @@ void main() {
       await tester.tap(find.text('Quick reply'));
       await tester.pumpAndSettle();
       expect(find.textContaining('no longer valid'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'quick reply carries the notification key, so it can only reach its own chat',
+    (tester) async {
+      await tester.pumpWidget(
+        app(
+          SuggestionsScreen(
+            replies: const ['Sure!'],
+            request: request,
+            context: contextWith(hasReplyAction: true),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Quick reply'));
+      await tester.pumpAndSettle();
+      // The key of the notification being replied to travels with the call:
+      // the native layer refuses a reply aimed at any other conversation.
+      expect(quickReplyArgs, isNotNull);
+      expect(quickReplyArgs!['text'], 'Sure!');
+      expect(quickReplyArgs!['key'], 'sbn-1');
     },
   );
 

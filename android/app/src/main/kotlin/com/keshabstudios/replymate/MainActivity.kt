@@ -41,8 +41,9 @@ class MainActivity : FlutterActivity() {
                 }
                 "sendQuickReply" -> {
                     val text = call.argument<String>("text") ?: ""
+                    val key = call.argument<String>("key")
                     result.success(
-                        ReplyMateNotificationListener.instance?.sendQuickReply(text) == true,
+                        ReplyMateNotificationListener.instance?.sendQuickReply(text, key) == true,
                     )
                 }
                 "consumeLaunchContext" -> {

@@ -20,8 +20,16 @@ absent (widget tests, web preview), so the UI explains instead of crashing.
 | `openListenerSettings` | – | `null` | Starts `ACTION_NOTIFICATION_LISTENER_SETTINGS`. The grant decision stays in Android Settings. |
 | `candidateApps` | – | `List<Map>` of `{packageName, label}` | Only packages that are installed **and** visible under the manifest `<queries>` list. Never claims an app it cannot see. |
 | `setAllowedPackages` | `{packages: List<String>}` | `null` | Mirrors the user's allowlist into native prefs; the listener processes only these packages. |
-| `sendQuickReply` | `{text: String}` | `bool` | Attempts a RemoteInput reply on the last notification that exposed a valid action. `false` = no service / no stored notification / dead action / throw; the UI then offers copy or open-app. |
+| `sendQuickReply` | `{text: String, key: String}` | `bool` | Attempts a RemoteInput reply on the notification identified by `key`, and only when that is still the notification the listener holds. `false` = no service / no stored notification / a different notification was captured in the meantime / dead action / throw; the UI then offers copy or open-app. |
 | `consumeLaunchContext` | – | `Map?` `{source, text}` or `null` | Text from `ACTION_PROCESS_TEXT` (`source: process_text`) or `ACTION_SEND` (`source: share`). Consumed once, then cleared. |
+
+`sendQuickReply` is bound to one notification. The listener keeps a single
+notification - the last one that exposed a reply action - and the call carries
+that notification's `key`, so a reply is only ever delivered to the
+conversation it was written for. A newer notification from another chat makes
+the stored action stale, the call returns `false`, and the UI falls back to
+copy / open-app instead of delivering the reply somewhere the user never saw
+it.
 
 ## Kotlin -> Dart events (`onEvent`)
 

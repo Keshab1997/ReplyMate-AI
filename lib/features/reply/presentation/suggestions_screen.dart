@@ -65,7 +65,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     }
     final sent = await ref
         .read(notificationsBridgeProvider)
-        .sendQuickReply(text);
+        .sendQuickReply(text, notificationKey: notification.key);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

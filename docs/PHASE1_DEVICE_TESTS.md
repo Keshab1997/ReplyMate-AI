@@ -44,6 +44,7 @@ agent and letting it record them.
 | 13 | Revoke notification access in Settings, return to the app | Status card flips to *not granted*; manual paste still works | _pending_ |
 | 14 | Force-stop ReplyMate, send a message, reopen the app | Record whether the notification was missed (Android may not reconnect the listener until reboot on some OEMs) | _pending_ |
 | 15 | Battery-optimization / OEM background restriction enabled | Record listener behaviour per manufacturer | _pending_ |
+| 16 | With the composer open for message A, let a **second** notification from another chat (with a reply action) arrive, then use quick reply | Quick reply is refused; the reply is never delivered to the second chat; copy/open-app fallback is offered instead | _pending_ |
 
 ## Reading the results
 

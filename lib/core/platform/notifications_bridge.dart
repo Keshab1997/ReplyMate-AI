@@ -88,13 +88,22 @@ class NotificationsBridge {
     }
   }
 
-  /// Attempts a RemoteInput quick reply. False means "no valid action or the
-  /// send failed" - the UI must then offer copy / open-app (docs/USER_FLOWS
-  /// flow 3).
-  Future<bool> sendQuickReply(String text) async {
+  /// Attempts a RemoteInput quick reply against the notification identified
+  /// by [notificationKey] (its `StatusBarNotification.key`). False means "no
+  /// valid action, the action is no longer live, or the notification is not
+  /// the one being replied to" - the UI must then offer copy / open-app
+  /// (docs/USER_FLOWS flow 3).
+  ///
+  /// The key travels with the call on purpose: a reply must only ever reach
+  /// the conversation it was written for.
+  Future<bool> sendQuickReply(
+    String text, {
+    required String notificationKey,
+  }) async {
     try {
       return await _channel.invokeMethod<bool>('sendQuickReply', {
             'text': text,
+            'key': notificationKey,
           }) ??
           false;
     } on MissingPluginException {
