@@ -78,6 +78,12 @@ void main() {
     expect(bubbleSwitch(tester).onChanged, isNull);
     expect(find.textContaining('Display over other apps'), findsOneWidget);
     expect(recorder.bubbleValues, isEmpty);
+
+    // And the reason is actionable from here - not three screens away.
+    expect(find.text('Grant overlay access'), findsOneWidget);
+    await tester.tap(find.text('Grant overlay access'));
+    await tester.pumpAndSettle();
+    expect(recorder.calls, contains('openOverlaySettings'));
   });
 
   testWidgets('with overlay access the switch turns the bubble on natively', (
@@ -86,6 +92,7 @@ void main() {
     final recorder = await pump(tester, overlayGranted: true);
 
     expect(bubbleSwitch(tester).onChanged, isNotNull);
+    expect(find.text('Grant overlay access'), findsNothing);
 
     await tester.tap(find.text('Floating reply bubble'));
     await tester.pumpAndSettle();

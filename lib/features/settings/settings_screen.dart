@@ -136,24 +136,50 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
             const SizedBox(height: AppTheme.spaceLg),
             const SectionLabel('Reply bubble'),
             Card(
-              child: SwitchListTile(
-                value: bubbleEnabled,
-                // Off - and unswitchable - until Android actually lets us draw
-                // over other apps. A switch that promises something the OS
-                // refuses would be the dishonest version of this control.
-                onChanged: overlayEnabled
-                    ? (value) => _setBubble(context, ref, value)
-                    : null,
-                title: const Text('Floating reply bubble'),
-                subtitle: Text(
-                  overlayEnabled
-                      ? 'Shows a bubble over the app you are in when an '
-                            'allowed app sends a message. Off by default; turn '
-                            'it off again any time.'
-                      : 'Needs the optional "Display over other apps" access. '
-                            'Grant it on the notification access screen; '
-                            'without it, nothing changes.',
-                ),
+              child: Column(
+                children: [
+                  SwitchListTile(
+                    value: bubbleEnabled,
+                    // Off - and unswitchable - until Android actually lets us
+                    // draw over other apps. A switch that promises something
+                    // the OS refuses would be the dishonest version of it.
+                    onChanged: overlayEnabled
+                        ? (value) => _setBubble(context, ref, value)
+                        : null,
+                    title: const Text('Floating reply bubble'),
+                    subtitle: Text(
+                      overlayEnabled
+                          ? 'Shows a bubble over the app you are in when an '
+                                'allowed app sends a message. Off by default; '
+                                'turn it off again any time.'
+                          : 'Needs the optional "Display over other apps" '
+                                'access. Grant it below; the switch turns on '
+                                'by itself when you come back.',
+                    ),
+                  ),
+                  // The fix for "the switch does nothing": the reason is a
+                  // permission, so the permission gets a button *here*, not
+                  // three screens away. Coming back re-reads the grant and the
+                  // switch un-greys itself.
+                  if (!overlayEnabled)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppTheme.spaceMd,
+                        0,
+                        AppTheme.spaceMd,
+                        AppTheme.spaceSm,
+                      ),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: OutlinedButton.icon(
+                          onPressed: () =>
+                              ref.read(overlayProvider.notifier).openSettings(),
+                          icon: const Icon(Icons.open_in_new, size: 18),
+                          label: const Text('Grant overlay access'),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
             const SizedBox(height: AppTheme.spaceLg),

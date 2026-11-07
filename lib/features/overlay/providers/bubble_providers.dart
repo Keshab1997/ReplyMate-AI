@@ -18,6 +18,12 @@ final NotifierProvider<BubbleEnabledNotifier, bool> bubbleEnabledProvider =
 class BubbleEnabledNotifier extends Notifier<bool> {
   bool _alive = true;
 
+  /// True once the user has used the switch. The stored value is loaded
+  /// asynchronously, and a read that started before the tap must never land
+  /// after it - that race flips the switch back to off and reads as "the
+  /// switch does not work".
+  bool _userChose = false;
+
   @override
   bool build() {
     _alive = true;
@@ -29,13 +35,14 @@ class BubbleEnabledNotifier extends Notifier<bool> {
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getBool(AppConstants.prefBubbleEnabled) ?? false;
-    if (_alive) state = stored;
+    if (_alive && !_userChose) state = stored;
   }
 
   /// Persists the choice on both sides - Flutter preferences for the UI,
   /// native preferences for the listener, which runs with no engine alive -
   /// and lets the native layer start or stop the service to match.
   Future<void> setEnabled(bool enabled) async {
+    _userChose = true;
     state = enabled;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(AppConstants.prefBubbleEnabled, enabled);
