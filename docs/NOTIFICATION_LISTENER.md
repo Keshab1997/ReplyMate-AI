@@ -90,6 +90,16 @@ The bubble also disappears when its notification is removed
 (`onNotificationRemoved` matches the pending key), after ten minutes, and while
 the screen is off or locked.
 
+### Known limitation: the fallback tap while the app is already open
+
+The fallback notification opens the composer **when it starts the app** (cold
+start, or a warm start where `MainActivity` had no pending reply session). If
+ReplyMate is already on screen, tapping it brings the app forward and leaves the
+user on Home; the message is still in the capture buffer, so
+*Generate a reply* opens the composer with it. Closing that gap needs a new
+native → Dart event, which this channel does not have yet - recorded here rather
+than hidden.
+
 ## Self notifications (implemented)
 
 ReplyMate may post its own notification for two reasons only: the bubble
