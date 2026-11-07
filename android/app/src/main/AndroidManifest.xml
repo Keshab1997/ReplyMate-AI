@@ -65,6 +65,17 @@
             </intent-filter>
         </service>
 
+        <!-- The reply panel: translucent, task-excluded, and not exported, so
+             nothing but our own bubble can open it. -->
+        <activity
+            android:name=".OverlayPanelActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@style/OverlayPanelTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize" />
+
         <!-- The bubble itself: a tiny WindowManager view kept alive by a
              foreground service. `specialUse` is declared honestly (and must be
              declared in Play Console) because no narrower FGS type covers

@@ -138,6 +138,26 @@ class NotificationsBridge {
     }
   }
 
+  /// The pending overlay context - `{source, packageName, key, title, text, ...}`
+  /// - consumed once. `source` is `bubble` or `fallback`; every other field is
+  /// the `notification_captured` wire format, so `CapturedNotification` parses
+  /// it unchanged (docs/PLATFORM_CHANNELS.md).
+  ///
+  /// One-shot by contract, not by convention: the native side clears the
+  /// pending map as it answers, so a second call returns null rather than
+  /// handing the same message out twice.
+  Future<Map<Object?, Object?>?> consumeOverlayContext() async {
+    try {
+      return await _channel.invokeMethod<Map<Object?, Object?>>(
+        'consumeOverlayContext',
+      );
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
+    }
+  }
+
   /// Text handed over by PROCESS_TEXT or ACTION_SEND, consumed once.
   Future<LaunchContextMap?> consumeLaunchContext() async {
     try {

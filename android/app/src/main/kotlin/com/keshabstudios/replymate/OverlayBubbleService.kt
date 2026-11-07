@@ -223,14 +223,7 @@ class OverlayBubbleService : Service() {
      * for the next attempt instead of dropping it.
      */
     private fun openPanel() {
-        val intent = Intent(this, MainActivity::class.java).apply {
-            action = MainActivity.ACTION_OVERLAY_PANEL
-            addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP,
-            )
-        }
+        val intent = OverlayPanelActivity.createIntent(this)
         try {
             startActivity(intent)
         } catch (error: Exception) {

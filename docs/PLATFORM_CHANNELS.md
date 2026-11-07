@@ -81,21 +81,27 @@ docs/ANDROID_NATIVE_SERVICES.md).
 
 ---
 
-# Planned: floating reply bubble (NOT IMPLEMENTED)
+# Floating reply bubble
 
 Specified in `docs/FLOATING_OVERLAY.md`; batches in `docs/OVERLAY_TASKS.md`.
-**Nothing in this section exists in the code yet.** Implement it — and this
-table — in the same batch, or the channel and its documentation drift apart.
+Implement a method — and this table — in the same batch, or the channel and its
+documentation drift apart. Implemented so far: `consumeOverlayContext` and the
+panel route (Batch 2). The rest is marked *planned* below.
 
-## New Dart -> Kotlin methods
+## Dart -> Kotlin methods
 
-| Method | Arguments | Returns | Notes |
-|---|---|---|---|
-| `isOverlayEnabled` | – | `bool` | `Settings.canDrawOverlays(this)`. |
-| `openOverlaySettings` | – | `null` | `ACTION_MANAGE_OVERLAY_PERMISSION` with our package uri. Grants nothing by itself. |
-| `requestNotificationPermission` | – | `bool` | Runtime `POST_NOTIFICATIONS` on Android 13+; `true` on older versions. Needed before the bubble service can show its own notification. |
-| `setBubbleEnabled` | `{enabled: bool}` | `null` | Persists in native prefs and starts/stops `OverlayBubbleService`. Starting from the background may throw `ForegroundServiceStartNotAllowedException`; that is caught and reported as `false`, never a crash. |
-| `consumeOverlayContext` | – | `Map?` | One-shot pending context. Same field names as the `notification_captured` table above, plus `source` (`bubble` / `fallback`). Cleared on read. |
+| Method | Arguments | Returns | Status | Notes |
+|---|---|---|---|---|
+| `consumeOverlayContext` | – | `Map?` | **implemented** | One-shot pending context, read by `overlayContextProvider` and parsed by `OverlayContext.fromMap`. Same field names as the `notification_captured` table above, plus `source` (`bubble` / `fallback`). Cleared on read, so a second call returns `null`. |
+| `isOverlayEnabled` | – | `bool` | planned | `Settings.canDrawOverlays(this)`. |
+| `openOverlaySettings` | – | `null` | planned | `ACTION_MANAGE_OVERLAY_PERMISSION` with our package uri. Grants nothing by itself. |
+| `requestNotificationPermission` | – | `bool` | planned | Runtime `POST_NOTIFICATIONS` on Android 13+; `true` on older versions. Needed before the bubble service can show its own notification. |
+| `setBubbleEnabled` | `{enabled: bool}` | `null` | planned | Persists in native prefs and starts/stops `OverlayBubbleService`. Starting from the background may throw `ForegroundServiceStartNotAllowedException`; that is caught and reported as `false`, never a crash. |
+
+`source` is `bubble` (the panel activity launched at route `/overlay`) or
+`fallback` (ReplyMate's own notification, which opens the composer). An unknown
+`source` is read as `fallback`: the conservative path can never promise more
+than Android gave us.
 
 ## Fallback notification
 
