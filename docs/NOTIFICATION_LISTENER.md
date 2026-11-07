@@ -55,6 +55,28 @@ Before using it:
 
 If quick reply is unavailable, provide copy or open-app alternatives.
 
+## Handoff and process death
+
+The listener forwards each event once and keeps nothing on disk. That has a
+consequence the UI must not hide:
+
+- while the Flutter engine is alive, events reach the app and the newest one
+  fills the composer;
+- when the process is dead, events are dropped on purpose. The user opening
+  the app later will find no captured message.
+
+The planned fix is `docs/FLOATING_OVERLAY.md`: a bubble while the app is
+running, and a fallback notification ("New message from \<app\>") when it is
+not. Until that ships, the composer must say plainly that nothing was
+captured — never show an empty box as if the message were there.
+
+## Self notifications (planned)
+
+ReplyMate may post its own notification for two reasons only: the bubble
+service's foreground notification, and the fallback "Draft a reply" entry
+point. Both are separate from notification-listener access and both must obey
+the same rule: no message text, no sender name, no message preview.
+
 ## Testing
 
 Test on multiple messaging apps and Android versions using real devices and test accounts.

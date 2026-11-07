@@ -14,7 +14,8 @@ Make replying to messages faster, easier, and more natural without taking contro
 - Bengali, Hindi, and English reply output
 - Multiple reply tones: Friendly, Professional, Casual, Polite, Funny, and Short and direct
 - Android notification-based message assistance
-- Optional floating reply assistant (planned)
+- Optional floating reply assistant (specified in
+  [docs/FLOATING_OVERLAY.md](docs/FLOATING_OVERLAY.md), not built yet)
 - Copy, edit, and share generated suggestions
 - User reviews and sends every reply
 - Privacy-first design
@@ -39,9 +40,11 @@ Make replying to messages faster, easier, and more natural without taking contro
 
 ## Development Status
 
-The core app prototype is implemented: Flutter onboarding, home, settings and reply flows; the Kotlin notification listener and platform bridge; and Firebase-backed admin/key-pool integration for AI reply generation.
+The core app prototype is implemented: Flutter onboarding, home, settings and reply flows; the Kotlin notification listener and platform bridge; and Firebase-backed admin/key-pool integration for AI reply generation. 57 Dart unit/widget tests cover the Dart side.
 
 On 2026-11-06, Keshab reported a real-device smoke check confirming that the admin flow, API request and reply generation work. Device/build details and individual test steps were not recorded. This does **not** verify every notification, quick-reply, share/selection or OEM behavior; see [the Phase 1 device checklist](docs/PHASE1_DEVICE_TESTS.md).
+
+A floating reply bubble — the answer to "why does nothing appear when a WhatsApp message arrives?" — is fully specified in [docs/FLOATING_OVERLAY.md](docs/FLOATING_OVERLAY.md) and [docs/OVERLAY_TASKS.md](docs/OVERLAY_TASKS.md), but **not built yet**. Today, notification context is captured only while the app is running, and you open ReplyMate yourself to draft a reply.
 
 The app is not release-ready. The current AI design lets signed-in clients read a Firestore key pool and call providers directly; the planned server-side proxy and rate limiting are not implemented. See [API security](docs/API_SECURITY.md) and the [roadmap](ROADMAP.md) for remaining work.
 

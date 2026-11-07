@@ -76,4 +76,17 @@ Explain:
 - What is stored
 - How to revoke permissions
 
+## 10. Floating Reply Panel (planned — `docs/FLOATING_OVERLAY.md`)
+
+Reached only from the bubble, never from normal navigation. Must:
+- show the source app and the message the notification exposed;
+- reuse the language/tone/length chips and the same suggestion cards;
+- make Copy the always-available action;
+- offer quick reply only when the notification still has a valid action, and
+  explain the fallback when it does not;
+- close to nothing: no history, no stored message, no "recent replies" list.
+
+The permission screen (4) gains one optional card for the overlay permission:
+what it does, what it does not do, current status, and a Settings button.
+
 All screens must handle small displays and different Android font scales.

@@ -14,11 +14,29 @@ Process only notifications from applications selected by the user.
 
 ## AI Processing
 
-When a user requests AI suggestions, relevant message context is sent to the configured AI provider. The current MVP calls the provider from the client using its Firestore key pool; a server-side proxy is planned but is not implemented yet (see `API_SECURITY.md`).
+When a user taps Generate, the message text on screen is sent to the
+configured AI provider through the Firestore key pool
+(`docs/AI_INTEGRATION.md`) — the current MVP calls the provider from the
+client, and a server-side proxy is planned but not implemented. This happens
+only on that explicit tap — never when a notification arrives.
 
-Disclose this before the user uses the feature.
+Disclose this in onboarding and in Settings before the feature is used.
 
-Do not claim that message content never leaves the device when cloud AI processing is enabled.
+Do not claim that message content never leaves the device: with cloud AI
+enabled, the text of the message being answered does leave it.
+
+## The floating bubble, in privacy terms
+
+- The bubble itself shows an icon only — no sender, no text.
+- Tapping it opens a panel that shows the message because the user asked to
+  see it, on their own screen.
+- The pending message lives in process memory only. It is cleared when the
+  panel closes or the process dies. It is never written to disk, a database,
+  or a log.
+- The overlay never reads the screen underneath, never captures the screen,
+  and never inspects other apps' UI.
+- The fallback notification says only "New message from \<app\>" and is
+  suppressed entirely when the user turns the bubble off.
 
 ## Data Minimization
 
@@ -34,29 +52,41 @@ Do not claim that message content never leaves the device when cloud AI processi
 
 Required for notification-based message assistance.
 
-### POST_NOTIFICATIONS
-
-Used for ReplyMate AI's own notifications where Android requires it.
-
 ### SYSTEM_ALERT_WINDOW
 
-Optional future overlay functionality. It is not required for the notification-based MVP.
+Used by the floating reply bubble (`docs/FLOATING_OVERLAY.md`). Optional: the
+app is fully usable without it. It is granted through Android Settings, and
+declining it must never disable notification access or any other feature.
 
-### Internet
+Overlay permission means "draw on top of other apps". It does **not** grant
+access to what those apps display, and ReplyMate never reads the screen.
 
-Required for cloud AI requests.
+### FOREGROUND_SERVICE / FOREGROUND_SERVICE_SPECIAL_USE
+
+Keeps the bubble alive while the user is in another app. The service is
+declared with a `specialUse` subtype and must be declared in Play Console. If
+the user disables the bubble, the service stops.
+
+### POST_NOTIFICATIONS
+
+Used for the bubble service's own notification and for the fallback
+notification ("New message from \<app\> · Draft a reply"). The fallback never
+contains message text.
 
 ## User Controls
 
 Provide clear controls to:
 - Disable notification access through Android Settings
 - Change selected applications
+- Turn the reply bubble (and its fallback notification) off, default off
 - Clear local preferences
 - Understand AI data processing
 
 ## Security
 
-Use HTTPS and secure backend credential management.
+Provider credentials never enter the APK as literals: the pool is fetched from
+Firestore at runtime and is admin-controlled (the trade-off of that design is
+recorded in `docs/API_SECURITY.md`). All provider traffic is HTTPS.
 
 ## Policy Compliance
 

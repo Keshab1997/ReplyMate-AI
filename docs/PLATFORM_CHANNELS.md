@@ -78,3 +78,36 @@ Routes 2 and 3 are user-initiated by construction: Android only delivers them
 after an explicit user action in another app. No AccessibilityService and no
 screen scraping is used anywhere (MVP restriction,
 docs/ANDROID_NATIVE_SERVICES.md).
+
+---
+
+# Planned: floating reply bubble (NOT IMPLEMENTED)
+
+Specified in `docs/FLOATING_OVERLAY.md`; batches in `docs/OVERLAY_TASKS.md`.
+**Nothing in this section exists in the code yet.** Implement it — and this
+table — in the same batch, or the channel and its documentation drift apart.
+
+## New Dart -> Kotlin methods
+
+| Method | Arguments | Returns | Notes |
+|---|---|---|---|
+| `isOverlayEnabled` | – | `bool` | `Settings.canDrawOverlays(this)`. |
+| `openOverlaySettings` | – | `null` | `ACTION_MANAGE_OVERLAY_PERMISSION` with our package uri. Grants nothing by itself. |
+| `requestNotificationPermission` | – | `bool` | Runtime `POST_NOTIFICATIONS` on Android 13+; `true` on older versions. Needed before the bubble service can show its own notification. |
+| `setBubbleEnabled` | `{enabled: bool}` | `null` | Persists in native prefs and starts/stops `OverlayBubbleService`. Starting from the background may throw `ForegroundServiceStartNotAllowedException`; that is caught and reported as `false`, never a crash. |
+| `consumeOverlayContext` | – | `Map?` | One-shot pending context. Same field names as the `notification_captured` table above, plus `source` (`bubble` / `fallback`). Cleared on read. |
+
+## Fallback notification
+
+When the bubble cannot be shown (no overlay permission, bubble disabled,
+process cold-started in the background), the listener posts one notification
+per package:
+
+- title: *New message from \<app label\>* — **never** the message text
+- action: *Draft a reply* → `MainActivity`, which consumes the pending context
+  and opens the composer prefilled
+- one notification id per package, `setOnlyAlertOnce(true)`, replaced rather
+  than stacked
+
+`consumeOverlayContext` returns the same map in both paths, so the Dart side
+has exactly one model (`OverlayContext`).

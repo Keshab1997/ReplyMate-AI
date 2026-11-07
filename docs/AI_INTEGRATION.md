@@ -1,97 +1,93 @@
 # AI Integration
 
-## Objective
+## What actually ships (2026-11)
 
-Generate relevant, natural, context-aware message replies.
+There is **no backend**. The client reads the admin-managed key pool from
+Firestore (`admin_api_keys`) and calls an OpenAI-compatible
+`/chat/completions` endpoint directly. This is architecture A, recorded with
+its trade-off in `docs/API_SECURITY.md`.
 
-## Supported Languages
-
-- Bengali
-- Hindi
-- English
-
-## User Controls
-
-The user can choose:
-- Output language
-- Reply tone
-- Reply length
-- Number of suggestions (1–3 in the current composer)
-
-## Suggested Tones
-
-- Friendly
-- Casual
-- Professional
-- Polite
-- Funny
-- Short and direct
-
-## Request Flow
-
-1. User selects a notification or enters text manually.
-2. User selects language and tone.
-3. Flutter sends the request to the backend.
-4. Backend validates the input.
-5. Backend calls the selected AI provider.
-6. Backend validates and returns the suggestions.
-7. Flutter displays editable suggestions.
-
-## Example Request
-
-```json
-{
-  "message": "Can we meet tomorrow?",
-  "language": "English",
-  "tone": "Friendly",
-  "length": "Short",
-  "count": 3
-}
+```text
+ReplyComposerScreen / OverlayPanelScreen (planned)
+        │  ReplyRequest
+        ▼
+replyRepositoryProvider
+        │  (KeyPoolReplyRepository in production,
+        │   NotConfiguredReplyRepository when Firebase is absent)
+        ▼
+KeySource (admin_api_key_manager: health, cooldown, failover)
+        ▼
+OpenAiCompatibleClient → POST {baseUrl}/chat/completions
 ```
 
-## Example Response
+Code: `lib/features/reply/data/`.
+
+- `reply_repository.dart` — the interface, the result types, the honest
+  not-configured stub, the provider.
+- `key_pool_reply_repository.dart` — validation, key selection, failover,
+  response parsing.
+- `openai_client.dart` — HTTP, typed failures, UTF-8 handling.
+- `prompt_builder.dart` — the prompts.
+
+The server-side proxy, request authentication and rate limiting described in
+`docs/API_SECURITY.md` are **planned hardening, not implemented**.
+
+## Supported output languages
+
+Bengali, Hindi, English. The app's interface is English-only for now; only
+generated replies are multilingual.
+
+Rules the prompt carries: respect the requested language exactly, preserve
+names and numbers, do not transliterate unless asked, keep mixed-language
+input's meaning, never invent facts. Test script rendering, punctuation and
+wrapping for all three.
+
+## User controls
+
+Output language, tone (friendly, casual, professional, polite, funny, short
+and direct), length, and the number of suggestions (1–3, capped by
+`AppConstants`).
+
+## Request shape (to the provider)
+
+The system prompt asks for exactly this JSON:
 
 ```json
-{
-  "replies": [
-    "Sure! What time works best for you?",
-    "Yes, tomorrow sounds good.",
-    "Absolutely. Let me know the time."
-  ]
-}
+{"replies": ["...", "..."]}
 ```
 
-## Prompt Rules
+The parser accepts that shape first, then falls back to one reply per
+non-empty line so a provider that ignores the format still yields something
+usable. An empty list is a failure, never a silent success.
 
-- Preserve the intended meaning.
-- Do not invent facts about the user.
-- Do not assume a relationship between participants.
-- Keep replies natural and concise.
-- Respect the selected language and tone.
-- Do not generate harmful or deceptive content.
-- Return structured output that the app can validate.
+## Failure handling
 
-## Current implementation status (2026-11-06)
+Every failure is typed (`AiCallException`) and mapped to an honest,
+retryable-or-not message:
 
-The request-flow sections above describe the intended backend architecture.
-The current MVP instead reads an enabled key from the Firestore key pool and
-calls an OpenAI-compatible provider from the client; see
-[`API_SECURITY.md`](API_SECURITY.md) for the accepted trade-off and planned
-server-side proxy. Keshab reports API access and reply generation working on a
-real device, but this does not mean the backend proxy or rate limiting exists.
+| Case | Retryable | Notes |
+|---|---|---|
+| 401 / 403 | no | key rejected; reported to the pool |
+| 429 | yes | rate limited by the provider |
+| 5xx, timeout, DNS, TLS | yes | another key may work |
+| Unreadable body | yes | never shown as a success |
+| Empty `replies` | yes | explicit error |
+| No healthy key | yes | pool empty / cooling down / unconfigured |
 
-## Provider Independence
+A key that misbehaved is reported back to the pool so cooldown and
+deactivation logic can act. Nothing throws to the UI.
 
-Use a backend adapter so the application is not tightly coupled to one AI provider.
+## Verification status
 
-## Failure Handling
+Keshab reports that API access and reply generation work on a real device
+(2026-11-06). Device/build details were not recorded, and this says nothing
+about the proxy, rate limiting or provider failover, none of which exist yet.
 
-Handle:
-- Network errors
-- Provider downtime
-- Rate limits
-- Invalid responses
-- Empty suggestions
-- Timeouts
+## Rules
 
-Never display a fabricated reply as a successful AI result.
+- Never display a fabricated reply as a successful result.
+- Never log message text or generated replies.
+- Never send a message automatically; generation ends at a suggestion.
+- Keep the provider behind `ReplyRepository` so a future proxy can replace the
+  client without touching a screen.
+- The overlay panel must call the same repository provider — no second AI path.

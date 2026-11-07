@@ -42,3 +42,17 @@
 2. Backend or network request fails.
 3. The app displays a clear error.
 4. User can retry or edit the message manually.
+
+## Flow 6: Floating reply bubble (planned — `docs/FLOATING_OVERLAY.md`)
+
+1. A message arrives from an allowlisted app while the user is in that app.
+2. A small ReplyMate bubble appears over the screen.
+3. The user taps it.
+4. A panel opens with the message, language/tone/length chips and Generate.
+5. Suggestions appear; the user copies, edits, or quick-replies.
+6. Closing the panel removes the bubble and the message from memory.
+
+If the bubble cannot run (no overlay permission, disabled, or the app process
+was dead), a fallback notification says "New message from \<app\> · Draft a
+reply" and opens the composer prefilled. No message text appears in either
+the bubble or the notification.

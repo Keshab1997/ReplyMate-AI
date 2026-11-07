@@ -59,12 +59,30 @@ agent and letting it record them.
 | 17 | From a generated suggestion, tap **Share** and choose a destination app | The system chooser shows the edited reply; nothing is sent until the user confirms in the destination app | _pending_ |
 | 18 | Open the composer from a notification, close it, then open it again without a new notification | The previous message is not shown and quick reply is unavailable until a fresh notification arrives | _pending_ |
 
+### Floating bubble (`docs/FLOATING_OVERLAY.md`)
+
+Grant the optional overlay permission on the permission screen before starting
+this block. Rows 17–24 are the acceptance evidence for the bubble; none of
+them can be checked from CI.
+
+| # | Step | Expected | Result |
+|---|---|---|---|
+| 17 | Open WhatsApp, keep it foreground, ask someone to send a message | A small ReplyMate bubble appears within ~2 s; it shows no sender and no message text | _pending_ |
+| 18 | Tap the bubble | Panel opens showing that message; Generate returns suggestions in the chosen language and tone (with Firebase) or an honest "not configured / no key" message (without) | _pending_ |
+| 19 | Edit a suggestion, then Copy | Clipboard holds the edited text; snackbar confirms | _pending_ |
+| 20 | Use quick reply from the panel, then trigger another chat's notification and try again | First reply lands in the correct chat; the second is refused with the copy/open-app explanation, never delivered to the wrong chat | _pending_ |
+| 21 | Revoke overlay permission (Settings → Apps → Special access → Display over other apps), send a message, then tap the fallback notification | No bubble; a notification says "New message from WhatsApp" with **no text**; tapping opens the composer prefilled | _pending_ |
+| 22 | Force-stop ReplyMate, send a message, wait, then open the app | Record what happens: bubble, fallback notification, or nothing. No crash either way | _pending_ |
+| 23 | Drag the bubble to another corner; turn the screen off and on; lock and unlock; wait 10 minutes | Bubble follows the drag, hides while the screen is off/locked, auto-hides after the timeout, leaves no ghost view | _pending_ |
+| 24 | Close the panel, then inspect storage and logs: `adb shell run-as com.keshabstudios.replymate ls -R files/ shared_prefs/` and `adb logcat -c && adb logcat \| grep -i replymate` | No message text anywhere on disk; no message text in logcat | _pending_ |
+
 ## Reading the results
 
 - Any _pending_ left when someone claims Phase 1 done = the gate is not met.
-- Rows 10, 11, 14 and 15 are **evidence rows**: whatever the device says is
-  the truth, and the docs (NOTIFICATION_LISTENER.md, README capability
+- Rows 10, 11, 14, 15 and 22 are **evidence rows**: whatever the device says
+  is the truth, and the docs (NOTIFICATION_LISTENER.md, README capability
   claims, app copy) get updated to match it - never the other way round.
 - Privacy rows to re-check while here: no message content in `logcat`
   (`adb logcat | grep -i replymate`), nothing retained after the composer
-  closes, no network call before the user taps Generate.
+  closes or the bubble panel closes, no network call before the user taps
+  Generate.

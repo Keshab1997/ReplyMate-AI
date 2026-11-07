@@ -1,6 +1,6 @@
 # ReplyMate AI Roadmap
 
-_Last reconciled: 2026-11-06_
+_Last reconciled: 2026-11-07_
 
 **Status legend:** `[x]` means implementation exists in the repository; it does
 not mean every device test or release gate has passed. `[ ]` means not yet
@@ -17,6 +17,11 @@ The current AI path is the documented client-side Firestore key-pool design,
 not a server-side proxy. The remaining device checks, architecture/security
 hardening and release tasks are listed below and in
 [`docs/PHASE1_DEVICE_TESTS.md`](docs/PHASE1_DEVICE_TESTS.md).
+
+The floating reply bubble — the answer to "nothing appears when a WhatsApp
+message arrives" — is fully specified in
+[`docs/FLOATING_OVERLAY.md`](docs/FLOATING_OVERLAY.md) and broken into batches
+in [`docs/OVERLAY_TASKS.md`](docs/OVERLAY_TASKS.md). It is **not built yet**.
 
 ## Phase 0 — Project Foundation
 
@@ -62,7 +67,24 @@ hardening and release tasks are listed below and in
 - [ ] Publish the privacy policy, complete Play policy declarations and prepare closed testing.
 - [ ] Complete release sign-off. No production release is claimed.
 
-## Phase 6 — Future Features (not required for the notification MVP)
+## Phase 6 — Floating reply bubble (specified, not built)
 
-- [ ] Prototype the optional floating assistant overlay.
+Spec: [`docs/FLOATING_OVERLAY.md`](docs/FLOATING_OVERLAY.md). Batches:
+[`docs/OVERLAY_TASKS.md`](docs/OVERLAY_TASKS.md).
+
+- [ ] Batch 0 — honest empty state when nothing was captured.
+- [ ] Batch 1 — native overlay bubble + foreground service.
+- [ ] Batch 2 — Flutter panel route and context model.
+- [ ] Batch 3 — listener wiring, fallback notification, settings toggle.
+- [ ] Batch 4 — auto-hide, screen-off handling, Play declarations.
+- [ ] Device rows 17–24 filled on a real phone.
+
+Non-negotiable: no AccessibilityService, no screen reading, no message text on
+disk, no automatic send, and no claim that the bubble survives every OEM's
+battery manager.
+
+## Phase 7 — Future Features
+
 - [ ] Add more reply styles/languages and supported apps after validation.
+- [ ] Optional server-side proxy (see Phase 3).
+- [ ] iOS (different notification/overlay model; currently out of scope).

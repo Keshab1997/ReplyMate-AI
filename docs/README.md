@@ -1,39 +1,47 @@
 # Documentation Index
 
-This directory contains the technical and product documentation for ReplyMate AI.
+The set is deliberately small: every file here describes the app as it is, or
+a feature that is specified and about to be built. Redundant planning notes
+were removed during the 2026-11-07 cleanup (`git log -- docs/` has them); the
+three that carry distinct reference value are kept and labelled as history.
 
-## Product and Architecture
+## Product
 
-- `ARCHITECTURE.md` — Overall system architecture
-- `FLUTTER_ARCHITECTURE.md` — Flutter application structure
-- `USER_FLOWS.md` — User journeys and workflows
-- `PRODUCT_REQUIREMENTS.md` — Product behaviour and requirements (root directory)
+- `../PRODUCT_REQUIREMENTS.md` — functional and non-functional requirements
+- `../PROJECT_OVERVIEW.md` — what the product is, for whom, non-goals
+- `../ROADMAP.md` — what is done, what is next, and the release gates
+- `USER_FLOWS.md` — end-to-end journeys, including the bubble flow
+- `SCREEN_SPECIFICATIONS.md` — screen-by-screen requirements
 
-## Android Integration
+## Android integration
 
-- `ANDROID_NATIVE_SERVICES.md` — Native Android components
-- `NOTIFICATION_LISTENER.md` — Notification listener implementation
-- `FLOATING_OVERLAY.md` — Optional floating assistant design
+- `PLATFORM_CHANNELS.md` — the exact Dart ⇄ Kotlin contract
+- `NOTIFICATION_LISTENER.md` — listener rules, limits, quick reply
+- `ANDROID_NATIVE_SERVICES.md` — native components and permission boundaries
+- `FLOATING_OVERLAY.md` — floating reply bubble: full implementation spec
+- `OVERLAY_TASKS.md` — the same, broken into batches for an implementing agent
+- `PHASE1_DEVICE_TESTS.md` — the evidence table; nothing is "working" until
+  these rows are filled from a real device
 
-## AI and Backend
+## AI and data
 
-- `AI_INTEGRATION.md` — AI reply generation
-- `API_SECURITY.md` — Backend security
-- `DATABASE_DESIGN.md` — Data storage principles
+- `AI_INTEGRATION.md` — how generation actually works today (client-side key
+  pool, direct provider call) and what the prompts must do
+- `API_SECURITY.md` — the recorded key-pool decision and its trade-off
+- `FIREBASE_SETUP.md` — console setup, collections, rules
 
-## Design and Experience
+## Historical reference (kept, annotated as history)
 
-- `UI_UX_GUIDELINES.md` — Interface guidelines
-- `SCREEN_SPECIFICATIONS.md` — Screen-by-screen requirements
-- `DESIGN_SYSTEM.md` — Design tokens and components
-- `LANGUAGE_SUPPORT.md` — Multilingual behaviour
+- `ARCHITECTURE.md` — system boundaries; its backend flow is the target, not
+  the shipped path (see `AI_INTEGRATION.md`)
+- `LANGUAGE_SUPPORT.md` — multilingual reply rules
+- `IMPLEMENTATION_PLAN.md` — the original build order, not a progress tracker
 
-## Privacy and Delivery
+## Privacy and delivery
 
-- `PRIVACY_AND_PERMISSIONS.md` — Permissions and privacy
-- `IMPLEMENTATION_PLAN.md` — Development sequence
-- `TESTING_STRATEGY.md` — Testing approach
-- `BUILD_AND_RELEASE.md` — Build and release
-- `TROUBLESHOOTING.md` — Common development problems
+- `PRIVACY_AND_PERMISSIONS.md` — permissions, disclosures, data rules
+- `BUILD_AND_RELEASE.md` — signing, CI, Play declarations, release checklist
 
-When documentation conflicts, prioritize the product requirements and privacy rules. Record and resolve inconsistencies instead of silently ignoring them.
+When documentation conflicts, the order is: privacy rules → product
+requirements → this spec set → everything else. Fix the conflict rather than
+ignoring it.

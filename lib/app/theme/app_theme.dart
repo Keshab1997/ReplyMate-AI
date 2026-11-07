@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Centralized design tokens (docs/DESIGN_SYSTEM.md): one seed colour, one
+/// Centralized design tokens: one seed colour, one
 /// spacing scale, one corner radius. Screens never hard-code a colour or a
 /// margin; they take them from here so light and dark themes stay in step.
 class AppTheme {

@@ -56,16 +56,25 @@ Never commit:
 
 ## Release Checklist
 
-- [ ] Application tested on physical devices
-- [ ] Permissions reviewed
-- [ ] Privacy policy published
+- [ ] Application tested on physical devices (all rows in
+      `docs/PHASE1_DEVICE_TESTS.md`)
+- [ ] Permissions reviewed — notification listener, POST_NOTIFICATIONS,
+      overlay (if the bubble ships)
+- [ ] Privacy policy published at a public URL
+- [ ] Prominent in-app disclosure before AI processing and before the bubble
+- [ ] Play Console: notification-listener access declaration
+- [ ] Play Console: foreground service `specialUse` declaration (bubble)
+- [ ] Play Console: overlay usage declared in the listing/description
 - [ ] Store listing prepared
-- [ ] App icon and screenshots prepared
-- [ ] Release signing configured
-- [ ] Backend deployed over HTTPS
-- [ ] API rate limits enabled
+- [ ] App icon and screenshots prepared (the launcher icon is still the
+      Flutter default)
+- [ ] Release signing configured (CI secrets, never in git)
+- [ ] Provider keys treated as consumables; Firestore rules deployed
 - [ ] Crash and error handling reviewed
 - [ ] Play Store policy compliance reviewed
+
+There is no backend to deploy (architecture A, `docs/API_SECURITY.md`), so
+"backend over HTTPS" is not a checklist item until that hardening step lands.
 
 ## Low-Spec Development
 
