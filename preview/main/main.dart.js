@@ -99725,7 +99725,7 @@ i=j==null
 if(B.c.cs(i?"":j).length!==0)if(B.c.cs(i?"":j).length!==0){j.toString
 j=B.c.cs(j)}else j=""
 else j="(no text) "+k.gL_()
-m.push(new A.il(k,A.bA(j,1,B.aZ,e,e,e,e),B.c7,e,l))}p.push(new A.ou(m,n,e,e,new A.aEo(f),e,e,8,e,e,e,e,24,!1,!0,48,e,e,!1,e,e,e,e,B.c7,e,!0,e,e,e,!1,e,t.D6))}B.b.K(q,p)}else{p=s!=null&&B.c.cs(s.b).length!==0?"From "+s.a.d.toLowerCase()+".":"Paste or type the message you received."
+m.push(new A.il(k,A.bA(j,1,B.aZ,e,e,e,e),B.c7,e,l))}p.push(new A.ou(m,n,e,e,new A.aEo(f),e,e,8,e,e,e,e,24,!1,!0,48,e,e,!1,e,e,e,e,B.c7,e,!0,e,e,e,!1,e,t.D6))}B.b.K(q,p)}else{p=s!=null&&B.c.cs(s.b).length!==0?"From "+s.a.d.toLowerCase()+".":"No message was captured. ReplyMate only keeps a message while the app is running; open ReplyMate after a new message arrives, or paste the text."
 q.push(A.bA(p,e,e,e,A.O(a0).ok.Q,e,e))}q.push(B.c4)
 q.push(A.yO(e,B.b4,!1,e,!0,B.A,e,A.NE(),f.w,e,e,e,e,e,2,B.Iv,B.aa,!0,e,!0,e,!1,e,B.bR,e,e,e,e,e,e,e,e,6,2,e,!1,"\u2022",e,new A.aEp(f),e,e,e,!1,e,e,!1,e,!0,e,B.d1,e,e,e,e,e,e,e,e,e,e,e,e,!0,B.an,e,B.dk,e,e,e,e))
 q=A.la(new A.bx(B.aD,A.hC(q,B.aC,B.X,B.aF),e),e)
