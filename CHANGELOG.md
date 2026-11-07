@@ -4,6 +4,33 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### Floating reply bubble — implemented (device verification pending)
+- Batch 0: the composer explains an empty capture session ("No message was
+  captured…") instead of showing a blank box, and Generate still runs so
+  validation explains what is missing.
+- Batch 1: `OverlayBubbleService` (foreground, `specialUse`) draws a 56dp
+  `WindowManager` bubble from code, with drag-vs-tap touch slop, a silent
+  `IMPORTANCE_MIN` channel, and `OverlayBubbleController` holding exactly one
+  pending context **in memory only**.
+- Batch 2: `OverlayPanelScreen` at route `/overlay` behind a translucent,
+  non-exported `OverlayPanelActivity`; `OverlayContext` model reads the
+  `consumeOverlayContext` wire format and reuses `CapturedNotification`; panel
+  reuses the language/tone/length chips and `SuggestionCard`.
+- Batch 3: the listener decides bubble vs fallback per notification (§5.3
+  filter), posts a text-free "New message from \<app\>" fallback that opens the
+  composer prefilled, and hides the bubble when its notification is removed.
+  New channel methods `isOverlayEnabled`, `openOverlaySettings`,
+  `requestNotificationPermission`, `setBubbleEnabled`,
+  `consumeOverlayContext`; overlay permission card on the permission screen; a
+  "Reply bubble" switch in Settings (default off, unusable without overlay
+  access).
+- Batch 4: 10-minute auto-hide, hide while the screen is off or locked (and
+  re-show on unlock while a message is pending), a count badge when more
+  messages arrive, and the Play/privacy checklist lines.
+- Not done: rows 17–24 of `docs/PHASE1_DEVICE_TESTS.md` are still `_pending_` —
+  no Android device was available. The bubble is code-complete, not
+  device-proven.
+
 ### Implemented in the repository
 - Flutter onboarding, home, permissions, app selection, settings and reply-suggestion flows, including a selectable 1–3 suggestion count, copy/edit/share actions and composer-session cleanup of transient message context.
 - Kotlin notification listener, parser and Flutter platform-channel integration, including conditional RemoteInput quick reply and user-initiated share/text-selection entry points.

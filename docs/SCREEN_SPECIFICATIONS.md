@@ -27,7 +27,10 @@ Show:
 
 Show separate sections for:
 - Notification access
-- Optional overlay permission (future feature)
+- Optional overlay permission (floating reply bubble) - implemented as its own
+  card: what it does, what it does not do, current status, and a button into
+  Android's "Display over other apps" screen, plus the Android 13+ notification
+  requirement
 
 Explain each permission before opening Settings.
 
@@ -76,7 +79,7 @@ Explain:
 - What is stored
 - How to revoke permissions
 
-## 10. Floating Reply Panel (planned — `docs/FLOATING_OVERLAY.md`)
+## 10. Floating Reply Panel (`/overlay`, reached only from the bubble)
 
 Reached only from the bubble, never from normal navigation. Must:
 - show the source app and the message the notification exposed;

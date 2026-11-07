@@ -8,7 +8,7 @@ Firestore (`admin_api_keys`) and calls an OpenAI-compatible
 its trade-off in `docs/API_SECURITY.md`.
 
 ```text
-ReplyComposerScreen / OverlayPanelScreen (planned)
+ReplyComposerScreen / OverlayPanelScreen
         │  ReplyRequest
         ▼
 replyRepositoryProvider

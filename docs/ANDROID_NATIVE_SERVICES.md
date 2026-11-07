@@ -36,7 +36,7 @@ Inspects notification actions and determines whether a compatible RemoteInput ac
 
 Sends safe, structured events to Flutter and receives validated user actions.
 
-### Floating Bubble (planned — `docs/FLOATING_OVERLAY.md`)
+### Floating Bubble (`docs/FLOATING_OVERLAY.md`)
 
 A foreground service that draws one small overlay view with `WindowManager`.
 

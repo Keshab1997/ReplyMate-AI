@@ -1,17 +1,22 @@
 package com.keshabstudios.replymate
 
+import android.app.KeyguardManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.provider.Settings
 import android.view.Gravity
 import android.view.MotionEvent
@@ -20,6 +25,7 @@ import android.view.ViewConfiguration
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.TextView
 
 /**
  * Draws the one thing Flutter cannot draw here: a bubble over *another* app.
@@ -46,6 +52,22 @@ class OverlayBubbleService : Service() {
     private var windowManager: WindowManager? = null
     private var bubbleView: View? = null
     private var layoutParams: WindowManager.LayoutParams? = null
+    private var badgeView: TextView? = null
+
+    /** Notification key currently represented by the bubble. */
+    private var shownKey: String? = null
+
+    /** How many messages arrived while this bubble has been on screen. */
+    private var messagesWhileShowing = 0
+
+    private val handler = Handler(Looper.getMainLooper())
+    private var screenReceiver: BroadcastReceiver? = null
+
+    /** A bubble nobody uses should not sit on the screen forever. */
+    private val autoHide = Runnable {
+        OverlayBubbleController.clear()
+        stopSelf()
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -55,6 +77,7 @@ class OverlayBubbleService : Service() {
         startForeground(OVERLAY_NOTIFICATION_ID, buildNotification())
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         isShowing = true
+        registerScreenReceiver()
         // A pending context is normally held before the service starts; drawing
         // here covers the case where the service outlived a hide/show cycle.
         show()
@@ -82,7 +105,17 @@ class OverlayBubbleService : Service() {
             stopSelf()
             return
         }
-        if (bubbleView != null) return
+        val key = OverlayBubbleController.pendingKey()
+        if (bubbleView != null) {
+            // Already drawn: a newer message updates the badge instead of
+            // stacking a second bubble nobody asked for.
+            if (key != null && key != shownKey) {
+                shownKey = key
+                messagesWhileShowing += 1
+                updateBadge()
+            }
+            return
+        }
         val manager = windowManager ?: return
         val view = createBubbleView()
         val params = createLayoutParams()
@@ -90,6 +123,10 @@ class OverlayBubbleService : Service() {
             manager.addView(view, params)
             bubbleView = view
             layoutParams = params
+            shownKey = key
+            messagesWhileShowing = 1
+            updateBadge()
+            scheduleAutoHide()
         } catch (error: Exception) {
             // A refused window (permission race, OEM quirk) must not take the
             // process down: nothing is drawn and the fallback notification is
@@ -99,6 +136,8 @@ class OverlayBubbleService : Service() {
     }
 
     override fun onDestroy() {
+        handler.removeCallbacks(autoHide)
+        unregisterScreenReceiver()
         removeBubble()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -137,8 +176,85 @@ class OverlayBubbleService : Service() {
                 FrameLayout.LayoutParams.MATCH_PARENT,
             ),
         )
+        // Message count, shown only when a second message arrives while the
+        // bubble is up: one bubble, an honest count, never a stack of views.
+        val badge = TextView(this)
+        badge.setTextColor(Color.WHITE)
+        badge.textSize = 11f
+        badge.gravity = Gravity.CENTER
+        badge.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(badgeColor())
+            setStroke(dp(1), Color.WHITE)
+        }
+        badge.visibility = View.GONE
+        val badgeSize = dp(20)
+        root.addView(
+            badge,
+            FrameLayout.LayoutParams(badgeSize, badgeSize).apply {
+                gravity = Gravity.TOP or Gravity.END
+            },
+        )
+        badgeView = badge
+
         root.setOnTouchListener(DragToTapListener())
         return root
+    }
+
+    private fun updateBadge() {
+        val badge = badgeView ?: return
+        if (messagesWhileShowing > 1) {
+            badge.text = if (messagesWhileShowing > 9) "9+" else messagesWhileShowing.toString()
+            badge.visibility = View.VISIBLE
+        } else {
+            badge.visibility = View.GONE
+        }
+    }
+
+    private fun scheduleAutoHide() {
+        handler.removeCallbacks(autoHide)
+        handler.postDelayed(autoHide, AUTO_HIDE_MILLIS)
+    }
+
+    /**
+     * Leaving a bubble on a screen the user has turned off (or locked) is both
+     * pointless and a privacy leak on the lock screen: it goes away, and comes
+     * back on unlock while the message is still pending.
+     */
+    private fun registerScreenReceiver() {
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_USER_PRESENT)
+        }
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                when (intent?.action) {
+                    Intent.ACTION_SCREEN_OFF -> removeBubble()
+                    Intent.ACTION_USER_PRESENT -> show()
+                }
+            }
+        }
+        screenReceiver = receiver
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // Our own receiver, never exported.
+                registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                registerReceiver(receiver, filter)
+            }
+        } catch (error: Exception) {
+            screenReceiver = null
+        }
+    }
+
+    private fun unregisterScreenReceiver() {
+        val receiver = screenReceiver ?: return
+        screenReceiver = null
+        try {
+            unregisterReceiver(receiver)
+        } catch (error: Exception) {
+            // Already unregistered.
+        }
     }
 
     private fun createLayoutParams(): WindowManager.LayoutParams {
@@ -240,6 +356,10 @@ class OverlayBubbleService : Service() {
         val manager = windowManager
         bubbleView = null
         layoutParams = null
+        badgeView = null
+        shownKey = null
+        messagesWhileShowing = 0
+        handler.removeCallbacks(autoHide)
         if (view != null && manager != null) {
             try {
                 manager.removeView(view)
@@ -306,9 +426,14 @@ class OverlayBubbleService : Service() {
      */
     private fun bubbleColor(): Int = getColor(R.color.overlay_bubble_background)
 
+    private fun badgeColor(): Int = getColor(R.color.overlay_fallback_accent)
+
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     companion object {
+        /** docs/FLOATING_OVERLAY.md §5.3: a bubble nobody uses goes away. */
+        private const val AUTO_HIDE_MILLIS = 10 * 60 * 1000L
+
         /** Fixed id: one bubble notification, replaced rather than stacked. */
         const val OVERLAY_NOTIFICATION_ID = 4211
         const val CHANNEL_ID = "replymate_bubble"

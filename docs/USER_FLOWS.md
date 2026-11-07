@@ -43,7 +43,7 @@
 3. The app displays a clear error.
 4. User can retry or edit the message manually.
 
-## Flow 6: Floating reply bubble (planned — `docs/FLOATING_OVERLAY.md`)
+## Flow 6: Floating reply bubble (`docs/FLOATING_OVERLAY.md`)
 
 1. A message arrives from an allowlisted app while the user is in that app.
 2. A small ReplyMate bubble appears over the screen.

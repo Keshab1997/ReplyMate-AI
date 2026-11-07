@@ -64,7 +64,14 @@ Never commit:
 - [ ] Prominent in-app disclosure before AI processing and before the bubble
 - [ ] Play Console: notification-listener access declaration
 - [ ] Play Console: foreground service `specialUse` declaration (bubble)
-- [ ] Play Console: overlay usage declared in the listing/description
+- [ ] Play Console: overlay usage declared in the listing/description.
+      Notification-listener access, overlay access and the `specialUse`
+      foreground service are three separate declarations and are reviewed
+      together; each must describe what the app actually does
+- [ ] Device evidence attached for rows 17–24 of the Phase 1 checklist,
+      including `adb shell run-as com.keshabstudios.replymate ls -R files/
+      shared_prefs/` and `adb logcat | grep -i replymate` output showing no
+      message text on disk or in the log
 - [ ] Store listing prepared
 - [ ] App icon and screenshots prepared (the launcher icon is still the
       Flutter default)

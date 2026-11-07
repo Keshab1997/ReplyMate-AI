@@ -65,12 +65,32 @@ consequence the UI must not hide:
 - when the process is dead, events are dropped on purpose. The user opening
   the app later will find no captured message.
 
-The planned fix is `docs/FLOATING_OVERLAY.md`: a bubble while the app is
+The fix is the bubble (`docs/FLOATING_OVERLAY.md`): a bubble while the app is
 running, and a fallback notification ("New message from \<app\>") when it is
-not. Until that ships, the composer must say plainly that nothing was
-captured — never show an empty box as if the message were there.
+not. When neither ran — and whenever the capture buffer is empty — the composer
+says plainly that nothing was captured, never showing an empty box as if the
+message were there (Batch 0 in `docs/OVERLAY_TASKS.md`).
 
-## Self notifications (planned)
+## Bubble routing (implemented)
+
+`onNotificationPosted` first emits the `notification_captured` event exactly as
+before, so the in-app list keeps working. It then decides, in this order:
+
+1. Is the user's bubble switch on? If not, nothing else happens — no bubble and
+   no fallback notification. Off is off; the app does not nag.
+2. Does the notification pass the `docs/FLOATING_OVERLAY.md` §5.3 filter (has
+   text, no `FLAG_GROUP_SUMMARY`, no `FLAG_ONGOING_EVENT`, not a `MediaStyle`
+   transport, screen on and unlocked)? If not, it is captured in the app only.
+3. Is overlay access granted? If not → fallback notification.
+4. Hold the context with `source=bubble` and start/refresh the bubble service.
+   If Android refuses the start (background FGS restriction, Android 12+), hold
+   the context with `source=fallback` and post the fallback notification.
+
+The bubble also disappears when its notification is removed
+(`onNotificationRemoved` matches the pending key), after ten minutes, and while
+the screen is off or locked.
+
+## Self notifications (implemented)
 
 ReplyMate may post its own notification for two reasons only: the bubble
 service's foreground notification, and the fallback "Draft a reply" entry

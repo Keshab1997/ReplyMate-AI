@@ -1,8 +1,13 @@
 # Floating Reply Bubble — Implementation Spec
 
-**Status: specified, not implemented.** This file is the source of truth for
-the bubble. If code and this document disagree, the code is wrong until this
-document is updated on purpose.
+**Status: implemented (batches 0–4 of `docs/OVERLAY_TASKS.md`); device
+verification pending.** This file is the source of truth for the bubble. If code
+and this document disagree, the code is wrong until this document is updated on
+purpose.
+
+Rows 17–24 of `docs/PHASE1_DEVICE_TESTS.md` are still `_pending_`. The agent
+sandbox has no Android device or emulator, so nothing in this document has been
+confirmed on hardware yet - the bubble is code-complete, not device-proven.
 
 **Why it exists:** today a captured notification is only kept in memory while
 the Flutter engine is alive, and nothing in the UI appears when a message

@@ -19,9 +19,11 @@ hardening and release tasks are listed below and in
 [`docs/PHASE1_DEVICE_TESTS.md`](docs/PHASE1_DEVICE_TESTS.md).
 
 The floating reply bubble — the answer to "nothing appears when a WhatsApp
-message arrives" — is fully specified in
-[`docs/FLOATING_OVERLAY.md`](docs/FLOATING_OVERLAY.md) and broken into batches
-in [`docs/OVERLAY_TASKS.md`](docs/OVERLAY_TASKS.md). It is **not built yet**.
+message arrives" — is specified in
+[`docs/FLOATING_OVERLAY.md`](docs/FLOATING_OVERLAY.md), broken into batches in
+[`docs/OVERLAY_TASKS.md`](docs/OVERLAY_TASKS.md), and **implemented in code**.
+It is not device-verified: rows 17–24 of the device checklist are still
+pending.
 
 ## Phase 0 — Project Foundation
 
@@ -67,17 +69,18 @@ in [`docs/OVERLAY_TASKS.md`](docs/OVERLAY_TASKS.md). It is **not built yet**.
 - [ ] Publish the privacy policy, complete Play policy declarations and prepare closed testing.
 - [ ] Complete release sign-off. No production release is claimed.
 
-## Phase 6 — Floating reply bubble (specified, not built)
+## Phase 6 — Floating reply bubble (implemented, device verification pending)
 
 Spec: [`docs/FLOATING_OVERLAY.md`](docs/FLOATING_OVERLAY.md). Batches:
 [`docs/OVERLAY_TASKS.md`](docs/OVERLAY_TASKS.md).
 
-- [ ] Batch 0 — honest empty state when nothing was captured.
-- [ ] Batch 1 — native overlay bubble + foreground service.
-- [ ] Batch 2 — Flutter panel route and context model.
-- [ ] Batch 3 — listener wiring, fallback notification, settings toggle.
-- [ ] Batch 4 — auto-hide, screen-off handling, Play declarations.
-- [ ] Device rows 17–24 filled on a real phone.
+- [x] Batch 0 — honest empty state when nothing was captured.
+- [x] Batch 1 — native overlay bubble + foreground service.
+- [x] Batch 2 — Flutter panel route and context model.
+- [x] Batch 3 — listener wiring, fallback notification, settings toggle.
+- [x] Batch 4 — auto-hide, screen-off handling, badge, docs.
+- [ ] Device rows 17–24 filled on a real phone. **The feature is not done until
+      this is checked.**
 
 Non-negotiable: no AccessibilityService, no screen reading, no message text on
 disk, no automatic send, and no claim that the bubble survives every OEM's
