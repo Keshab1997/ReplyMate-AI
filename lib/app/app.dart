@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/constants/app_constants.dart';
 import '../features/home/home_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/overlay/presentation/overlay_panel_screen.dart';
+import '../features/overlay/providers/overlay_providers.dart';
+import '../features/reply/presentation/reply_composer_screen.dart';
 import 'app_routes.dart';
 import 'theme/app_theme.dart';
 
@@ -51,11 +54,18 @@ class ReplyMateApp extends StatelessWidget {
   }
 }
 
-/// Sends first-run users through onboarding (FR-01) and everyone else
-/// straight home. Reading one boolean keeps startup free of network or
-/// SDK work (the invariant docify taught us: nothing optional holds the
-/// first frame hostage).
-class StartupGate extends StatelessWidget {
+/// Sends first-run users through onboarding (FR-01), a fallback-notification
+/// tap straight to the prefilled composer, and everyone else home.
+///
+/// Both reads are local and cheap, and neither is allowed to hold the first
+/// frame hostage (the invariant docify taught us):
+///  - the onboarding flag is one boolean from SharedPreferences;
+///  - the pending overlay context is a *non-blocking* watch. While it is still
+///    resolving the normal screen renders, and it swaps to the composer only
+///    if a fallback notification was actually waiting. Startup therefore never
+///    waits on the native layer, and a native layer that never answers costs
+///    nothing.
+class StartupGate extends ConsumerWidget {
   const StartupGate({super.key});
 
   Future<bool> _onboardingDone() async {
@@ -64,7 +74,10 @@ class StartupGate extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // `.value` is null while loading - and stays null if the native side never
+    // answers. No spinner, no blocked frame.
+    final replyContext = ref.watch(overlayContextProvider).value;
     return FutureBuilder<bool>(
       future: _onboardingDone(),
       builder: (context, snapshot) {
@@ -73,9 +86,17 @@ class StartupGate extends StatelessWidget {
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        return snapshot.data == true
-            ? const HomeScreen()
-            : const OnboardingScreen();
+        if (snapshot.data != true) {
+          return const OnboardingScreen();
+        }
+        final reply = replyContext;
+        // A fallback notification is a request to answer a message, so it
+        // opens the composer prefilled instead of Home. A `bubble` context is
+        // not consumed here - that launch has its own panel route.
+        if (reply != null && !reply.opensPanel) {
+          return ReplyComposerScreen(initialNotification: reply.notification);
+        }
+        return const HomeScreen();
       },
     );
   }

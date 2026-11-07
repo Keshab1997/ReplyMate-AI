@@ -20,7 +20,13 @@ import 'suggestions_screen.dart';
 /// four user-initiated routes: a captured notification, the text-selection
 /// action, the share sheet, or plain paste/type (FR-04, FR-08).
 class ReplyComposerScreen extends ConsumerStatefulWidget {
-  const ReplyComposerScreen({super.key});
+  const ReplyComposerScreen({this.initialNotification, super.key});
+
+  /// Context handed in directly, for a launch that already consumed it: the
+  /// fallback notification path opens this screen with the message prefilled
+  /// instead of relying on the in-memory capture buffer
+  /// (docs/FLOATING_OVERLAY.md §4.3).
+  final CapturedNotification? initialNotification;
 
   @override
   ConsumerState<ReplyComposerScreen> createState() =>
@@ -75,6 +81,10 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
     final captured = ref.read(capturedNotificationsProvider);
     if (launch != null && launch.hasText) {
       _messageController.text = launch.text;
+    } else if (widget.initialNotification != null) {
+      // The reason this screen opened outranks a stale buffer.
+      _context = widget.initialNotification;
+      _messageController.text = widget.initialNotification!.displayText;
     } else if (captured.isNotEmpty) {
       _context = captured.first;
       _messageController.text = captured.first.displayText;

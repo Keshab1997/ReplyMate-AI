@@ -1,7 +1,11 @@
 package com.keshabstudios.replymate
 
+import android.Manifest
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -21,6 +25,9 @@ class MainActivity : FlutterActivity() {
      * share sheet). Consumed once by Flutter via `consumeLaunchContext`.
      */
     private var launchContext: Map<String, Any?>? = null
+
+    /** Set while the Android 13+ notification-permission dialog is open. */
+    private var pendingNotificationPermission: MethodChannel.Result? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -71,6 +78,33 @@ class MainActivity : FlutterActivity() {
                     result.success(launchContext)
                     launchContext = null
                 }
+                "isOverlayEnabled" -> result.success(Settings.canDrawOverlays(this))
+                "openOverlaySettings" -> {
+                    // Grants nothing by itself: Android keeps the decision.
+                    try {
+                        startActivity(
+                            Intent(
+                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                Uri.parse("package:$packageName"),
+                            ),
+                        )
+                    } catch (error: Exception) {
+                        // Some OEMs hide the screen; the permission card then
+                        // keeps saying "not granted", which is the truth.
+                    }
+                    result.success(null)
+                }
+                "requestNotificationPermission" -> requestNotificationPermission(result)
+                "setBubbleEnabled" -> {
+                    val enabled = call.argument<Boolean>("enabled") == true
+                    setBubbleEnabled(enabled)
+                    result.success(null)
+                }
+                "consumeOverlayContext" -> {
+                    // One-shot: the pending map is cleared as it is handed out,
+                    // so the panel can never read the same message twice.
+                    result.success(OverlayBubbleController.consume())
+                }
                 else -> result.notImplemented()
             }
         }
@@ -91,6 +125,73 @@ class MainActivity : FlutterActivity() {
         ReplyMateNotificationListener.eventSink = null
         channel = null
         super.onDestroy()
+    }
+
+    /**
+     * Starts the bubble service while the app is visible. Android 12+ forbids
+     * starting a foreground service from the background, so this is the one
+     * moment the service may be started; from then on the listener only
+     * updates it (docs/FLOATING_OVERLAY.md §7).
+     */
+    override fun onStart() {
+        super.onStart()
+        if (OverlayBubbleService.isEnabledByUser(this) && Settings.canDrawOverlays(this)) {
+            OverlayBubbleService.start(this)
+        }
+    }
+
+    /**
+     * Android 13+ runtime notification permission. The answer is delivered from
+     * [onRequestPermissionsResult], so the Dart side gets the real grant rather
+     * than a guess.
+     */
+    private fun requestNotificationPermission(result: MethodChannel.Result) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            result.success(true)
+            return
+        }
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            result.success(true)
+            return
+        }
+        if (pendingNotificationPermission != null) {
+            // One dialog at a time: the earlier caller gets the same answer.
+            pendingNotificationPermission?.success(false)
+        }
+        pendingNotificationPermission = result
+        requestPermissions(
+            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+            REQUEST_POST_NOTIFICATIONS,
+        )
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != REQUEST_POST_NOTIFICATIONS) return
+        val granted = grantResults.isNotEmpty() &&
+            grantResults[0] == PackageManager.PERMISSION_GRANTED
+        pendingNotificationPermission?.success(granted)
+        pendingNotificationPermission = null
+    }
+
+    /**
+     * The user's bubble switch. Persisted natively because the listener reads it
+     * with no Flutter engine alive; the service is started or stopped to match.
+     */
+    private fun setBubbleEnabled(enabled: Boolean) {
+        OverlayBubbleService.setEnabledByUser(this, enabled)
+        if (enabled && Settings.canDrawOverlays(this)) {
+            OverlayBubbleService.start(this)
+        } else if (!enabled) {
+            OverlayBubbleController.clear()
+            OverlayBubbleService.stop(this)
+        }
     }
 
     /**
@@ -156,6 +257,7 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val CHANNEL = "com.keshabstudios.replymate/notifications"
+        private const val REQUEST_POST_NOTIFICATIONS = 4311
 
         /**
          * Tells MainActivity that the user tapped the floating bubble, so the

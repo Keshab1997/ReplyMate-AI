@@ -331,7 +331,12 @@ class OverlayBubbleService : Service() {
             if (!Settings.canDrawOverlays(context)) return false
             val intent = Intent(context, OverlayBubbleService::class.java)
             return try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (isShowing) {
+                    // Already a running foreground service: this only delivers
+                    // onStartCommand, which is allowed from the background and
+                    // is the path a newly posted notification takes.
+                    context.startService(intent)
+                } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     context.startForegroundService(intent)
                 } else {
                     context.startService(intent)

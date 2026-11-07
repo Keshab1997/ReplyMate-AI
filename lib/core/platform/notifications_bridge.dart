@@ -138,6 +138,67 @@ class NotificationsBridge {
     }
   }
 
+  /// True when Android lets this app draw over other apps. Overlay access is
+  /// optional and never implied by notification access
+  /// (docs/PRIVACY_AND_PERMISSIONS.md).
+  Future<bool> isOverlayEnabled() async {
+    try {
+      return await _channel.invokeMethod<bool>('isOverlayEnabled') ?? false;
+    } on MissingPluginException {
+      return false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  /// Opens Android's "Display over other apps" screen for this app. Grants
+  /// nothing by itself - the decision stays in Settings, like every other
+  /// permission here.
+  Future<void> openOverlaySettings() async {
+    try {
+      await _channel.invokeMethod<void>('openOverlaySettings');
+    } on MissingPluginException {
+      // No native layer (tests / web): nothing to open.
+    } on PlatformException {
+      // Some OEMs hide the screen; the permission card keeps saying
+      // "not granted", which is the truth.
+    }
+  }
+
+  /// Asks for the Android 13+ notification runtime permission. `true` below
+  /// API 33 and when it was granted earlier; `false` means the user said no,
+  /// and the UI says so instead of pretending notifications will appear.
+  Future<bool> requestNotificationPermission() async {
+    try {
+      return await _channel.invokeMethod<bool>(
+            'requestNotificationPermission',
+          ) ??
+          false;
+    } on MissingPluginException {
+      return false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  /// Persists the bubble switch natively and starts/stops the bubble service.
+  ///
+  /// Persisted rather than held in memory because the notification listener
+  /// reads it with no Flutter engine alive. Starting the service can be
+  /// refused by Android 12+ when the app is in the background; that is caught
+  /// natively and surfaced as the fallback notification, not a crash.
+  Future<void> setBubbleEnabled(bool enabled) async {
+    try {
+      await _channel.invokeMethod<void>('setBubbleEnabled', {
+        'enabled': enabled,
+      });
+    } on MissingPluginException {
+      // No native layer: the Dart-side preference still records the choice.
+    } on PlatformException {
+      // Surfaced by the service's own state, never by a crash.
+    }
+  }
+
   /// The pending overlay context - `{source, packageName, key, title, text, ...}`
   /// - consumed once. `source` is `bubble` or `fallback`; every other field is
   /// the `notification_captured` wire format, so `CapturedNotification` parses

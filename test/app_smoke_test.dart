@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:replymate/app/app.dart';
@@ -71,4 +72,48 @@ void main() {
       expect(find.textContaining('not configured'), findsOneWidget);
     },
   );
+
+  testWidgets('a fallback notification opens the composer prefilled', (
+    tester,
+  ) async {
+    // The bubble could not be shown, so ReplyMate posted its own notification.
+    // Tapping it is a request to answer a message, not to look at Home.
+    final binding = TestWidgetsFlutterBinding.ensureInitialized();
+    const channel = MethodChannel(AppConstants.channelName);
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      channel,
+      (call) async => switch (call.method) {
+        'consumeOverlayContext' => <String, Object?>{
+          'source': 'fallback',
+          'packageName': 'com.whatsapp',
+          'key': 'sbn-1',
+          'title': 'Asha',
+          'text': 'Can we meet tomorrow?',
+          'isTruncated': false,
+          'isGrouped': false,
+          'isGroupSummary': false,
+          'mayBeRedacted': false,
+          'hasReplyAction': true,
+          'replyActionLabel': 'Reply',
+          'postedAtMillis': 1,
+        },
+        _ => null,
+      },
+    );
+    addTearDown(
+      () => binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        null,
+      ),
+    );
+
+    SharedPreferences.setMockInitialValues({
+      AppConstants.prefOnboardingDone: true,
+    });
+    await tester.pumpWidget(const ProviderScope(child: ReplyMateApp()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('New reply'), findsOneWidget);
+    expect(find.text('Can we meet tomorrow?'), findsOneWidget);
+  });
 }

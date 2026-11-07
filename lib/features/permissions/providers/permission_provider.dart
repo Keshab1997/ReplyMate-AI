@@ -38,3 +38,40 @@ class PermissionNotifier extends Notifier<bool> {
     state = connected;
   }
 }
+
+/// "Display over other apps" state, for the floating reply bubble
+/// (docs/FLOATING_OVERLAY.md §6).
+///
+/// A separate provider on purpose: overlay access is its own grant, is
+/// revocable on its own, and must never be inferred from - or imply -
+/// notification access.
+final NotifierProvider<OverlayPermissionNotifier, bool> overlayProvider =
+    NotifierProvider<OverlayPermissionNotifier, bool>(
+      OverlayPermissionNotifier.new,
+    );
+
+class OverlayPermissionNotifier extends Notifier<bool> {
+  bool _alive = true;
+
+  @override
+  bool build() {
+    _alive = true;
+    ref.onDispose(() => _alive = false);
+    refresh();
+    return false;
+  }
+
+  /// Re-reads the grant. Called at startup, when the app resumes (the user may
+  /// have granted or revoked it in Settings), and after the Settings screen
+  /// was opened.
+  Future<void> refresh() async {
+    final enabled = await ref
+        .read(notificationsBridgeProvider)
+        .isOverlayEnabled();
+    if (_alive) state = enabled;
+  }
+
+  /// Opens Android's overlay screen; the permission screen re-reads on resume.
+  Future<void> openSettings() =>
+      ref.read(notificationsBridgeProvider).openOverlaySettings();
+}

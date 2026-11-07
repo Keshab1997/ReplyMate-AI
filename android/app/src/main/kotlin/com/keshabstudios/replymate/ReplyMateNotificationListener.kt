@@ -1,8 +1,17 @@
 package com.keshabstudios.replymate
 
+import android.app.KeyguardManager
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.app.RemoteInput
+import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 
@@ -13,10 +22,17 @@ import android.service.notification.StatusBarNotification
  * docs/PRIVACY_AND_PERMISSIONS.md):
  *  - Processes only packages the user selected on the app-selection screen.
  *  - Never retains message content: events are forwarded once and forgotten;
- *    the only thing kept is the last notification that exposed a reply action,
- *    so a quick reply has something to act on while it is still valid.
+ *    the only things kept are the last notification that exposed a reply
+ *    action (so a quick reply has something to act on while it is still valid)
+ *    and the pending overlay context, which lives in memory in
+ *    [OverlayBubbleController] and is cleared when the panel reads it.
  *  - Quick reply is attempted only when a valid RemoteInput action exists;
  *    every failure returns false and the Flutter side offers copy / open-app.
+ *
+ * Since the floating bubble exists (docs/FLOATING_OVERLAY.md) this service also
+ * decides, per notification, whether the bubble is raised or the fallback
+ * notification is posted. That decision is `routeToOverlay` below; the filter
+ * it applies is docs/FLOATING_OVERLAY.md §5.3.
  */
 class ReplyMateNotificationListener : NotificationListenerService() {
 
@@ -36,6 +52,12 @@ class ReplyMateNotificationListener : NotificationListenerService() {
 
         const val PREFS_NAME = "replymate_native"
         const val KEY_ALLOWED_PACKAGES = "allowed_packages"
+
+        /**
+         * Fallback notification channel: the honest path when the bubble cannot
+         * be drawn. Low importance, because it is a shortcut, not an alarm.
+         */
+        private const val FALLBACK_CHANNEL_ID = "replymate_fallback"
     }
 
     /** Most recent notification that exposed a RemoteInput reply action. */
@@ -60,12 +82,20 @@ class ReplyMateNotificationListener : NotificationListenerService() {
             lastReplyable = sbn
         }
         emit(mapOf("type" to "notification_captured", "notification" to parsed))
+        routeToOverlay(sbn, parsed)
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
-        if (sbn != null && sbn.key == lastReplyable?.key) {
+        if (sbn == null) return
+        if (sbn.key == lastReplyable?.key) {
             // A dismissed notification's reply action is gone; never fire at it.
             lastReplyable = null
+        }
+        // The bubble belongs to exactly one notification: when that one is
+        // dismissed there is nothing left to reply to, so it goes too.
+        if (sbn.key == OverlayBubbleController.pendingKey()) {
+            OverlayBubbleController.clear()
+            OverlayBubbleService.stop(this)
         }
     }
 
@@ -75,6 +105,152 @@ class ReplyMateNotificationListener : NotificationListenerService() {
                 .getStringSet(KEY_ALLOWED_PACKAGES, emptySet()) ?: emptySet()
         return allowed.contains(packageName)
     }
+
+    // ------------------------------------------------------------- overlay
+
+    /**
+     * Bubble first, fallback notification second - never both, never a crash.
+     *
+     * The user's bubble switch governs both surfaces: switched off means
+     * neither appears (docs/FLOATING_OVERLAY.md §8 - "the user's choice; do
+     * not nag"). A notification that fails the §5.3 filter is still captured
+     * for the in-app list; it just does not raise a bubble.
+     */
+    private fun routeToOverlay(sbn: StatusBarNotification, parsed: Map<String, Any?>) {
+        if (!OverlayBubbleService.isEnabledByUser(this)) return
+        if (!qualifiesForBubble(sbn, parsed)) return
+
+        if (!Settings.canDrawOverlays(this)) {
+            // Degraded path 1: no overlay permission.
+            holdForFallback(parsed)
+            postFallbackNotification(sbn)
+            return
+        }
+
+        OverlayBubbleController.hold(parsed + ("source" to "bubble"))
+        if (!OverlayBubbleService.start(this)) {
+            // Degraded path 2: Android 12+ refused a foreground-service start
+            // because this process is in the background. Documented, not a
+            // bug (docs/FLOATING_OVERLAY.md §7).
+            holdForFallback(parsed)
+            postFallbackNotification(sbn)
+        }
+    }
+
+    /**
+     * The docs/FLOATING_OVERLAY.md §5.3 filter: has text, is not a group
+     * summary, is not ongoing, is not a media transport, and the screen is on
+     * and unlocked. The allowlist and the user's switch are checked by the
+     * caller.
+     */
+    private fun qualifiesForBubble(
+        sbn: StatusBarNotification,
+        parsed: Map<String, Any?>,
+    ): Boolean {
+        val notification = sbn.notification ?: return false
+        val text = parsed["text"] as? String
+        if (text.isNullOrBlank()) return false
+        if (parsed["isGroupSummary"] == true) return false
+        if ((notification.flags and Notification.FLAG_ONGOING_EVENT) != 0) return false
+        if (isMediaTransport(notification)) return false
+        return isScreenOnAndUnlocked()
+    }
+
+    /**
+     * Media/transport controls can carry text (a track name), and drawing a
+     * reply bubble over Spotify would be nonsense. `MediaStyle` is exposed as a
+     * template string; there is no public API for it.
+     */
+    private fun isMediaTransport(notification: Notification): Boolean {
+        val template = notification.extras?.getString(Notification.EXTRA_TEMPLATE)
+        return template?.contains("MediaStyle") == true
+    }
+
+    private fun isScreenOnAndUnlocked(): Boolean {
+        val power = getSystemService(Context.POWER_SERVICE) as? PowerManager
+        if (power != null && !power.isInteractive) return false
+        val keyguard = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+        return keyguard?.isKeyguardLocked != true
+    }
+
+    /**
+     * The fallback context keeps the same field names but says `fallback`, so
+     * the Dart side opens the full composer instead of the floating panel.
+     */
+    private fun holdForFallback(parsed: Map<String, Any?>) {
+        OverlayBubbleController.hold(parsed + ("source" to "fallback"))
+    }
+
+    /**
+     * One notification per package, replaced rather than stacked, and it never
+     * carries the message text - the app name is the whole promise
+     * (docs/PRIVACY_AND_PERMISSIONS.md).
+     */
+    private fun postFallbackNotification(sbn: StatusBarNotification) {
+        val manager =
+            getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+        createFallbackChannel(manager)
+
+        val intent = Intent(this, MainActivity::class.java).apply {
+            action = MainActivity.ACTION_OVERLAY_PANEL
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP,
+            )
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            sbn.packageName.hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(this, FALLBACK_CHANNEL_ID)
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(this)
+        }
+        val notification = builder
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(getString(R.string.overlay_fallback_title, appLabel(sbn.packageName)))
+            .setContentText(getString(R.string.overlay_fallback_text))
+            .setAutoCancel(true)
+            .setOnlyAlertOnce(true)
+            .setContentIntent(pendingIntent)
+            .build()
+        try {
+            manager.notify(sbn.packageName.hashCode(), notification)
+        } catch (error: Exception) {
+            // Notifications denied on Android 13+: the bubble path already said
+            // what it could. Never crash the listener over a notification.
+        }
+    }
+
+    private fun createFallbackChannel(manager: NotificationManager) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val channel = NotificationChannel(
+            FALLBACK_CHANNEL_ID,
+            getString(R.string.overlay_fallback_channel_name),
+            NotificationManager.IMPORTANCE_DEFAULT,
+        ).apply {
+            description = getString(R.string.overlay_fallback_channel_description)
+            setShowBadge(true)
+        }
+        manager.createNotificationChannel(channel)
+    }
+
+    /** The app's own name, or its package id when Android will not tell us. */
+    private fun appLabel(packageName: String): String = try {
+        packageManager.getApplicationLabel(
+            packageManager.getApplicationInfo(packageName, 0),
+        ).toString()
+    } catch (error: Exception) {
+        packageName
+    }
+
+    // ---------------------------------------------------------- quick reply
 
     /**
      * Attempts a RemoteInput quick reply against the last replyable

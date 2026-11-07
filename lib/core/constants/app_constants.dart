@@ -15,6 +15,11 @@ class AppConstants {
   static const String prefDefaultTone = 'replymate.default_tone';
   static const String prefDefaultLength = 'replymate.default_length';
 
+  /// The user's bubble switch. Mirrored natively (same meaning, native prefs)
+  /// because the notification listener must read it while no Flutter engine is
+  /// alive (docs/FLOATING_OVERLAY.md §5.3).
+  static const String prefBubbleEnabled = 'replymate.bubble_enabled';
+
   /// Hard ceiling on a message we will send to an AI provider (FR-10: fail
   /// with a clear error instead of an oversized request).
   static const int maxMessageLength = 4000;
