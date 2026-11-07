@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Floating reply bubble (docs/FLOATING_OVERLAY.md).
+         56dp is the smallest circle that is still comfortably tappable at
+         large font scales and bold display settings. -->
+    <dimen name="overlay_bubble_size">56dp</dimen>
+    <!-- Default position: one bubble-width in, and a little below the status
+         bar, so the first bubble never lands under the notch or the
+         notification shade. -->
+    <dimen name="overlay_bubble_default_x">16dp</dimen>
+    <dimen name="overlay_bubble_default_y">120dp</dimen>
+</resources>

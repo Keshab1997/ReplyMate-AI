@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Native copy. Every string here is deliberately content-free: the bubble
+         and the fallback notification name the feature or the app, never the
+         sender and never the message (docs/FLOATING_OVERLAY.md §9). -->
+    <string name="overlay_bubble_description">ReplyMate reply bubble. Tap to draft a reply, drag to move.</string>
+    <string name="overlay_channel_name">Reply bubble</string>
+    <string name="overlay_channel_description">Keeps the floating reply bubble available while you use other apps.</string>
+    <string name="overlay_notification_title">Reply bubble active</string>
+    <string name="overlay_notification_text">Tap the bubble to draft a reply. Turn this off in ReplyMate settings.</string>
+
+    <string name="overlay_fallback_channel_name">New messages</string>
+    <string name="overlay_fallback_channel_description">Tells you when a message arrives from an app you allowed, so you can draft a reply.</string>
+    <!-- %1$s = the messaging app's label. Never the message. -->
+    <string name="overlay_fallback_title">New message from %1$s</string>
+    <string name="overlay_fallback_text">Draft a reply</string>
+</resources>

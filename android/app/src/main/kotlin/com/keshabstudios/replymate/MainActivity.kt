@@ -154,10 +154,19 @@ class MainActivity : FlutterActivity() {
             .apply()
     }
 
-    private companion object {
-        const val CHANNEL = "com.keshabstudios.replymate/notifications"
+    companion object {
+        private const val CHANNEL = "com.keshabstudios.replymate/notifications"
 
-        val CANDIDATE_PACKAGES = listOf(
+        /**
+         * Tells MainActivity that the user tapped the floating bubble, so the
+         * pending overlay context is consumed and shown instead of Home.
+         * Until the dedicated panel activity exists (Batch 2 of
+         * docs/OVERLAY_TASKS.md) the bubble launches this activity with this
+         * action; the constant is the seam both sides share.
+         */
+        const val ACTION_OVERLAY_PANEL = "com.keshabstudios.replymate.action.OVERLAY_PANEL"
+
+        private val CANDIDATE_PACKAGES = listOf(
             "com.whatsapp",
             "org.telegram.messenger",
             "com.facebook.orca",

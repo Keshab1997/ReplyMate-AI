@@ -4,6 +4,14 @@
          other (docs/ANDROID_NATIVE_SERVICES.md). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
+    <!-- Floating reply bubble (docs/FLOATING_OVERLAY.md §6). All three are
+         optional: without SYSTEM_ALERT_WINDOW the bubble simply never shows and
+         the fallback notification takes over. Granting overlay access never
+         implies - and is never treated as - notification access. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
+
     <application
         android:label="ReplyMate AI"
         android:name="${applicationName}"
@@ -55,6 +63,19 @@
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService"/>
             </intent-filter>
+        </service>
+
+        <!-- The bubble itself: a tiny WindowManager view kept alive by a
+             foreground service. `specialUse` is declared honestly (and must be
+             declared in Play Console) because no narrower FGS type covers
+             "draw a floating shortcut over other apps". -->
+        <service
+            android:name=".OverlayBubbleService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="floating reply bubble for messages the user allows" />
         </service>
 
         <!-- Don't delete the meta-data below.
