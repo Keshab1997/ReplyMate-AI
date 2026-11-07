@@ -2,7 +2,6 @@ package com.keshabstudios.replymate
 
 import android.content.Context
 import android.content.Intent
-import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.android.FlutterActivityLaunchConfigs
 
 /**
@@ -17,8 +16,12 @@ import io.flutter.embedding.android.FlutterActivityLaunchConfigs
  *
  * The pending message is read once through `consumeOverlayContext` and is never
  * written to disk or a log by this activity.
+ *
+ * It extends [ReplyMateFlutterActivity] rather than `FlutterActivity` on
+ * purpose: that is where the platform channel lives, and without it this
+ * activity's engine could not answer `consumeOverlayContext` at all.
  */
-class OverlayPanelActivity : FlutterActivity() {
+class OverlayPanelActivity : ReplyMateFlutterActivity() {
 
     override fun getInitialRoute(): String = ROUTE_OVERLAY
 

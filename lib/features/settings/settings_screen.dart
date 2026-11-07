@@ -17,8 +17,43 @@ import 'providers/preferences_provider.dart';
 
 /// Screen 8 plus the privacy screen (9): defaults, permission state, and the
 /// privacy explanation with a working "clear local preferences" control.
-class SettingsScreen extends ConsumerWidget {
+///
+/// Stateful and lifecycle-aware for one reason: the overlay grant can be given
+/// or taken away in Android Settings while this screen is alive. Without a
+/// resume re-read the "Reply bubble" switch would stay greyed out after the
+/// user *did* grant access - the bubble would look broken for a permission
+/// reason nobody could see.
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Re-read on entry, not only on first build.
+    ref.read(overlayProvider.notifier).refresh();
+    ref.read(listenerPermissionProvider.notifier).refresh();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(overlayProvider.notifier).refresh();
+      ref.read(listenerPermissionProvider.notifier).refresh();
+    }
+  }
 
   Future<void> _confirmClear(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
@@ -79,7 +114,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final preferences = ref.watch(preferencesProvider);
     final permissionEnabled = ref.watch(listenerPermissionProvider);
     final overlayEnabled = ref.watch(overlayProvider);
