@@ -84,6 +84,39 @@ void main() {
     );
   });
 
+  testWidgets('an empty session explains itself instead of a blank composer', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final repository = _RecordingReplyRepository();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+        child: const MaterialApp(home: ReplyComposerScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // No captured notification, no PROCESS_TEXT/SEND text: the composer says
+    // why the box is empty (docs/OVERLAY_TASKS.md Batch 0).
+    expect(find.textContaining('No message was captured'), findsOneWidget);
+
+    // Generate stays tappable on purpose: validation, not a dead button,
+    // explains the missing message.
+    await tester.ensureVisible(find.text('Generate suggestions'));
+    await tester.tap(find.text('Generate suggestions'));
+    await tester.pumpAndSettle();
+
+    expect(repository.request, isNull);
+    expect(
+      find.text('Add a message or paste the text you want to reply to.'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('selected suggestion count is sent with the request', (
     tester,
   ) async {

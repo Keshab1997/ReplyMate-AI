@@ -28,6 +28,15 @@ class ReplyComposerScreen extends ConsumerStatefulWidget {
 }
 
 class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
+  /// Shown when the session has no context at all: no captured notification,
+  /// no launch text. Silence is the symptom users report ("nothing happened"),
+  /// so the composer says why the box is empty instead of looking broken
+  /// (docs/OVERLAY_TASKS.md, Batch 0).
+  static const String noContextText =
+      'No message was captured. ReplyMate only keeps a message while the app '
+      'is running; open ReplyMate after a new message arrives, or paste the '
+      'text.';
+
   final TextEditingController _messageController = TextEditingController();
 
   ReplyLanguage _language = ReplyLanguage.english;
@@ -189,9 +198,14 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                           ),
                       ] else
                         Text(
+                          // Context-less session: say so. A blank field with
+                          // no explanation reads as a broken app; this reads
+                          // as a state the user can act on (paste), and
+                          // Generate still runs, so validation - not a
+                          // disabled button - explains what is missing.
                           launch != null && launch.hasText
                               ? 'From ${launch.source.label.toLowerCase()}.'
-                              : 'Paste or type the message you received.',
+                              : noContextText,
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       const SizedBox(height: AppTheme.spaceSm),
