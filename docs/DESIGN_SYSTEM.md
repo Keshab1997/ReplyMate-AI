@@ -78,6 +78,9 @@ The redesign landed in waves. Done: theme + tokens, the mascot, Home, the
 bubble panel, onboarding, suggestions (cards, BEST FIT badge, quoted message)
 and Settings (grouped sections, helper header, privacy promises as rows).
 
-Still to move: the composer, the permission screen, app selection and the admin
-gate. They inherit the new tokens automatically because they read
+The composer moved too: message card first, one style card for the four axes,
+a quiet error strip instead of an error card, and the honest "sent only when you
+press Generate" line under the gradient button.
+
+Still to move: the permission screen, app selection and the admin gate. They inherit the new tokens automatically because they read
 `Theme.of(context)`, so the gap is layout polish, not colour.
