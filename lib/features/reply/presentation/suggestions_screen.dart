@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/app_theme.dart';
+import '../../../shared/widgets/mascot_face.dart';
 import '../../notifications/models/captured_notification.dart';
 import '../../notifications/providers/notification_providers.dart';
 import '../domain/reply_request.dart';
@@ -98,67 +99,153 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
   @override
   Widget build(BuildContext context) {
     final quickReplyAvailable = widget.context?.hasReplyAction ?? false;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final count = widget.replies.length;
     return Scaffold(
-      appBar: AppBar(title: const Text('Suggestions')),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppTheme.spaceMd),
-          children: [
-            Row(
-              children: [
-                Text(
-                  '${widget.request.language.label} · '
-                  '${widget.request.tone.label} tone',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const Spacer(),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Change'),
-                ),
-              ],
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: AppTheme.backgroundGradient(theme.brightness),
+        ),
+        child: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.spaceMd,
+              AppTheme.spaceSm,
+              AppTheme.spaceMd,
+              AppTheme.spaceXl,
             ),
-            for (var index = 0; index < widget.replies.length; index++) ...[
-              SuggestionCard(
-                controller: _controllers[index],
-                quickReplyAvailable: quickReplyAvailable,
-                onCopy: _copy,
-                onShare: _share,
-                onQuickReply: _quickReply,
+            children: [
+              Row(
+                children: [
+                  IconButton.filledTonal(
+                    tooltip: 'Back',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.arrow_back_rounded, size: 19),
+                    style: IconButton.styleFrom(
+                      backgroundColor: isDark
+                          ? Colors.white.withValues(alpha: 0.07)
+                          : Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.spaceSm),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          count == 1
+                              ? 'One way to say it'
+                              : '$count ways to say it',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          '${widget.request.language.label} · '
+                          '${widget.request.tone.label} · '
+                          '${widget.request.length.label}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 10.5,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // The helper is happy: the work is done. It stays small so
+                  // the replies, not the mascot, are what the user reads.
+                  MascotFace(size: 34, mood: MascotMood.happy, glow: false),
+                ],
               ),
               const SizedBox(height: AppTheme.spaceMd),
-            ],
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(AppTheme.spaceMd),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 20,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+
+              // What we are answering, quoted, so the user never has to
+              // remember or scroll back to check it.
+              if (widget.context != null)
+                Container(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.brand.withValues(
+                      alpha: isDark ? 0.12 : 0.07,
                     ),
-                    const SizedBox(width: AppTheme.spaceSm),
-                    Expanded(
-                      child: Text(
-                        quickReplyAvailable
-                            ? 'Quick reply sends through the app\'s own '
-                                  'notification action. You stay in control.'
-                            : 'Quick reply works only in apps that support '
-                                  'it. Otherwise copy the reply.',
-                        style: Theme.of(context).textTheme.bodySmall,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border(
+                      left: BorderSide(color: AppTheme.brand, width: 3),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.context!.displayTitle,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: AppTheme.brandBright,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        widget.context!.displayText.isEmpty
+                            ? 'No message text was visible in the notification.'
+                            : widget.context!.displayText,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: AppTheme.spaceMd),
+
+              for (var index = 0; index < widget.replies.length; index++) ...[
+                SuggestionCard(
+                  controller: _controllers[index],
+                  quickReplyAvailable: quickReplyAvailable,
+                  best: index == 0,
+                  onCopy: _copy,
+                  onShare: _share,
+                  onQuickReply: _quickReply,
+                ),
+                const SizedBox(height: AppTheme.spaceMd),
+              ],
+
+              // The honest capability line, kept as a quiet footer rather than
+              // a card that competes with the replies.
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 15,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: AppTheme.spaceSm),
+                  Expanded(
+                    child: Text(
+                      quickReplyAvailable
+                          ? 'Quick reply sends through the app\'s own '
+                                'notification action. You stay in control.'
+                          : 'Quick reply works only in apps that support it. '
+                                'Otherwise copy the reply.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 11,
+                        height: 1.5,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: AppTheme.spaceMd),
-            OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Generate again'),
-            ),
-          ],
+              const SizedBox(height: AppTheme.spaceMd),
+              OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Generate again'),
+              ),
+            ],
+          ),
         ),
       ),
     );

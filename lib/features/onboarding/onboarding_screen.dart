@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app/theme/app_theme.dart';
 import '../../core/constants/app_constants.dart';
+import '../../shared/widgets/mascot_face.dart';
 import '../home/home_screen.dart';
 
 /// FR-01: explain purpose, limitations and permissions before asking for
@@ -51,65 +52,144 @@ class OnboardingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppTheme.spaceLg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: AppTheme.spaceXl),
-              Text(
-                'ReplyMate AI',
-                style: Theme.of(context).textTheme.headlineMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: AppTheme.spaceSm),
-              Text(
-                'Your AI-powered reply assistant for everyday conversations.',
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-              const SizedBox(height: AppTheme.spaceXl),
-              Expanded(
-                child: ListView.separated(
-                  itemCount: _points.length,
-                  separatorBuilder: (_, _) =>
-                      const SizedBox(height: AppTheme.spaceLg),
-                  itemBuilder: (context, index) {
-                    final (icon, title, body) = _points[index];
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(icon, size: 28),
-                        const SizedBox(width: AppTheme.spaceMd),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                title,
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: AppTheme.spaceXs),
-                              Text(
-                                body,
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                            ],
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: AppTheme.backgroundGradient(theme.brightness),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.spaceLg,
+              AppTheme.spaceMd,
+              AppTheme.spaceLg,
+              AppTheme.spaceLg,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Meet the helper before being asked for anything: the honest
+                // ordering FR-01 asks for, shown as a character rather than a
+                // paragraph of policy.
+                Center(child: MascotFace(size: 76, mood: MascotMood.idle)),
+                const SizedBox(height: AppTheme.spaceSm),
+                Center(
+                  child: Text(
+                    'ReplyMate AI',
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spaceXs),
+                Center(
+                  child: Text(
+                    'Your AI reply assistant for everyday conversations.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 12.5,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spaceLg),
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: _points.length,
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(height: AppTheme.spaceSm),
+                    itemBuilder: (context, index) {
+                      final (icon, title, body) = _points[index];
+                      return Container(
+                        padding: const EdgeInsets.all(AppTheme.spaceMd - 2),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.045)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.cardRadius,
+                          ),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : theme.colorScheme.outlineVariant.withValues(
+                                    alpha: 0.6,
+                                  ),
                           ),
                         ),
-                      ],
-                    );
-                  },
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                color: AppTheme.brand.withValues(
+                                  alpha: isDark ? 0.22 : 0.12,
+                                ),
+                              ),
+                              child: Icon(
+                                icon,
+                                size: 16,
+                                color: AppTheme.brandBright,
+                              ),
+                            ),
+                            const SizedBox(width: AppTheme.spaceMd - 4),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    title,
+                                    style: theme.textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    body,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      height: 1.5,
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppTheme.spaceMd),
-              FilledButton(
-                onPressed: () => _complete(context),
-                child: const Text('Get started'),
-              ),
-            ],
+                const SizedBox(height: AppTheme.spaceMd),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
+                    gradient: AppTheme.primaryGradient,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.brand.withValues(alpha: 0.45),
+                        blurRadius: 24,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: FilledButton(
+                    onPressed: () => _complete(context),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                    ),
+                    child: const Text('Get started'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

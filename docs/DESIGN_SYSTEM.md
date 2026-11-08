@@ -75,6 +75,9 @@ State is never colour alone: the dot always has a word next to it (`live` /
 ## 6. What is still on the old system
 
 The redesign landed in waves. Done: theme + tokens, the mascot, Home, the
-bubble panel. Still to move: onboarding, the composer, suggestions, permissions,
-app selection and Settings chrome. They inherit the new tokens automatically
-because they read `Theme.of(context)`, so the gap is layout polish, not colour.
+bubble panel, onboarding, suggestions (cards, BEST FIT badge, quoted message)
+and Settings (grouped sections, helper header, privacy promises as rows).
+
+Still to move: the composer, the permission screen, app selection and the admin
+gate. They inherit the new tokens automatically because they read
+`Theme.of(context)`, so the gap is layout polish, not colour.
