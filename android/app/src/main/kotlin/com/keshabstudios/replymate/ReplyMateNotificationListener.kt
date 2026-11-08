@@ -9,6 +9,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.app.RemoteInput
 import android.provider.Settings
@@ -58,10 +60,26 @@ class ReplyMateNotificationListener : NotificationListenerService() {
          * be drawn. Low importance, because it is a shortcut, not an alarm.
          */
         private const val FALLBACK_CHANNEL_ID = "replymate_fallback"
+
+        /**
+         * How long the bubble survives its notification being retracted. Long
+         * enough for a finger already moving towards it, short enough that a
+         * genuinely dismissed message does not linger
+         * (docs/FLOATING_OVERLAY.md §5.3).
+         */
+        private const val BUBBLE_RETRACTION_GRACE_MILLIS = 6_000L
     }
 
-    /** Most recent notification that exposed a RemoteInput reply action. */
+    /** Most recent notification that exposed a reply action. */
     private var lastReplyable: StatusBarNotification? = null
+
+    private val handler = Handler(Looper.getMainLooper())
+
+    /**
+     * A bubble retraction waiting out its grace window. Kept so a new message
+     * (or a re-post of the same one) can cancel it.
+     */
+    private var retractBubble: Runnable? = null
 
     override fun onListenerConnected() {
         instance = this
@@ -71,6 +89,7 @@ class ReplyMateNotificationListener : NotificationListenerService() {
     override fun onListenerDisconnected() {
         instance = null
         lastReplyable = null
+        cancelScheduledRetraction()
         emit(mapOf("type" to "listener_disconnected"))
     }
 
@@ -82,6 +101,7 @@ class ReplyMateNotificationListener : NotificationListenerService() {
             lastReplyable = sbn
         }
         emit(mapOf("type" to "notification_captured", "notification" to parsed))
+        cancelScheduledRetraction()
         routeToOverlay(sbn, parsed)
     }
 
@@ -91,12 +111,35 @@ class ReplyMateNotificationListener : NotificationListenerService() {
             // A dismissed notification's reply action is gone; never fire at it.
             lastReplyable = null
         }
-        // The bubble belongs to exactly one notification: when that one is
-        // dismissed there is nothing left to reply to, so it goes too.
+        // The bubble belongs to exactly one notification, so when that one goes
+        // the bubble usually goes with it - but not instantly. Some apps
+        // (WhatsApp, for the chat you already have open) post a notification
+        // and retract it a moment later; clearing immediately made the bubble
+        // flicker out before a finger could reach it. A short grace window
+        // keeps it tappable, and a tap that is too late is still honest: the
+        // panel says the reply action is no longer valid.
         if (sbn.key == OverlayBubbleController.pendingKey()) {
-            OverlayBubbleController.clear()
-            OverlayBubbleService.stop(this)
+            scheduleBubbleRetraction(sbn.key)
         }
+    }
+
+    /** Retracts the bubble for [key] after the grace window, unless it was replaced. */
+    private fun scheduleBubbleRetraction(key: String) {
+        cancelScheduledRetraction()
+        val task = Runnable {
+            retractBubble = null
+            if (OverlayBubbleController.pendingKey() == key) {
+                OverlayBubbleController.clear()
+                OverlayBubbleService.stop(this)
+            }
+        }
+        retractBubble = task
+        handler.postDelayed(task, BUBBLE_RETRACTION_GRACE_MILLIS)
+    }
+
+    private fun cancelScheduledRetraction() {
+        retractBubble?.let { handler.removeCallbacks(it) }
+        retractBubble = null
     }
 
     private fun isAllowed(packageName: String): Boolean {

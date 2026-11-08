@@ -87,8 +87,17 @@ before, so the in-app list keeps working. It then decides, in this order:
    the context with `source=fallback` and post the fallback notification.
 
 The bubble also disappears when its notification is removed
-(`onNotificationRemoved` matches the pending key), after ten minutes, and while
-the screen is off or locked.
+(`onNotificationRemoved` matches the pending key) - after a 6-second grace
+window, because some apps post and immediately retract a notification - after
+ten minutes, and while the screen is off or locked.
+
+### Why nothing appears while you are in the chat
+
+While the user is looking at a conversation, the messaging app usually posts no
+notification for it. No notification means no event, no context and no bubble;
+the alternative (reading the screen) needs an `AccessibilityService`, which this
+project forbids. Text selection (PROCESS_TEXT), the share sheet and pasting into
+the composer are the supported routes in that situation.
 
 ### Known limitation: the fallback tap while the app is already open
 

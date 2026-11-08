@@ -188,8 +188,29 @@ Show only when **all** are true:
 Anything else is dropped? No — it is still captured for the in-app list; it
 just does not raise a bubble.
 
-Hide the bubble immediately when: the source notification is removed, the
-panel opens, 10 minutes pass, or the user taps the bubble's close affordance.
+Hide the bubble when: the panel opens, 10 minutes pass, or the user taps the
+bubble's close affordance.
+
+When the source notification is removed the bubble goes too - after a **6-second
+grace window** rather than instantly. Some messaging apps post a notification
+and retract it a moment later (WhatsApp does this for the chat you already have
+open), and clearing on the first removal made the bubble flicker out of
+existence before a finger could reach it. A tap inside the window is still
+honest: the panel opens with the message and quick reply refuses, because the
+action it would have used is gone.
+
+### What this cannot do: the chat you are already looking at
+
+The bubble is driven by **notifications**. When the user is inside a chat, the
+messaging app normally posts no notification for that conversation at all, so
+there is nothing for any notification listener to read. ReplyMate does not work
+around this with an `AccessibilityService` or screen reading - that is banned by
+this spec and would change what the app is (and what Play reviews it as).
+
+The in-app alternatives that do work in that situation: select the message text
+and use the *ReplyMate AI* entry in the selection menu (route 2 in
+`docs/PLATFORM_CHANNELS.md`), share the message to ReplyMate, or paste it into
+the composer.
 
 ---
 
