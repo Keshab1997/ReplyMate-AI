@@ -3,5 +3,8 @@
     <!-- Bubble + fallback accent. Kept as a plain colour resource rather than a
          theme attribute: the bubble service has no appcompat theme. -->
     <color name="overlay_bubble_background">#FF1B6EF3</color>
+    <!-- The long-press menu: near-black navy, deliberately not the bubble blue,
+         so the menu reads as a layer above the bubble and not part of it. -->
+    <color name="overlay_menu_background">#F21A2333</color>
     <color name="overlay_fallback_accent">#FF1B6EF3</color>
 </resources>

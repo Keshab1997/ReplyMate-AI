@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_theme.dart';
 import '../../core/platform/notifications_bridge.dart';
-import '../../shared/widgets/section_label.dart';
+import '../../shared/widgets/screen_header.dart';
 import '../notifications/providers/notification_providers.dart';
 import 'providers/selected_apps_provider.dart';
 
@@ -34,57 +34,142 @@ class AppSelectionScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final candidates = ref.watch(candidateAppsProvider);
     final selected = ref.watch(selectedAppsProvider);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Scaffold(
-      appBar: AppBar(title: const Text('Supported apps')),
-      body: SafeArea(
-        child: candidates.when(
-          data: (apps) {
-            if (apps.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(AppTheme.spaceLg),
-                child: Text(
-                  'No supported messaging app is installed on this device. '
-                  'You can still use ReplyMate by pasting or selecting text.',
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: AppTheme.backgroundGradient(theme.brightness),
+        ),
+        child: SafeArea(
+          child: candidates.when(
+            data: (apps) {
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  AppTheme.spaceMd,
+                  AppTheme.spaceSm,
+                  AppTheme.spaceMd,
+                  AppTheme.spaceXl,
                 ),
-              );
-            }
-            return ListView(
-              padding: const EdgeInsets.all(AppTheme.spaceMd),
-              children: [
-                const SectionLabel(
-                  'Apps ReplyMate may read notifications from',
-                ),
-                Card(
-                  child: Column(
-                    children: [
-                      for (final app in apps)
-                        CheckboxListTile(
-                          title: Text(app.label),
-                          subtitle: const Text(
-                            'Notifications only - never inside the app',
-                          ),
-                          value: selected.contains(app.packageName),
-                          onChanged: (_) => ref
-                              .read(selectedAppsProvider.notifier)
-                              .toggle(app.packageName),
-                        ),
-                    ],
+                children: [
+                  ScreenHeader(
+                    title: 'Supported apps',
+                    subtitle: apps.isEmpty
+                        ? 'Nothing to choose yet'
+                        : '${selected.length} of ${apps.length} selected',
                   ),
-                ),
-                const SizedBox(height: AppTheme.spaceMd),
-                Text(
-                  'An app appears here only after it has been seen installed '
-                  'on this device. Support is claimed only for what has been '
-                  'tested (docs/SCREEN_SPECIFICATIONS.md, screen 5).',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, _) => const Padding(
-            padding: EdgeInsets.all(AppTheme.spaceLg),
-            child: Text('Could not read the installed app list.'),
+                  const SizedBox(height: AppTheme.spaceMd),
+                  if (apps.isEmpty)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'No supported messaging app is installed on '
+                              'this device.',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'You can still use ReplyMate by pasting or '
+                              'selecting text.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontSize: 11,
+                                height: 1.5,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else ...[
+                    Text(
+                      'APPS REPLYMATE MAY READ NOTIFICATIONS FROM',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        letterSpacing: 1.3,
+                        fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.spaceSm),
+                    Card(
+                      child: Column(
+                        children: [
+                          for (var index = 0; index < apps.length; index++) ...[
+                            if (index > 0) const Divider(height: 1),
+                            CheckboxListTile(
+                              value: selected.contains(apps[index].packageName),
+                              onChanged: (_) => ref
+                                  .read(selectedAppsProvider.notifier)
+                                  .toggle(apps[index].packageName),
+                              title: Text(
+                                apps[index].label,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              subtitle: Text(
+                                'Notifications only - never inside the app',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontSize: 10.5,
+                                ),
+                              ),
+                              controlAffinity: ListTileControlAffinity.trailing,
+                              activeColor: AppTheme.brandBright,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppTheme.spaceMd),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.verified_user_outlined,
+                          size: 14,
+                          color: isDark ? AppTheme.brandBright : AppTheme.brand,
+                        ),
+                        const SizedBox(width: AppTheme.spaceSm),
+                        Expanded(
+                          child: Text(
+                            'An app appears here only after it has been seen '
+                            'installed on this device. Support is claimed only '
+                            'for what has been tested '
+                            '(docs/SCREEN_SPECIFICATIONS.md, screen 5).',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 10.5,
+                              height: 1.5,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, _) => Padding(
+              padding: const EdgeInsets.all(AppTheme.spaceLg),
+              child: Column(
+                children: [
+                  const ScreenHeader(title: 'Supported apps'),
+                  const SizedBox(height: AppTheme.spaceLg),
+                  Text(
+                    'Could not read the installed app list.',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

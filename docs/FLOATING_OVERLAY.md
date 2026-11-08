@@ -224,6 +224,14 @@ property animations - no frame assets, no animated-drawable pipeline, no Lottie:
   arrived, and it carries no text;
 - **tuck**: see below.
 
+A **long press** (450 ms, cancelled the moment the finger moves) opens a small
+three-row menu beside the bubble: *Draft a reply*, *Hide at the edge*,
+*Dismiss until the next message*. Dragging and waiting for a notification both
+hide the bubble, but neither is discoverable - the long press is the gesture
+people try on anything round. The menu closes on a second tap, on any drag, on
+a tap on one of its rows, or by itself after 6 seconds; a refused menu window is
+swallowed so it can never take the bubble down with it.
+
 Dragging the bubble within ~28 dp of a screen edge tucks it there as a 22 dp
 tab with three dots instead of the face. A tap on the tab restores the bubble
 and does **not** open the panel, so hiding it can never fire an action by

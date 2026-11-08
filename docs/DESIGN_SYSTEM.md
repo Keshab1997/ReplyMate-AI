@@ -82,5 +82,10 @@ The composer moved too: message card first, one style card for the four axes,
 a quiet error strip instead of an error card, and the honest "sent only when you
 press Generate" line under the gradient button.
 
-Still to move: the permission screen, app selection and the admin gate. They inherit the new tokens automatically because they read
-`Theme.of(context)`, so the gap is layout polish, not colour.
+The remaining screens - permission setup, app selection and the admin gate -
+moved in the fourth wave, and they introduced `ScreenHeader`
+(`lib/shared/widgets/screen_header.dart`) so the app has exactly **one** back
+affordance instead of four hand-copied chips.
+
+Nothing is left on the old system. From here a new screen starts from
+`ScreenHeader` + `AppTheme` tokens + `MascotFace` when the helper is relevant.

@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_theme.dart';
 import '../../shared/widgets/permission_status_card.dart';
-import '../../shared/widgets/section_label.dart';
+import '../../shared/widgets/mascot_face.dart';
+import '../../shared/widgets/screen_header.dart';
 import 'providers/permission_provider.dart';
 
 /// FR-02: explain why notification access is needed, open the right Settings
@@ -47,73 +48,178 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen>
   Widget build(BuildContext context) {
     final enabled = ref.watch(listenerPermissionProvider);
     final overlayEnabled = ref.watch(overlayProvider);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Notification access')),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppTheme.spaceMd),
-          children: [
-            PermissionStatusCard(
-              enabled: enabled,
-              onManage: () =>
-                  ref.read(listenerPermissionProvider.notifier).openSettings(),
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    Widget bullet({
+      required IconData icon,
+      required String title,
+      required String body,
+      required Color tint,
+    }) => Padding(
+      padding: const EdgeInsets.only(bottom: AppTheme.spaceMd),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              color: tint.withValues(alpha: 0.14),
             ),
-            const SizedBox(height: AppTheme.spaceLg),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(AppTheme.spaceMd),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'What this access allows',
-                      style: Theme.of(context).textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: AppTheme.spaceSm),
-                    const Text(
-                      'Android shows ReplyMate the notifications you receive. '
-                      'ReplyMate processes only the apps you select on the '
-                      'next screen, uses the text solely to draft replies, '
-                      'and never stores conversations.',
-                    ),
-                    const SizedBox(height: AppTheme.spaceMd),
-                    Text(
-                      'What it does not allow',
-                      style: Theme.of(context).textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: AppTheme.spaceSm),
-                    const Text(
-                      'No reading inside apps, no screen capture, no sending '
-                      'messages. You can revoke the access here or in Android '
-                      'Settings at any time.',
+            child: Icon(icon, size: 14, color: tint),
+          ),
+          const SizedBox(width: AppTheme.spaceSm + 2),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12.5,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  body,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 11,
+                    height: 1.5,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return Scaffold(
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: AppTheme.backgroundGradient(theme.brightness),
+        ),
+        child: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(
+              AppTheme.spaceMd,
+              AppTheme.spaceSm,
+              AppTheme.spaceMd,
+              AppTheme.spaceXl,
+            ),
+            children: [
+              ScreenHeader(
+                title: 'Notification access',
+                subtitle: enabled ? 'Granted' : 'Needed for the bubble',
+                trailing: MascotFace(
+                  size: 34,
+                  glow: false,
+                  animate: false,
+                  mood: enabled ? MascotMood.happy : MascotMood.alert,
+                ),
+              ),
+              const SizedBox(height: AppTheme.spaceMd),
+
+              PermissionStatusCard(
+                enabled: enabled,
+                onManage: () => ref
+                    .read(listenerPermissionProvider.notifier)
+                    .openSettings(),
+              ),
+              const SizedBox(height: AppTheme.spaceMd),
+
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 2),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'What this access allows',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: AppTheme.spaceSm + 2),
+                      bullet(
+                        icon: Icons.check_rounded,
+                        title: 'Notifications from apps you pick',
+                        body:
+                            'ReplyMate processes only the apps you select on '
+                            'the next screen, uses the text solely to draft '
+                            'replies, and never stores conversations.',
+                        tint: AppTheme.mint,
+                      ),
+                      bullet(
+                        icon: Icons.block_rounded,
+                        title: 'No reading inside apps',
+                        body:
+                            'No screen capture, no accessibility service, no '
+                            'sending messages. You can revoke the access here '
+                            'or in Android Settings at any time.',
+                        tint: AppTheme.brandBright,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: AppTheme.spaceMd),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
+                  gradient: AppTheme.primaryGradient,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.brand.withValues(alpha: 0.40),
+                      blurRadius: 24,
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),
+                child: FilledButton(
+                  onPressed: () => ref
+                      .read(listenerPermissionProvider.notifier)
+                      .openSettings(),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                  ),
+                  child: const Text('Open Android Settings'),
+                ),
               ),
-            ),
-            const SizedBox(height: AppTheme.spaceLg),
-            FilledButton(
-              onPressed: () =>
-                  ref.read(listenerPermissionProvider.notifier).openSettings(),
-              child: const Text('Open Android Settings'),
-            ),
-            const SizedBox(height: AppTheme.spaceSm),
-            OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Later - I will paste text manually'),
-            ),
-            // The optional part comes after the required one, so the manual
-            // escape hatch never scrolls out of reach behind it.
-            const SizedBox(height: AppTheme.spaceLg),
-            const SectionLabel('Optional: floating reply bubble'),
-            _OverlayAccessCard(
-              granted: overlayEnabled,
-              onOpenSettings: () =>
-                  ref.read(overlayProvider.notifier).openSettings(),
-            ),
-          ],
+              const SizedBox(height: AppTheme.spaceSm),
+              OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Later - I will paste text manually'),
+              ),
+
+              // The optional part comes after the required one, so the manual
+              // escape hatch never scrolls out of reach behind it.
+              Padding(
+                padding: const EdgeInsets.only(top: AppTheme.spaceLg),
+                child: Text(
+                  'OPTIONAL · FLOATING REPLY BUBBLE',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    letterSpacing: 1.3,
+                    fontWeight: FontWeight.w700,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppTheme.spaceSm),
+              _OverlayAccessCard(
+                granted: overlayEnabled,
+                onOpenSettings: () =>
+                    ref.read(overlayProvider.notifier).openSettings(),
+              ),
+              if (!isDark) const SizedBox(height: AppTheme.spaceSm),
+            ],
+          ),
         ),
       ),
     );

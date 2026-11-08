@@ -4,6 +4,9 @@
          and the fallback notification name the feature or the app, never the
          sender and never the message (docs/FLOATING_OVERLAY.md §9). -->
     <string name="overlay_bubble_description">ReplyMate reply bubble. Tap to draft a reply, drag to move, drag to the screen edge to hide it.</string>
+    <string name="overlay_bubble_menu_reply">Draft a reply</string>
+    <string name="overlay_bubble_menu_hide">Hide at the edge</string>
+    <string name="overlay_bubble_menu_dismiss">Dismiss until the next message</string>
     <string name="overlay_bubble_description_collapsed">ReplyMate bubble, hidden at the screen edge. Tap to bring it back.</string>
     <string name="overlay_channel_name">Reply bubble</string>
     <string name="overlay_channel_description">Keeps the floating reply bubble available while you use other apps.</string>

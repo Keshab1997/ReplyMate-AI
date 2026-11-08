@@ -78,6 +78,18 @@ class OverlayBubbleService : Service() {
 
     private var panelReceiver: BroadcastReceiver? = null
 
+    /** The long-press menu window, when it is open. */
+    private var menuView: View? = null
+
+    /**
+     * Fires when a finger stays still on the bubble. Dragging cancels it, so a
+     * slow drag never opens the menu by accident.
+     */
+    private var longPressRunnable: Runnable? = null
+
+    /** Auto-closes the menu: a menu nobody touches should not sit on screen. */
+    private var menuTimeout: Runnable? = null
+
     /**
      * True while the bubble is tucked against a screen edge as a slim tab.
      * Tapping the tab brings the bubble back; a new message does it too, so a
@@ -537,6 +549,129 @@ class OverlayBubbleService : Service() {
      * bubble feel like a bubble instead of a button that sometimes opens a
      * panel when the user meant to move it.
      */
+    private fun scheduleLongPress(onFired: () -> Unit) {
+        cancelLongPress()
+        if (collapsed) return
+        val runnable = Runnable { onFired() }
+        longPressRunnable = runnable
+        handler.postDelayed(runnable, LONG_PRESS_MILLIS)
+    }
+
+    private fun cancelLongPress() {
+        longPressRunnable?.let { handler.removeCallbacks(it) }
+        longPressRunnable = null
+    }
+
+    /**
+     * The bubble's second door. Dragging to the edge and waiting for the
+     * notification both hide the bubble, but neither is discoverable; a long
+     * press is the gesture people try on anything round.
+     *
+     * Three actions, no text of the message anywhere: reply, tuck away, dismiss.
+     */
+    private fun showMenu() {
+        val anchor = layoutParams ?: return
+        val manager = windowManager ?: return
+        if (menuView != null || panelOpen) return
+        bubbleView?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+
+        val card = LinearLayout(this)
+        card.orientation = LinearLayout.VERTICAL
+        card.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(14).toFloat()
+            setColor(menuBackgroundColor())
+        }
+        card.elevation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            dp(10).toFloat()
+        } else {
+            0f
+        }
+        card.addView(menuRow(R.string.overlay_bubble_menu_reply) { openPanel() })
+        card.addView(menuRow(R.string.overlay_bubble_menu_hide) {
+            collapse(toRight = anchor.x > resources.displayMetrics.widthPixels / 2)
+        })
+        card.addView(menuRow(R.string.overlay_bubble_menu_dismiss) { dismissBubble() })
+
+        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+        val width = dp(168)
+        val height = dp(3 * 44)
+        val metrics = resources.displayMetrics
+        val params = WindowManager.LayoutParams(
+            width,
+            height,
+            type,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            PixelFormat.TRANSLUCENT,
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = if (anchor.x + anchor.width + width + dp(8) <= metrics.widthPixels) {
+                anchor.x + anchor.width + dp(8)
+            } else {
+                (anchor.x - width - dp(8)).coerceAtLeast(0)
+            }
+            y = anchor.y.coerceIn(dp(8), maxOf(dp(8), metrics.heightPixels - height - dp(8)))
+        }
+        try {
+            manager.addView(card, params)
+            menuView = card
+            menuTimeout?.let { handler.removeCallbacks(it) }
+            val timeout = Runnable { hideMenu() }
+            menuTimeout = timeout
+            handler.postDelayed(timeout, MENU_TIMEOUT_MILLIS)
+        } catch (error: Exception) {
+            // A refused menu window must never take the bubble down with it.
+            menuView = null
+        }
+    }
+
+    private fun menuRow(labelRes: Int, action: () -> Unit): View {
+        val row = TextView(this)
+        row.text = getString(labelRes)
+        row.setTextColor(Color.WHITE)
+        row.textSize = 14f
+        row.gravity = Gravity.CENTER_VERTICAL
+        row.setPadding(dp(16), 0, dp(16), 0)
+        row.layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            dp(44),
+        )
+        row.setOnClickListener {
+            hideMenu()
+            action()
+        }
+        return row
+    }
+
+    private fun hideMenu() {
+        menuTimeout?.let { handler.removeCallbacks(it) }
+        menuTimeout = null
+        val view = menuView
+        val manager = windowManager
+        menuView = null
+        if (view != null && manager != null) {
+            try {
+                manager.removeView(view)
+            } catch (error: Exception) {
+                // Already gone.
+            }
+        }
+    }
+
+    /** Dismiss is the user saying "not now" - it means the bubble and its
+     *  pending message both go (docs/FLOATING_OVERLAY.md §5.3). */
+    private fun dismissBubble() {
+        hideMenu()
+        OverlayBubbleController.clear()
+        removeBubble()
+        stopSelf()
+    }
+
     private inner class DragToTapListener : View.OnTouchListener {
         private val touchSlop = ViewConfiguration.get(this@OverlayBubbleService)
             .scaledTouchSlop
@@ -545,6 +680,12 @@ class OverlayBubbleService : Service() {
         private var startX = 0
         private var startY = 0
         private var dragging = false
+
+        /**
+         * True once this gesture's long press has opened the menu: the release
+         * that follows must not be read as "close the menu I just opened".
+         */
+        private var longPressFired = false
 
         override fun onTouch(view: View, event: MotionEvent): Boolean {
             val params = layoutParams ?: return false
@@ -555,6 +696,8 @@ class OverlayBubbleService : Service() {
                     startX = params.x
                     startY = params.y
                     dragging = false
+                    longPressFired = false
+                    scheduleLongPress { longPressFired = true; showMenu() }
                     return true
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -562,6 +705,8 @@ class OverlayBubbleService : Service() {
                     val dy = event.rawY - downRawY
                     if (!dragging && (Math.abs(dx) > touchSlop || Math.abs(dy) > touchSlop)) {
                         dragging = true
+                        cancelLongPress()
+                        hideMenu()
                     }
                     if (dragging) {
                         params.x = startX + dx.toInt()
@@ -575,7 +720,14 @@ class OverlayBubbleService : Service() {
                     return true
                 }
                 MotionEvent.ACTION_UP -> {
-                    if (dragging) {
+                    cancelLongPress()
+                    if (longPressFired) {
+                        // The press already did its work; this is its release.
+                        longPressFired = false
+                    } else if (menuView != null && !dragging) {
+                        // A second tap on the bubble closes its own menu.
+                        hideMenu()
+                    } else if (dragging) {
                         settleAfterDrag(params)
                     } else if (collapsed) {
                         // A tucked bubble comes back first; the panel is the
@@ -587,7 +739,10 @@ class OverlayBubbleService : Service() {
                     }
                     return true
                 }
-                MotionEvent.ACTION_CANCEL -> return true
+                MotionEvent.ACTION_CANCEL -> {
+                    cancelLongPress()
+                    return true
+                }
             }
             return false
         }
@@ -643,6 +798,7 @@ class OverlayBubbleService : Service() {
     /** Invisible, not removed: the panel is drawn in front of this window. */
     private fun hideForPanel() {
         panelOpen = true
+        hideMenu()
         stopIdleAnimation()
         bubbleView?.visibility = View.GONE
         // The auto-hide timer keeps running on purpose: if the panel never
@@ -674,6 +830,8 @@ class OverlayBubbleService : Service() {
     }
 
     private fun removeBubble() {
+        hideMenu()
+        cancelLongPress()
         val view = bubbleView
         val manager = windowManager
         bubbleView = null
@@ -785,6 +943,8 @@ class OverlayBubbleService : Service() {
      */
     private fun bubbleColor(): Int = getColor(R.color.overlay_bubble_background)
 
+    private fun menuBackgroundColor(): Int = getColor(R.color.overlay_menu_background)
+
     private fun badgeColor(): Int = getColor(R.color.overlay_fallback_accent)
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
@@ -796,6 +956,12 @@ class OverlayBubbleService : Service() {
         /** Fixed id: one bubble notification, replaced rather than stacked. */
         const val OVERLAY_NOTIFICATION_ID = 4211
         const val CHANNEL_ID = "replymate_bubble"
+
+        /** Long enough to be deliberate, short enough not to feel stuck. */
+        private const val LONG_PRESS_MILLIS = 450L
+
+        /** The menu closes itself if it is ignored. */
+        private const val MENU_TIMEOUT_MILLIS = 6_000L
 
         /** App-private: the panel broadcasts this when it is destroyed. */
         const val ACTION_PANEL_CLOSED = "com.keshabstudios.replymate.action.PANEL_CLOSED"
