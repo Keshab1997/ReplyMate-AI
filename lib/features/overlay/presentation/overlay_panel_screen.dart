@@ -54,6 +54,10 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
   bool _initialisedMessage = false;
   bool _editingMessage = false;
 
+  /// The conversation being answered. Normally the one the bubble was opened
+  /// for; the switcher can move it to another chat that is also waiting.
+  OverlayContext? _active;
+
   @override
   void dispose() {
     _messageController.dispose();
@@ -116,6 +120,24 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     if (_initialisedMessage) return;
     _initialisedMessage = true;
     _messageController.text = overlay.displayText;
+  }
+
+  /// Moves the panel to another waiting chat. The message box is reset to that
+  /// chat's text and the old reply drafts are dropped: replies written for one
+  /// conversation must never be offered for another (that is the wrong-chat
+  /// mistake quick reply is already guarded against).
+  void _switchTo(OverlayContext overlay) {
+    if (_active?.notification.key == overlay.notification.key) return;
+    setState(() {
+      _active = overlay;
+      _initialisedMessage = false;
+      _editingMessage = false;
+      _failure = null;
+      for (final controller in _controllers) {
+        controller.dispose();
+      }
+      _controllers = const [];
+    });
   }
 
   Future<void> _copyMessage() async {
@@ -315,6 +337,68 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
   /// demand. Generation always uses what is in this box, so a pasted message
   /// and a captured one take the same path - which is what makes the panel
   /// useful even when the notification carried nothing.
+  /// A row of chat chips, shown only when more than one conversation is
+  /// waiting. WhatsApp can ping you three times while ReplyMate is on screen;
+  /// before this, the badge said 3 but the panel could only ever answer the
+  /// last one.
+  List<Widget> _buildSwitcher(OverlayContext overlay) {
+    final others =
+        ref.watch(pendingOverlayContextsProvider).value ??
+        const <OverlayContext>[];
+    // The open chat first, then the rest in arrival order, deduplicated by key
+    // (the open one is usually also in the pending list).
+    final seen = <String>{overlay.notification.key};
+    final chats = <OverlayContext>[
+      overlay,
+      for (final other in others)
+        if (seen.add(other.notification.key)) other,
+    ];
+    if (chats.length < 2) return const <Widget>[];
+    final theme = Theme.of(context);
+    return [
+      const SizedBox(height: AppTheme.spaceSm),
+      SizedBox(
+        height: 34,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: chats.length,
+          separatorBuilder: (_, _) => const SizedBox(width: AppTheme.spaceSm),
+          itemBuilder: (context, index) {
+            final chat = chats[index];
+            final selected = chat.notification.key == overlay.notification.key;
+            return AppSurfaces.pill(
+              context,
+              accent: selected,
+              onTap: () => _switchTo(chat),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    selected ? Icons.circle : Icons.circle_outlined,
+                    size: 7,
+                    color: selected
+                        ? AppTheme.brandBright
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    chat.displayTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    ];
+  }
+
   Widget _buildMessageBlock(OverlayContext overlay) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
@@ -386,7 +470,8 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     );
   }
 
-  Widget _buildPanel(OverlayContext overlay) {
+  Widget _buildPanel(OverlayContext initial) {
+    final overlay = _active ?? initial;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final preferences = ref.watch(preferencesProvider);
@@ -452,6 +537,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
             ),
           ],
         ),
+        ..._buildSwitcher(overlay),
         const SizedBox(height: AppTheme.spaceMd),
         _buildMessageBlock(overlay),
         // Only real limitations appear here. A single-chat WhatsApp

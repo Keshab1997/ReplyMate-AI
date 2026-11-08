@@ -78,6 +78,8 @@ them can be checked from CI.
 | 26 | Drag the bubble to the left or right screen edge and let go | It tucks itself into a slim tab on that edge; the messaging app underneath stays usable |
 | 27 | Tap the tucked tab, then drag the tab back into the middle of the screen | First tap restores the full bubble without opening the panel; releasing it mid-screen leaves a full bubble, not a stray tab |
 | 28 | Tuck the bubble away, then send yourself a message | The bubble expands again on its own and shows the count, so a hidden bubble never misses a message |
+| 36 | Send yourself messages from three different chats, then tap the bubble | One bubble, badge **3**, and three chat chips in the panel; tapping a chip switches the message and never shows replies drafted for another chat |
+| 37 | Switch to the second chat in the panel, then close it and tap the bubble again | The same conversation set is still offered (nothing was eaten by the switcher) |
 | 33 | Long-press the bubble for half a second, then tap *Hide at the edge* | A three-row menu appears beside the bubble; the bubble tucks to the nearest edge and the menu closes |
 | 34 | Long-press, then tap *Dismiss until the next message* | Bubble and menu both disappear; the next message brings the bubble back |
 | 35 | Long-press the bubble, then tap the bubble again (or ignore the menu for 6 seconds) | The menu closes and the panel does not open by accident |

@@ -119,6 +119,11 @@ abstract class ReplyMateFlutterActivity : FlutterActivity() {
                     // so the panel can never read the same message twice.
                     result.success(OverlayBubbleController.consume())
                 }
+                "peekOverlayContexts" -> {
+                    // Read-only: the panel's chat switcher needs every pending
+                    // message, newest first, without consuming any of them.
+                    result.success(OverlayBubbleController.peekAll())
+                }
                 else -> result.notImplemented()
             }
         }

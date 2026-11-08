@@ -155,7 +155,9 @@ class OverlayBubbleService : Service() {
             // stacking a second bubble nobody asked for.
             if (key != null && key != shownKey) {
                 shownKey = key
-                messagesWhileShowing += 1
+                // The badge is the real number of waiting chats, not a tap
+                // counter: three chats pinging you must say three.
+                messagesWhileShowing = OverlayBubbleController.size()
                 // A message the user has not seen is worth interrupting for,
                 // even if they had tucked the bubble away.
                 if (collapsed) {
@@ -175,7 +177,7 @@ class OverlayBubbleService : Service() {
             bubbleView = view
             layoutParams = params
             shownKey = key
-            messagesWhileShowing = 1
+            messagesWhileShowing = maxOf(1, OverlayBubbleController.size())
             updateBadge()
             startIdleAnimation()
             scheduleAutoHide()

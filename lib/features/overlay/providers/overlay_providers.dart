@@ -25,3 +25,23 @@ final FutureProvider<OverlayContext?> overlayContextProvider =
         return null;
       }
     });
+
+/// The other conversations waiting behind the same bubble, as the panel's chat
+/// switcher needs them. Empty whenever the native layer has nothing extra (or
+/// answers nothing at all), which leaves the panel exactly as it was.
+final FutureProvider<List<OverlayContext>> pendingOverlayContextsProvider =
+    FutureProvider<List<OverlayContext>>((Ref ref) async {
+      final raw = await ref
+          .read(notificationsBridgeProvider)
+          .peekOverlayContexts();
+      final parsed = <OverlayContext>[];
+      for (final entry in raw) {
+        try {
+          parsed.add(OverlayContext.fromMap(Map<Object?, Object?>.from(entry)));
+        } on FormatException {
+          // A map we cannot attribute is not offered as a chat.
+          continue;
+        }
+      }
+      return parsed;
+    });

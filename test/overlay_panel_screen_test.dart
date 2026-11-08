@@ -218,4 +218,49 @@ void main() {
 
     expect(repository.request?.message, 'Edited by hand');
   });
+
+  testWidgets('a second waiting chat can be picked from the switcher', (
+    tester,
+  ) async {
+    // Three chats can ping you while the bubble is up. Before this, the badge
+    // counted them and the panel could only ever answer the last one.
+    const channel = MethodChannel(AppConstants.channelName);
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+      call,
+    ) async {
+      if (call.method != 'peekOverlayContexts') return null;
+      return <Map<String, Object?>>[
+        <String, Object?>{
+          'source': 'bubble',
+          'packageName': 'com.whatsapp',
+          'key': 'sbn-2',
+          'title': 'Office group',
+          'text': 'Standup at 10?',
+          'isTruncated': false,
+          'isGrouped': false,
+          'isGroupSummary': false,
+          'mayBeRedacted': false,
+          'hasReplyAction': true,
+          'replyActionLabel': 'Reply',
+          'postedAtMillis': 2,
+        },
+      ];
+    });
+    addTearDown(
+      () => binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        null,
+      ),
+    );
+
+    await pumpPanel(tester, _context());
+
+    expect(find.text('Office group'), findsOneWidget);
+
+    await tester.tap(find.text('Office group'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Standup at 10?'), findsOneWidget);
+    expect(find.text('Can we meet tomorrow?'), findsNothing);
+  });
 }

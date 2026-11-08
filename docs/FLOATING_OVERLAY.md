@@ -173,11 +173,17 @@ documented in `docs/PLATFORM_CHANNELS.md` before they are written:
 
 ### 5.2 Pending context lifetime
 
-- `OverlayBubbleController.hold(map)` replaces any previous pending context.
-  One message at a time; a newer notification wins.
-- `consume()` returns the map and clears it — exactly once.
-- `onDestroy` of the service and process death clear it implicitly.
-- **Never** write it to SharedPreferences, a file, a database, or a log.
+- `OverlayBubbleController.hold(map)` keeps up to **five** conversations,
+  keyed by notification key and ordered by arrival. A chat that posts twice
+  updates its entry instead of stacking a duplicate; the oldest is dropped when
+  the cap is reached. Collapsing them into one meant the badge said "3" while
+  the panel could only answer the last message.
+- `consume()` returns the newest map and removes it — exactly once.
+- `peekAll()` is read-only and feeds the panel's chat switcher, so naming the
+  other waiting chats never eats the one the bubble already shows.
+- `size()` is what the bubble's badge displays.
+- `onDestroy` of the service and process death clear everything implicitly.
+- **Never** write any of it to SharedPreferences, a file, a database, or a log.
 
 ### 5.3 Filter for showing the bubble
 

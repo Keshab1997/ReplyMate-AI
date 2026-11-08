@@ -219,6 +219,25 @@ class NotificationsBridge {
     }
   }
 
+  /// Every message currently waiting behind the bubble, newest first.
+  ///
+  /// Read-only: unlike [consumeOverlayContext] this removes nothing, so the
+  /// panel's chat switcher can name the other conversations without eating the
+  /// one the bubble is already showing. A native layer that does not know the
+  /// method answers with an empty list, which is the honest answer.
+  Future<List<Map<Object?, Object?>>> peekOverlayContexts() async {
+    try {
+      final raw = await _channel.invokeListMethod<Map<Object?, Object?>>(
+        'peekOverlayContexts',
+      );
+      return raw ?? const <Map<Object?, Object?>>[];
+    } on MissingPluginException {
+      return const <Map<Object?, Object?>>[];
+    } on PlatformException {
+      return const <Map<Object?, Object?>>[];
+    }
+  }
+
   /// Text handed over by PROCESS_TEXT or ACTION_SEND, consumed once.
   Future<LaunchContextMap?> consumeLaunchContext() async {
     try {
