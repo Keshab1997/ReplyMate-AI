@@ -9,4 +9,7 @@
          notification shade. -->
     <dimen name="overlay_bubble_default_x">16dp</dimen>
     <dimen name="overlay_bubble_default_y">120dp</dimen>
+    <!-- Tucked against the screen edge, the bubble becomes this wide: still a
+         full-height tap target, but out of the way of the message list. -->
+    <dimen name="overlay_bubble_collapsed_width">22dp</dimen>
 </resources>

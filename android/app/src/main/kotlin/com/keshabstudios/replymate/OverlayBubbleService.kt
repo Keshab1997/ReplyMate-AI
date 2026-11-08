@@ -53,6 +53,14 @@ class OverlayBubbleService : Service() {
     private var bubbleView: View? = null
     private var layoutParams: WindowManager.LayoutParams? = null
     private var badgeView: TextView? = null
+    private var iconView: ImageView? = null
+
+    /**
+     * True while the bubble is tucked against a screen edge as a slim tab.
+     * Tapping the tab brings the bubble back; a new message does it too, so a
+     * hidden bubble never makes the user miss something.
+     */
+    private var collapsed = false
 
     /** Notification key currently represented by the bubble. */
     private var shownKey: String? = null
@@ -112,6 +120,9 @@ class OverlayBubbleService : Service() {
             if (key != null && key != shownKey) {
                 shownKey = key
                 messagesWhileShowing += 1
+                // A message the user has not seen is worth interrupting for,
+                // even if they had tucked the bubble away.
+                if (collapsed) expand()
                 updateBadge()
             }
             return
@@ -196,6 +207,7 @@ class OverlayBubbleService : Service() {
             },
         )
         badgeView = badge
+        iconView = icon
 
         root.setOnTouchListener(DragToTapListener())
         return root
@@ -254,6 +266,106 @@ class OverlayBubbleService : Service() {
             unregisterReceiver(receiver)
         } catch (error: Exception) {
             // Already unregistered.
+        }
+    }
+
+    /**
+     * Restyles the same view for its two states. Nothing is re-added to the
+     * window: a collapse is a resize, so a tap that arrives mid-animation still
+     * lands on a live view.
+     */
+    private fun applyBubbleAppearance(view: View, collapsed: Boolean) {
+        val root = view as? FrameLayout ?: return
+        val size = resources.getDimensionPixelSize(R.dimen.overlay_bubble_size)
+        val tabWidth = resources.getDimensionPixelSize(R.dimen.overlay_bubble_collapsed_width)
+        root.background = GradientDrawable().apply {
+            setColor(bubbleColor())
+            setStroke(dp(2), Color.WHITE)
+            if (collapsed) {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = tabWidth / 2f
+            } else {
+                shape = GradientDrawable.OVAL
+            }
+        }
+        iconView?.setPadding(
+            if (collapsed) dp(4) else size / 4,
+            if (collapsed) dp(4) else size / 4,
+            if (collapsed) dp(4) else size / 4,
+            if (collapsed) dp(4) else size / 4,
+        )
+        if (collapsed) {
+            // The count would be clipped to nothing on a 22dp tab, and the
+            // expanded state calls updateBadge() to restore it.
+            badgeView?.visibility = View.GONE
+        }
+        root.contentDescription = getString(
+            if (collapsed) {
+                R.string.overlay_bubble_description_collapsed
+            } else {
+                R.string.overlay_bubble_description
+            },
+        )
+    }
+
+    /** Tucks the bubble against [toRight] edge as a slim, still-tappable tab. */
+    private fun collapse(toRight: Boolean) {
+        val params = layoutParams ?: return
+        val view = bubbleView ?: return
+        val size = resources.getDimensionPixelSize(R.dimen.overlay_bubble_size)
+        val tabWidth = resources.getDimensionPixelSize(R.dimen.overlay_bubble_collapsed_width)
+        val metrics = resources.displayMetrics
+        collapsed = true
+        params.width = tabWidth
+        params.height = size
+        params.x = if (toRight) metrics.widthPixels - tabWidth else 0
+        applyBubbleAppearance(view, collapsed = true)
+        try {
+            windowManager?.updateViewLayout(view, params)
+        } catch (error: Exception) {
+            // The window went away; nothing to tuck.
+            collapsed = false
+        }
+    }
+
+    /** Brings a tucked bubble back to full size on the edge it was hiding on. */
+    private fun expand() {
+        val params = layoutParams ?: return
+        val view = bubbleView ?: return
+        val size = resources.getDimensionPixelSize(R.dimen.overlay_bubble_size)
+        val metrics = resources.displayMetrics
+        val onRight = params.x > metrics.widthPixels / 2
+        collapsed = false
+        params.width = size
+        params.height = size
+        params.x = if (onRight) metrics.widthPixels - size else 0
+        applyBubbleAppearance(view, collapsed = false)
+        try {
+            windowManager?.updateViewLayout(view, params)
+        } catch (error: Exception) {
+            // Ignore: the view is gone and show() will rebuild it.
+        }
+        updateBadge()
+        rememberPosition(params)
+    }
+
+    /**
+     * Where the finger left the bubble decides its home: within a thumb of an
+     * edge it tucks itself away there, anywhere else it just stays put.
+     */
+    private fun settleAfterDrag(params: WindowManager.LayoutParams) {
+        val metrics = resources.displayMetrics
+        val edgeZone = dp(28)
+        when {
+            params.x <= edgeZone -> collapse(toRight = false)
+            params.x + params.width >= metrics.widthPixels - edgeZone ->
+                collapse(toRight = true)
+            else -> {
+                rememberPosition(params)
+                // A tab dragged into the middle of the screen would just look
+                // broken, so letting go of it restores the full bubble.
+                if (collapsed) expand()
+            }
         }
     }
 
@@ -336,7 +448,12 @@ class OverlayBubbleService : Service() {
                 }
                 MotionEvent.ACTION_UP -> {
                     if (dragging) {
-                        rememberPosition(params)
+                        settleAfterDrag(params)
+                    } else if (collapsed) {
+                        // A tucked bubble comes back first; the panel is the
+                        // second tap, so hiding it can never fire an action by
+                        // accident.
+                        expand()
                     } else {
                         openPanel()
                     }
@@ -392,6 +509,8 @@ class OverlayBubbleService : Service() {
         bubbleView = null
         layoutParams = null
         badgeView = null
+        iconView = null
+        collapsed = false
         shownKey = null
         messagesWhileShowing = 0
         handler.removeCallbacks(autoHide)

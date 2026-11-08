@@ -87,7 +87,9 @@ Reached only from the bubble, never from normal navigation. Must:
   rather than asking for it again (a tune icon in the header opens Settings);
 - show only warnings the user can act on - a complete single-chat message says
   nothing about groups or redaction;
-- make Copy the always-available action;
+- make Copy the always-available action, for the message as well as the
+  replies; let the user edit or paste the message before generating (the
+  supported route when a notification carried nothing);
 - offer quick reply only when the notification still has a valid action, and
   explain the fallback when it does not;
 - close to nothing: no history, no stored message, no "recent replies" list.

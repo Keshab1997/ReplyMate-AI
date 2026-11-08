@@ -67,10 +67,17 @@
 
         <!-- The reply panel: translucent, task-excluded, and not exported, so
              nothing but our own bubble can open it. -->
+        <!-- Its own task affinity on purpose: the panel must not join the main
+             app's task. Sharing a task meant closing the panel dropped the user
+             into ReplyMate instead of back into WhatsApp - the exact annoyance
+             that made the bubble feel like it "takes you to the app". With a
+             task of its own, dismissing the panel returns to whatever was on
+             screen before it. -->
         <activity
             android:name=".OverlayPanelActivity"
             android:exported="false"
             android:excludeFromRecents="true"
+            android:taskAffinity="com.keshabstudios.replymate.panel"
             android:theme="@style/OverlayPanelTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"

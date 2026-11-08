@@ -20,10 +20,17 @@ open ReplyMate seconds earlier. The bubble closes that gap.
 
 1. A WhatsApp (or other allowlisted app) notification arrives while the user
    is inside that app.
-2. A small circular ReplyMate bubble appears over the current screen.
+2. A small circular ReplyMate bubble appears over the current screen. Drag it
+   anywhere; drop it within a thumb of a screen edge and it tucks itself away
+   as a slim tab (the user's own choice to get it out of the way). Tap the tab
+   and the full bubble comes back - a tucked bubble never fires an action by
+   accident, and a new message expands it on its own.
 3. The user taps it.
 4. A panel opens over WhatsApp with: the message, the **reply style the user
-   already chose in Settings**, and a Generate button. The panel deliberately
+   already chose in Settings**, and a Generate button. The message can be
+   copied, edited by hand, or replaced with one pasted from the clipboard -
+   which is the supported way to reply to something the notification never
+   carried. The panel deliberately
    does not re-ask language/tone/length - a bubble is a shortcut, not a second
    app - and a tune icon in its header opens Settings when the style does need
    changing.

@@ -45,8 +45,17 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
   ReplyFailure? _failure;
   List<TextEditingController> _controllers = const [];
 
+  /// The message being replied to. Starts as the notification's text and can be
+  /// edited or replaced by a pasted one - which is the whole point: when the
+  /// app posted no usable text (or the user is looking at a screen ReplyMate
+  /// cannot read), pasting the message here still gets a reply.
+  final TextEditingController _messageController = TextEditingController();
+  bool _initialisedMessage = false;
+  bool _editingMessage = false;
+
   @override
   void dispose() {
+    _messageController.dispose();
     for (final controller in _controllers) {
       controller.dispose();
     }
@@ -63,7 +72,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     // follows them from the composer into the bubble.
     final preferences = ref.read(preferencesProvider);
     final request = ReplyRequest(
-      message: overlay.displayText,
+      message: _messageController.text,
       language: preferences.language,
       tone: preferences.tone,
       length: preferences.length,
@@ -97,6 +106,45 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
           _failure = ReplyFailure(message);
         });
     }
+  }
+
+  /// Seeds the editable message once, from whatever the notification exposed.
+  /// Assigning during build (no setState) mirrors the composer: the value is
+  /// read by this very frame.
+  void _initMessage(OverlayContext overlay) {
+    if (_initialisedMessage) return;
+    _initialisedMessage = true;
+    _messageController.text = overlay.displayText;
+  }
+
+  Future<void> _copyMessage() async {
+    final text = _messageController.text.trim();
+    if (text.isEmpty) return;
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Message copied. Paste it anywhere.')),
+    );
+  }
+
+  /// Pulls text off the clipboard into the message box. This is the supported
+  /// route for the one case the listener cannot cover - a conversation the
+  /// messaging app never posted a notification for.
+  Future<void> _pasteMessage() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final pasted = data?.text?.trim() ?? '';
+    if (!mounted) return;
+    if (pasted.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('The clipboard is empty.')));
+      return;
+    }
+    setState(() {
+      _messageController.text = pasted;
+      _editingMessage = true;
+      _failure = null;
+    });
   }
 
   Future<void> _copy(String text) async {
@@ -262,10 +310,86 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     );
   }
 
+  /// The message: quoted and copyable by default, editable and pasteable on
+  /// demand. Generation always uses what is in this box, so a pasted message
+  /// and a captured one take the same path - which is what makes the panel
+  /// useful even when the notification carried nothing.
+  Widget _buildMessageBlock(OverlayContext overlay) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final empty = _messageController.text.trim().isEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppTheme.spaceMd),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(AppTheme.cardRadius - 6),
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * 0.34,
+            ),
+            child: _editingMessage
+                ? TextField(
+                    controller: _messageController,
+                    autofocus: true,
+                    minLines: 3,
+                    maxLines: 8,
+                    style: theme.textTheme.bodyLarge,
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      isDense: true,
+                      hintText: 'Paste the message you want to reply to',
+                    ),
+                    onChanged: (_) => setState(() => _failure = null),
+                  )
+                : SingleChildScrollView(
+                    child: Text(
+                      empty
+                          ? 'This notification exposed no message text. Use '
+                                'Paste below to reply to something yourself.'
+                          : _messageController.text,
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                  ),
+          ),
+        ),
+        Row(
+          children: [
+            TextButton.icon(
+              onPressed: empty ? null : _copyMessage,
+              icon: const Icon(Icons.copy_all_outlined, size: 16),
+              label: const Text('Copy'),
+            ),
+            TextButton.icon(
+              onPressed: _pasteMessage,
+              icon: const Icon(Icons.content_paste_go, size: 16),
+              label: const Text('Paste'),
+            ),
+            TextButton.icon(
+              onPressed: () =>
+                  setState(() => _editingMessage = !_editingMessage),
+              icon: Icon(
+                _editingMessage ? Icons.check : Icons.edit_outlined,
+                size: 16,
+              ),
+              label: Text(_editingMessage ? 'Done' : 'Edit'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _buildPanel(OverlayContext overlay) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final preferences = ref.watch(preferencesProvider);
+    _initMessage(overlay);
     final quickReplyAvailable = overlay.notification.hasReplyAction;
     final firebaseReady = ref.watch(firebaseReadyProvider);
 
@@ -329,30 +453,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
           ],
         ),
         const SizedBox(height: AppTheme.spaceMd),
-        // The message itself: quoted, read-only, capped so a long message
-        // scrolls inside the panel instead of pushing the button off screen.
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(AppTheme.spaceMd),
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(AppTheme.cardRadius - 6),
-          ),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.sizeOf(context).height * 0.34,
-            ),
-            child: SingleChildScrollView(
-              child: Text(
-                overlay.displayText.isEmpty
-                    ? 'This notification exposed no message text. There is '
-                          'nothing to reply to here.'
-                    : overlay.displayText,
-                style: theme.textTheme.bodyLarge,
-              ),
-            ),
-          ),
-        ),
+        _buildMessageBlock(overlay),
         // Only real limitations appear here. A single-chat WhatsApp
         // notification is not "grouped", and text that arrived is not
         // "redacted" - those lines used to appear anyway and taught the user

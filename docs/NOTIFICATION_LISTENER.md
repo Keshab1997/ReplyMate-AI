@@ -86,6 +86,9 @@ before, so the in-app list keeps working. It then decides, in this order:
    If Android refuses the start (background FGS restriction, Android 12+), hold
    the context with `source=fallback` and post the fallback notification.
 
+The bubble can also be tucked against a screen edge by dragging it there; it
+then waits as a slim tab until tapped (or until the next message expands it).
+
 The bubble also disappears when its notification is removed
 (`onNotificationRemoved` matches the pending key) - after a 6-second grace
 window, because some apps post and immediately retract a notification - after

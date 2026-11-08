@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:replymate/core/constants/app_constants.dart';
 import 'package:replymate/features/overlay/models/overlay_context.dart';
 import 'package:replymate/features/overlay/presentation/overlay_panel_screen.dart';
+import 'package:replymate/features/reply/data/reply_repository.dart';
+import 'package:replymate/features/reply/domain/reply_request.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// Captures what the panel asked for, so a test can prove which text was sent.
+class _RecordingRepository implements ReplyRepository {
+  ReplyRequest? request;
+
+  @override
+  Future<ReplyResult> generate(ReplyRequest request) async {
+    this.request = request;
+    return const ReplyFailure('Recorded.');
+  }
+}
 
 OverlayContext _context({bool hasReplyAction = true, String? text}) =>
     OverlayContext.fromMap(<Object?, Object?>{
@@ -23,10 +37,43 @@ OverlayContext _context({bool hasReplyAction = true, String? text}) =>
     });
 
 void main() {
+  final binding = TestWidgetsFlutterBinding.ensureInitialized();
+  String? clipboard;
+
+  setUp(() {
+    clipboard = null;
+    // The system clipboard, in one place: writes land in `clipboard`, reads
+    // answer from it. Anything else on the platform channel is ignored.
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        switch (call.method) {
+          case 'Clipboard.setData':
+            clipboard = (call.arguments as Map)['text'] as String?;
+            return null;
+          case 'Clipboard.getData':
+            return clipboard == null
+                ? null
+                : <String, Object?>{'text': clipboard};
+          default:
+            return null;
+        }
+      },
+    );
+  });
+
+  tearDown(() {
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      null,
+    );
+  });
+
   Future<void> pumpPanel(
     WidgetTester tester,
     OverlayContext context, {
     Map<String, Object> prefs = const <String, Object>{},
+    List<Override> overrides = const <Override>[],
   }) async {
     // Set per test, not once: the style row reads these.
     SharedPreferences.setMockInitialValues(prefs);
@@ -35,6 +82,7 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       ProviderScope(
+        overrides: overrides,
         child: MaterialApp(home: OverlayPanelScreen(initialContext: context)),
       ),
     );
@@ -109,5 +157,65 @@ void main() {
   ) async {
     await pumpPanel(tester, _context(text: ''));
     expect(find.textContaining('exposed no message text'), findsOneWidget);
+  });
+
+  testWidgets('copy puts the captured message on the clipboard', (
+    tester,
+  ) async {
+    await pumpPanel(tester, _context());
+
+    await tester.ensureVisible(find.text('Copy'));
+    await tester.tap(find.text('Copy'));
+    await tester.pumpAndSettle();
+
+    expect(clipboard, 'Can we meet tomorrow?');
+  });
+
+  testWidgets('a pasted message is what actually gets generated', (
+    tester,
+  ) async {
+    // The on-screen notification carried nothing usable; the user pastes the
+    // message instead and expects a reply from exactly that text.
+    clipboard = 'Pasted from the chat I am looking at';
+    final repository = _RecordingRepository();
+    await pumpPanel(
+      tester,
+      _context(text: ''),
+      overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+    );
+
+    await tester.ensureVisible(find.text('Paste'));
+    await tester.tap(find.text('Paste'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pasted from the chat I am looking at'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Generate suggestions'));
+    await tester.tap(find.text('Generate suggestions'));
+    await tester.pumpAndSettle();
+
+    expect(repository.request?.message, 'Pasted from the chat I am looking at');
+  });
+
+  testWidgets('the message can be edited by hand before generating', (
+    tester,
+  ) async {
+    final repository = _RecordingRepository();
+    await pumpPanel(
+      tester,
+      _context(),
+      overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+    );
+
+    await tester.ensureVisible(find.text('Edit'));
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).first, 'Edited by hand');
+    await tester.ensureVisible(find.text('Generate suggestions'));
+    await tester.tap(find.text('Generate suggestions'));
+    await tester.pumpAndSettle();
+
+    expect(repository.request?.message, 'Edited by hand');
   });
 }
