@@ -196,11 +196,15 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                       ),
                     ),
                     const Spacer(),
-                    // Listening: the helper is reading the message with you.
-                    const MascotFace(
+                    // Listening while the user writes, thinking while the
+                    // request is in flight - one face, two truthful states.
+                    MascotFace(
                       size: 34,
-                      mood: MascotMood.listening,
                       glow: false,
+                      animate: false,
+                      mood: _generating
+                          ? MascotMood.thinking
+                          : MascotMood.listening,
                     ),
                   ],
                 ),

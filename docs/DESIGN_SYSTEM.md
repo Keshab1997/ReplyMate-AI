@@ -22,6 +22,18 @@ it appears in exactly four places and nowhere else:
 the light behind it — never the artwork, so there is no frame budget and no
 second asset to keep in sync.
 
+`thinking` additionally shows three breathing dots under the face: the app's
+only "the helper is working" cue, and deliberately wordless — it says
+*something is happening* without guessing how long it will take. It is used in
+two places: the composer header switches `listening` -> `thinking` while a
+request is in flight, and the bubble panel's avatar does the same, then turns
+`happy` when replies arrive.
+
+The **bubble itself** has no thinking state on purpose: the bubble steps aside
+while the panel is open, and the panel is the only place a request can be
+started. A spinner on the bubble would be a spinner for something that cannot
+be happening.
+
 ## 2. Motion rules
 
 - **Finite in the app, continuous in the bubble.** The bubble is what the user

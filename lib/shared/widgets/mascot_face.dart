@@ -194,7 +194,25 @@ class _MascotFaceState extends State<MascotFace> with TickerProviderStateMixin {
 
     final tilted = Transform.rotate(angle: tilt, child: bobbing);
 
-    if (!widget.glow) return tilted;
+    final thinking = widget.mood == MascotMood.thinking;
+
+    if (!widget.glow) {
+      return SizedBox(
+        width: size,
+        height: size,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            tilted,
+            if (thinking)
+              Positioned(
+                bottom: 0,
+                child: _ThinkingDots(size: size, animate: widget.animate),
+              ),
+          ],
+        ),
+      );
+    }
 
     return SizedBox(
       width: size * 1.55,
@@ -216,8 +234,88 @@ class _MascotFaceState extends State<MascotFace> with TickerProviderStateMixin {
             ),
           ),
           tilted,
+          if (thinking)
+            Positioned(
+              bottom: size * 0.12,
+              child: _ThinkingDots(size: size, animate: widget.animate),
+            ),
         ],
       ),
     );
+  }
+}
+
+/// Three dots that breathe in sequence under the face.
+///
+/// This is the app's only "the helper is working" cue, and it is deliberately
+/// wordless: it says *something is happening* without pretending to know how
+/// long it will take or what the answer will be. Finite like every other
+/// animation here, so a widget test can settle it.
+class _ThinkingDots extends StatefulWidget {
+  const _ThinkingDots({required this.size, required this.animate});
+
+  final double size;
+  final bool animate;
+
+  @override
+  State<_ThinkingDots> createState() => _ThinkingDotsState();
+}
+
+class _ThinkingDotsState extends State<_ThinkingDots>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.animate) _controller.repeat(count: 6);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dot = widget.size * 0.085;
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        return Row(
+          key: const Key('mascot-thinking-dots'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < 3; i++)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: dot * 0.38),
+                child: Opacity(
+                  opacity: _phase(i),
+                  child: Container(
+                    width: dot,
+                    height: dot,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Each dot lags the previous one by a sixth of the cycle, so the row reads
+  /// as a wave rather than a blink.
+  double _phase(int index) {
+    if (!widget.animate) return 0.75;
+    final t = (_controller.value + index * 0.16) % 1.0;
+    return 0.30 + 0.70 * (1 - (2 * t - 1).abs());
   }
 }

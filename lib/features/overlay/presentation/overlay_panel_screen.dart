@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/app_theme.dart';
+import '../../../shared/widgets/mascot_face.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../shared/widgets/section_label.dart';
@@ -405,18 +406,17 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
         const _Grabber(),
         Row(
           children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: scheme.primaryContainer,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.chat_bubble_outline,
-                size: 18,
-                color: scheme.onPrimaryContainer,
-              ),
+            // The same face as the bubble the user just tapped: thinking while
+            // the request is in flight, happy once there are replies.
+            MascotFace(
+              size: 34,
+              glow: false,
+              animate: false,
+              mood: _generating
+                  ? MascotMood.thinking
+                  : (_controllers.isNotEmpty
+                        ? MascotMood.happy
+                        : MascotMood.idle),
             ),
             const SizedBox(width: AppTheme.spaceSm),
             Expanded(
