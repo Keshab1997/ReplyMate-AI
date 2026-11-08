@@ -77,6 +77,12 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  assets:
+    # The 3D helper face from design/bubble_mascot_bubble.png: one character,
+    # used by the bubble, the home hero and the settings header.
+    - assets/mascot/mascot_face.png
+    - assets/mascot/mascot_face_small.png
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

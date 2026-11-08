@@ -1,5 +1,10 @@
 # Screen Specifications
 
+> Visual language for every screen below: `docs/DESIGN_SYSTEM.md`
+> (mascot, tokens, motion rules, and the reference render in
+> `design/app_redesign_preview.html`).
+
+
 ## 1. Splash Screen
 
 Purpose:
