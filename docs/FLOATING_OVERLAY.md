@@ -195,8 +195,41 @@ Show only when **all** are true:
 Anything else is dropped? No — it is still captured for the in-app list; it
 just does not raise a bubble.
 
-Hide the bubble when: the panel opens, 10 minutes pass, or the user taps the
-bubble's close affordance.
+Hide the bubble when: the panel opens (it steps aside and **comes back** when
+the panel closes - see below), 10 minutes pass, or the user picks *Dismiss*.
+
+Tapping the bubble opens **only** the panel, never the main app. That is a
+manifest guarantee, not a habit: `OverlayPanelActivity` carries its own
+`taskAffinity`, so it never joins the app's task and dismissing it returns to
+whatever was underneath. Without that, closing the panel dropped the user into
+ReplyMate - which is exactly what "the bubble takes me into the app" felt like.
+
+The bubble survives a panel session. `onPanelClosed()` restores the view and
+re-holds the pending context (memory only) that the panel consumed, so the user
+can reply, paste, generate again, or open the same message a second time
+without waiting for the next notification. The 10-minute timer keeps running
+while the panel is open: if the panel never reports back (process death), the
+bubble still cleans itself up instead of lingering invisibly.
+
+### 5.4 Resting state, motion and the edge tab
+
+The bubble is a 3D helper face (`design/bubble_mascot_bubble.png`, preview in
+`design/bubble_preview.html`) on a glass-blue disc. Motion is three ordinary
+property animations - no frame assets, no animated-drawable pipeline, no Lottie:
+
+- **idle**: a 1500 ms vertical bob (±1 dp) and an irregular blink (a 90 ms
+  squash of the face every 3.5-6.5 s);
+- **arrival**: one 160 ms pop to 1.1x plus `VIRTUAL_KEY` haptic feedback when a
+  new message lands while the bubble is up. This is the only cue that a message
+  arrived, and it carries no text;
+- **tuck**: see below.
+
+Dragging the bubble within ~28 dp of a screen edge tucks it there as a 22 dp
+tab with three dots instead of the face. A tap on the tab restores the bubble
+and does **not** open the panel, so hiding it can never fire an action by
+accident; a second tap opens the panel. A new message expands a tucked bubble
+on its own, and a tab released away from both edges becomes a full bubble again
+rather than a stray sliver in the middle of the screen.
 
 When the source notification is removed the bubble goes too - after a **6-second
 grace window** rather than instantly. Some messaging apps post a notification

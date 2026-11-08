@@ -5,6 +5,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.animation.ValueAnimator
 import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -19,12 +20,15 @@ import android.os.IBinder
 import android.os.Looper
 import android.provider.Settings
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.WindowManager
+import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 
 /**
@@ -54,6 +58,25 @@ class OverlayBubbleService : Service() {
     private var layoutParams: WindowManager.LayoutParams? = null
     private var badgeView: TextView? = null
     private var iconView: ImageView? = null
+    private var gripView: LinearLayout? = null
+
+    /** Drives the idle bob; null while tucked, dragging or behind the panel. */
+    private var bobAnimator: ValueAnimator? = null
+
+    /** True while the reply panel is on screen. The bubble steps aside for it. */
+    private var panelOpen = false
+
+    /**
+     * The context the open panel is working from. Kept so the bubble survives a
+     * panel session: the panel consumes the pending context, and without this
+     * the bubble would die the first time the user replied - which is exactly
+     * what made "reply, then reply again" impossible.
+     *
+     * Memory only, like the controller itself: never written anywhere.
+     */
+    private var panelContext: Map<String, Any?>? = null
+
+    private var panelReceiver: BroadcastReceiver? = null
 
     /**
      * True while the bubble is tucked against a screen edge as a slim tab.
@@ -86,6 +109,7 @@ class OverlayBubbleService : Service() {
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         isShowing = true
         registerScreenReceiver()
+        registerPanelReceiver()
         // A pending context is normally held before the service starts; drawing
         // here covers the case where the service outlived a hide/show cycle.
         show()
@@ -122,7 +146,11 @@ class OverlayBubbleService : Service() {
                 messagesWhileShowing += 1
                 // A message the user has not seen is worth interrupting for,
                 // even if they had tucked the bubble away.
-                if (collapsed) expand()
+                if (collapsed) {
+                    expand()
+                } else {
+                    pulseOnce()
+                }
                 updateBadge()
             }
             return
@@ -137,6 +165,7 @@ class OverlayBubbleService : Service() {
             shownKey = key
             messagesWhileShowing = 1
             updateBadge()
+            startIdleAnimation()
             scheduleAutoHide()
         } catch (error: Exception) {
             // A refused window (permission race, OEM quirk) must not take the
@@ -148,7 +177,9 @@ class OverlayBubbleService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacks(autoHide)
+        stopIdleAnimation()
         unregisterScreenReceiver()
+        unregisterPanelReceiver()
         removeBubble()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -175,11 +206,12 @@ class OverlayBubbleService : Service() {
             root.elevation = dp(6).toFloat()
         }
 
-        // Placeholder glyph until the app has its own icon: the launcher icon
-        // is honest about what the bubble belongs to.
+        // The 3D helper face (design/bubble_preview.html). It is drawn by the
+        // artwork itself, so the bubble needs no extra ring or glyph: the
+        // GradientDrawable above stays as the fallback the tab state uses.
         val icon = ImageView(this)
-        icon.setImageResource(R.mipmap.ic_launcher)
-        icon.setPadding(size / 4, size / 4, size / 4, size / 4)
+        icon.setImageResource(R.drawable.overlay_bubble_mascot)
+        icon.scaleType = ImageView.ScaleType.CENTER_CROP
         root.addView(
             icon,
             FrameLayout.LayoutParams(
@@ -209,8 +241,107 @@ class OverlayBubbleService : Service() {
         badgeView = badge
         iconView = icon
 
+        // Tucked state: the face is gone and three dots say "pull me back".
+        val grip = LinearLayout(this)
+        grip.orientation = LinearLayout.VERTICAL
+        grip.gravity = Gravity.CENTER
+        grip.visibility = View.GONE
+        repeat(3) {
+            val dot = View(this)
+            dot.setBackgroundColor(Color.WHITE)
+            grip.addView(
+                dot,
+                LinearLayout.LayoutParams(dp(4), dp(4)).apply {
+                    topMargin = if (it == 0) 0 else dp(3)
+                },
+            )
+        }
+        root.addView(
+            grip,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            ),
+        )
+        gripView = grip
+
         root.setOnTouchListener(DragToTapListener())
         return root
+    }
+
+    /**
+     * The face bobs gently and blinks now and then. Both are ordinary property
+     * animations on a view that already exists: no frame assets, no Lottie, no
+     * battery cost worth mentioning, and nothing that can throw while the
+     * window is going away.
+     */
+    private fun startIdleAnimation() {
+        stopIdleAnimation()
+        val icon = iconView ?: return
+        val amplitude = dp(2).toFloat()
+        val animator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 1_500L
+            repeatCount = ValueAnimator.INFINITE
+            repeatMode = ValueAnimator.REVERSE
+            interpolator = LinearInterpolator()
+            addUpdateListener { animation ->
+                icon.translationY =
+                    (animation.animatedValue as Float) * amplitude - amplitude / 2f
+            }
+        }
+        animator.start()
+        bobAnimator = animator
+        scheduleBlink()
+    }
+
+    private fun stopIdleAnimation() {
+        bobAnimator?.cancel()
+        bobAnimator = null
+        handler.removeCallbacks(blinkRunnable)
+        iconView?.let {
+            it.translationY = 0f
+            it.scaleY = 1f
+        }
+    }
+
+    /**
+     * A blink is a 90ms squash of the face. Irregular timing keeps it from
+     * reading as a metronome.
+     */
+    private val blinkRunnable = object : Runnable {
+        override fun run() {
+            val icon = iconView
+            if (icon != null && !collapsed && !panelOpen) {
+                icon.animate()
+                    .scaleY(0.12f)
+                    .setDuration(90L)
+                    .withEndAction {
+                        icon.animate().scaleY(1f).setDuration(120L).start()
+                    }
+                    .start()
+            }
+            scheduleBlink()
+        }
+    }
+
+    private fun scheduleBlink() {
+        handler.removeCallbacks(blinkRunnable)
+        handler.postDelayed(blinkRunnable, 3_500L + (Math.random() * 3_000L).toLong())
+    }
+
+    /** New message: one soft pop plus a tap of haptic feedback. */
+    private fun pulseOnce() {
+        val view = bubbleView ?: return
+        if (collapsed || panelOpen) return
+        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+        view.animate()
+            .scaleX(1.1f)
+            .scaleY(1.1f)
+            .setDuration(160L)
+            .withEndAction {
+                view.animate().scaleX(1f).scaleY(1f).setDuration(200L).start()
+            }
+            .start()
     }
 
     private fun updateBadge() {
@@ -276,7 +407,6 @@ class OverlayBubbleService : Service() {
      */
     private fun applyBubbleAppearance(view: View, collapsed: Boolean) {
         val root = view as? FrameLayout ?: return
-        val size = resources.getDimensionPixelSize(R.dimen.overlay_bubble_size)
         val tabWidth = resources.getDimensionPixelSize(R.dimen.overlay_bubble_collapsed_width)
         root.background = GradientDrawable().apply {
             setColor(bubbleColor())
@@ -288,12 +418,8 @@ class OverlayBubbleService : Service() {
                 shape = GradientDrawable.OVAL
             }
         }
-        iconView?.setPadding(
-            if (collapsed) dp(4) else size / 4,
-            if (collapsed) dp(4) else size / 4,
-            if (collapsed) dp(4) else size / 4,
-            if (collapsed) dp(4) else size / 4,
-        )
+        iconView?.visibility = if (collapsed) View.GONE else View.VISIBLE
+        gripView?.visibility = if (collapsed) View.VISIBLE else View.GONE
         if (collapsed) {
             // The count would be clipped to nothing on a 22dp tab, and the
             // expanded state calls updateBadge() to restore it.
@@ -316,6 +442,7 @@ class OverlayBubbleService : Service() {
         val tabWidth = resources.getDimensionPixelSize(R.dimen.overlay_bubble_collapsed_width)
         val metrics = resources.displayMetrics
         collapsed = true
+        stopIdleAnimation()
         params.width = tabWidth
         params.height = size
         params.x = if (toRight) metrics.widthPixels - tabWidth else 0
@@ -346,6 +473,7 @@ class OverlayBubbleService : Service() {
             // Ignore: the view is gone and show() will rebuild it.
         }
         updateBadge()
+        startIdleAnimation()
         rememberPosition(params)
     }
 
@@ -490,17 +618,59 @@ class OverlayBubbleService : Service() {
      * consumes it exactly once, so a failed launch leaves the message pending
      * for the next attempt instead of dropping it.
      */
+    /**
+     * Tapping the bubble opens the panel and nothing else - never the main app
+     * (the panel has its own task affinity for exactly that reason).
+     *
+     * The bubble no longer stops itself here: it steps aside for the panel and
+     * comes back when the panel closes, so the reply flow can run twice in a
+     * row (docs/FLOATING_OVERLAY.md §5.3).
+     */
     private fun openPanel() {
         val intent = OverlayPanelActivity.createIntent(this)
+        panelContext = OverlayBubbleController.peek()
         try {
             startActivity(intent)
         } catch (error: Exception) {
             // No activity to open (rare, but a crash here would look like a
             // broken bubble); keep the bubble so the user can try again.
+            panelContext = null
             return
         }
-        // The panel replaces the bubble (docs/FLOATING_OVERLAY.md §5.3).
-        stopSelf()
+        hideForPanel()
+    }
+
+    /** Invisible, not removed: the panel is drawn in front of this window. */
+    private fun hideForPanel() {
+        panelOpen = true
+        stopIdleAnimation()
+        bubbleView?.visibility = View.GONE
+        // The auto-hide timer keeps running on purpose: if the panel never
+        // reports back (process died, user swiped the task away) the bubble
+        // still cleans itself up instead of lingering invisibly forever.
+    }
+
+    private fun onPanelClosed() {
+        panelOpen = false
+        val view = bubbleView
+        if (view == null) {
+            panelContext = null
+            return
+        }
+        // The panel consumed the context; hand the same one back so the bubble
+        // still means something and a second tap reopens the same message.
+        if (OverlayBubbleController.peek() == null && panelContext != null) {
+            OverlayBubbleController.hold(panelContext!!)
+        }
+        panelContext = null
+        if (OverlayBubbleController.peek() == null) {
+            removeBubble()
+            stopSelf()
+            return
+        }
+        view.visibility = View.VISIBLE
+        startIdleAnimation()
+        scheduleAutoHide()
     }
 
     private fun removeBubble() {
@@ -510,7 +680,9 @@ class OverlayBubbleService : Service() {
         layoutParams = null
         badgeView = null
         iconView = null
+        gripView = null
         collapsed = false
+        stopIdleAnimation()
         shownKey = null
         messagesWhileShowing = 0
         handler.removeCallbacks(autoHide)
@@ -520,6 +692,39 @@ class OverlayBubbleService : Service() {
             } catch (error: Exception) {
                 // Already detached: nothing to remove.
             }
+        }
+    }
+
+    /**
+     * The panel tells the service when it is gone, which is the only moment the
+     * bubble can safely come back.
+     */
+    private fun registerPanelReceiver() {
+        val filter = IntentFilter(ACTION_PANEL_CLOSED)
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == ACTION_PANEL_CLOSED) onPanelClosed()
+            }
+        }
+        panelReceiver = receiver
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                registerReceiver(receiver, filter)
+            }
+        } catch (error: Exception) {
+            panelReceiver = null
+        }
+    }
+
+    private fun unregisterPanelReceiver() {
+        val receiver = panelReceiver ?: return
+        panelReceiver = null
+        try {
+            unregisterReceiver(receiver)
+        } catch (error: Exception) {
+            // Already unregistered.
         }
     }
 
@@ -591,6 +796,9 @@ class OverlayBubbleService : Service() {
         /** Fixed id: one bubble notification, replaced rather than stacked. */
         const val OVERLAY_NOTIFICATION_ID = 4211
         const val CHANNEL_ID = "replymate_bubble"
+
+        /** App-private: the panel broadcasts this when it is destroyed. */
+        const val ACTION_PANEL_CLOSED = "com.keshabstudios.replymate.action.PANEL_CLOSED"
 
         /** True while the service is alive and therefore bindable. */
         @Volatile

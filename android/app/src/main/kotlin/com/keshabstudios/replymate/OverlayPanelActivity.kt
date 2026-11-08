@@ -53,6 +53,22 @@ class OverlayPanelActivity : ReplyMateFlutterActivity() {
         }
     }
 
+    /**
+     * Whatever the user did here, the bubble has to come back: it only stepped
+     * aside so the panel could be read. The service re-shows it (and re-arms
+     * the pending context) when this broadcast arrives.
+     */
+    override fun onDestroy() {
+        try {
+            sendBroadcast(
+                Intent(OverlayBubbleService.ACTION_PANEL_CLOSED).setPackage(packageName),
+            )
+        } catch (error: Exception) {
+            // The bubble's own auto-hide timer is the backstop.
+        }
+        super.onDestroy()
+    }
+
     companion object {
         /** Must match `AppRoutes.overlay` in lib/app/app_routes.dart. */
         const val ROUTE_OVERLAY = "/overlay"

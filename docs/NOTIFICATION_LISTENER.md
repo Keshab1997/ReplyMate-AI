@@ -89,6 +89,9 @@ before, so the in-app list keeps working. It then decides, in this order:
 The bubble can also be tucked against a screen edge by dragging it there; it
 then waits as a slim tab until tapped (or until the next message expands it).
 
+After the panel closes, the bubble comes back (and the pending context is
+re-held in memory) so the same message can be replied to twice.
+
 The bubble also disappears when its notification is removed
 (`onNotificationRemoved` matches the pending key) - after a 6-second grace
 window, because some apps post and immediately retract a notification - after
