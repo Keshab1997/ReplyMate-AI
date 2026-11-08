@@ -219,6 +219,23 @@ class NotificationsBridge {
     }
   }
 
+  /// Asks the native layer to close the panel activity.
+  ///
+  /// The panel cannot close itself with a Navigator pop: it is the only route
+  /// in its own activity, and popping it used to reveal the main app behind
+  /// it. Finishing the activity puts the user back in the chat they came from.
+  /// Returns false when there is no native layer to ask (in-app preview, tests).
+  Future<bool> closeOverlayPanel() async {
+    try {
+      await _channel.invokeMethod<void>('closeOverlayPanel');
+      return true;
+    } on MissingPluginException {
+      return false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
   /// Every message currently waiting behind the bubble, newest first.
   ///
   /// Read-only: unlike [consumeOverlayContext] this removes nothing, so the

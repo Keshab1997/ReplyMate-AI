@@ -204,7 +204,15 @@ just does not raise a bubble.
 Hide the bubble when: the panel opens (it steps aside and **comes back** when
 the panel closes - see below), 10 minutes pass, or the user picks *Dismiss*.
 
-Tapping the bubble opens **only** the panel, never the main app. That is a
+Tapping the bubble opens **only** the panel, never the main app, and neither
+does tapping the empty space around it. The panel activity now builds **one**
+route (`onGenerateInitialRoutes`), because Flutter's default behaviour stacked
+`/` underneath `/overlay`: the transparent panel had the main app behind it, so
+a tap on the empty space popped the panel and revealed ReplyMate over the chat.
+Closing goes through the platform (`closeOverlayPanel` -> `finish()`), which
+returns to the conversation the bubble was floating over. The only in-panel
+navigation that leaves the bubble flow is the tune icon, which opens Settings
+inside the panel on purpose. That is a
 manifest guarantee, not a habit: `OverlayPanelActivity` carries its own
 `taskAffinity`, so it never joins the app's task and dismissing it returns to
 whatever was underneath. Without that, closing the panel dropped the user into
@@ -245,8 +253,14 @@ accident; a second tap opens the panel. A new message expands a tucked bubble
 on its own, and a tab released away from both edges becomes a full bubble again
 rather than a stray sliver in the middle of the screen.
 
-When the source notification is removed the bubble goes too - after a **6-second
-grace window** rather than instantly. Some messaging apps post a notification
+When the source notification is removed the bubble **tucks itself against the
+nearest screen edge** instead of disappearing - reasoned through in a 6-second
+grace window first, so a post-then-withdraw notification cannot make it flicker
+out from under a finger. Messaging apps retract the notification the moment the
+user opens the conversation, which is exactly when a reply helper is wanted:
+the bubble steps aside as a slim tab, keeps the message in memory, and comes
+back on a tap. The 10-minute auto-hide timer - not the notification - is what
+eventually removes it. Some messaging apps post a notification
 and retract it a moment later (WhatsApp does this for the chat you already have
 open), and clearing on the first removal made the bubble flicker out of
 existence before a finger could reach it. A tap inside the window is still

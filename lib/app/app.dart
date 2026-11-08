@@ -30,6 +30,21 @@ class ReplyMateApp extends StatelessWidget {
       themeMode: ThemeMode.system,
       initialRoute: initialRoute,
       onGenerateRoute: _routeFor,
+      // Exactly one route for whatever the platform asked for.
+      //
+      // Flutter's default behaviour builds the whole path: an initial route of
+      // `/overlay` pushed `/` first, so the transparent panel activity had the
+      // main app sitting underneath it in the same Navigator. Tapping the empty
+      // space around the panel popped the panel and revealed ReplyMate over the
+      // chat - which is exactly the "an empty tap takes me into the app"
+      // complaint. With a single route there is nothing to reveal, and the
+      // panel closes itself through the platform instead.
+      onGenerateInitialRoutes: (String? requested) {
+        final route = _routeFor(
+          RouteSettings(name: requested ?? AppRoutes.home),
+        );
+        return <Route<dynamic>>[?route];
+      },
     );
   }
 

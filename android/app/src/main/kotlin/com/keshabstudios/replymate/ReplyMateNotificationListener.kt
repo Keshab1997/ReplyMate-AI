@@ -129,8 +129,13 @@ class ReplyMateNotificationListener : NotificationListenerService() {
         val task = Runnable {
             retractBubble = null
             if (OverlayBubbleController.pendingKey() == key) {
-                OverlayBubbleController.clear()
-                OverlayBubbleService.stop(this)
+                // The notification is gone because the user opened the chat (or
+                // the app withdrew it). Killing the bubble made it vanish the
+                // moment a conversation was opened, which is when it is most
+                // useful; instead it tucks itself against the screen edge and
+                // waits to be tapped. It is the auto-hide timer - not the
+                // notification - that eventually removes it.
+                OverlayBubbleService.tuckAway(this)
             }
         }
         retractBubble = task

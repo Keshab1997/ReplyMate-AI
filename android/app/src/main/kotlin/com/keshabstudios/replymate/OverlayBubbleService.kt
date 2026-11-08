@@ -118,6 +118,7 @@ class OverlayBubbleService : Service() {
         super.onCreate()
         createNotificationChannel()
         startForeground(OVERLAY_NOTIFICATION_ID, buildNotification())
+        instance = this
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         isShowing = true
         registerScreenReceiver()
@@ -202,6 +203,7 @@ class OverlayBubbleService : Service() {
             stopForeground(true)
         }
         isShowing = false
+        instance = null
         super.onDestroy()
     }
 
@@ -797,6 +799,19 @@ class OverlayBubbleService : Service() {
         hideForPanel()
     }
 
+    /**
+     * Sends the bubble to the screen edge without losing it. Used when the
+     * message's notification is withdrawn - which is what messaging apps do the
+     * moment you open the conversation - so the bubble steps aside instead of
+     * vanishing. Tapping the tab brings it straight back.
+     */
+    private fun tuck() {
+        val params = layoutParams ?: return
+        if (bubbleView == null || panelOpen) return
+        if (collapsed) return
+        collapse(toRight = params.x > resources.displayMetrics.widthPixels / 2)
+    }
+
     /** Invisible, not removed: the panel is drawn in front of this window. */
     private fun hideForPanel() {
         panelOpen = true
@@ -967,6 +982,24 @@ class OverlayBubbleService : Service() {
 
         /** App-private: the panel broadcasts this when it is destroyed. */
         const val ACTION_PANEL_CLOSED = "com.keshabstudios.replymate.action.PANEL_CLOSED"
+
+        @Volatile
+        private var instance: OverlayBubbleService? = null
+
+        /**
+         * Tucks the live bubble against the nearest edge. A no-op when the
+         * service is already gone - in that case the pending message is cleared
+         * too, because a message with no bubble and no notification would
+         * resurface later as a stale panel.
+         */
+        fun tuckAway(context: Context) {
+            val service = instance
+            if (service == null) {
+                OverlayBubbleController.clear()
+                return
+            }
+            service.handler.post { service.tuck() }
+        }
 
         /** True while the service is alive and therefore bindable. */
         @Volatile

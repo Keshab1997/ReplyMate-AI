@@ -67,6 +67,20 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     super.dispose();
   }
 
+  /// Closing goes through the platform, never through a Navigator pop: the
+  /// panel is the only route in its activity, and a pop used to uncover the
+  /// main app behind it.
+  Future<void> _close() async {
+    final closed = await ref
+        .read(notificationsBridgeProvider)
+        .closeOverlayPanel();
+    if (!mounted) return;
+    if (!closed) {
+      // In-app preview or a test: there is no activity to finish.
+      Navigator.of(context).maybePop();
+    }
+  }
+
   Future<void> _openSettings() async {
     await Navigator.of(context)
         .push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen()));
@@ -239,7 +253,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () => Navigator.of(context).maybePop(),
+              onTap: () => _close(),
               child: const SizedBox.expand(),
             ),
           ),
@@ -311,7 +325,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
               IconButton(
                 tooltip: 'Close',
                 icon: const Icon(Icons.close),
-                onPressed: () => Navigator.of(context).maybePop(),
+                onPressed: () => _close(),
               ),
             ],
           ),
@@ -324,10 +338,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: AppTheme.spaceMd),
-          OutlinedButton(
-            onPressed: () => Navigator.of(context).maybePop(),
-            child: const Text('Close'),
-          ),
+          OutlinedButton(onPressed: () => _close(), child: const Text('Close')),
         ],
       ),
     );
@@ -533,7 +544,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
             IconButton(
               tooltip: 'Close',
               icon: const Icon(Icons.close),
-              onPressed: () => Navigator.of(context).maybePop(),
+              onPressed: () => _close(),
             ),
           ],
         ),
