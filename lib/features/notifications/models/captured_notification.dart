@@ -79,12 +79,26 @@ class CapturedNotification {
 
   /// Honest one-line summary of why this context may be incomplete; empty
   /// when nothing is wrong.
+  ///
+  /// The flags on the wire are literal facts about the notification; this list
+  /// is the *judgement* about which ones the user can act on. Two of them are
+  /// noisy on their own:
+  ///  - `isGrouped` is true for any notification carrying a group key, and
+  ///    WhatsApp sets one for every ordinary chat, so only a group *summary*
+  ///    (stacked messages, where the text really is a digest) is reported;
+  ///  - `mayBeRedacted` only matters when no text arrived - if the text is
+  ///    here, nothing was hidden from us.
+  ///
+  /// Warning about everything all the time trains the user to ignore the
+  /// warning that does matter (docs/FLOATING_OVERLAY.md §3 rule 7).
   List<String> get contextWarnings {
     final warnings = <String>[];
-    if (!hasText) warnings.add('no message text available');
+    if (!hasText) {
+      warnings.add('no message text available');
+      if (mayBeRedacted) warnings.add('may be redacted by privacy settings');
+    }
     if (isTruncated) warnings.add('text may be truncated');
-    if (isGrouped || isGroupSummary) warnings.add('grouped notification');
-    if (mayBeRedacted) warnings.add('may be redacted by privacy settings');
+    if (isGroupSummary) warnings.add('grouped notification');
     return warnings;
   }
 

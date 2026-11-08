@@ -275,8 +275,19 @@ class OverlayBubbleService : Service() {
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = resources.getDimensionPixelSize(R.dimen.overlay_bubble_default_x)
-            y = resources.getDimensionPixelSize(R.dimen.overlay_bubble_default_y)
+            // Where the user dragged it last time, clamped to the screen so a
+            // remembered position from a bigger display cannot park the bubble
+            // off-screen. Nothing here is message content - two integers.
+            val defaults = prefs()
+            val metrics = resources.displayMetrics
+            x = defaults.getInt(
+                KEY_BUBBLE_X,
+                resources.getDimensionPixelSize(R.dimen.overlay_bubble_default_x),
+            ).coerceIn(0, maxOf(0, metrics.widthPixels - size))
+            y = defaults.getInt(
+                KEY_BUBBLE_Y,
+                resources.getDimensionPixelSize(R.dimen.overlay_bubble_default_y),
+            ).coerceIn(0, maxOf(0, metrics.heightPixels - size))
         }
     }
 
@@ -324,7 +335,11 @@ class OverlayBubbleService : Service() {
                     return true
                 }
                 MotionEvent.ACTION_UP -> {
-                    if (!dragging) openPanel()
+                    if (dragging) {
+                        rememberPosition(params)
+                    } else {
+                        openPanel()
+                    }
                     return true
                 }
                 MotionEvent.ACTION_CANCEL -> return true
@@ -332,6 +347,26 @@ class OverlayBubbleService : Service() {
             return false
         }
     }
+
+    /**
+     * Remembers where the bubble was dropped, so the next one appears where the
+     * user expects it instead of jumping back to the default corner. Position
+     * only: two integers, no message, no sender
+     * (docs/FLOATING_OVERLAY.md §5.2).
+     */
+    private fun rememberPosition(params: WindowManager.LayoutParams) {
+        try {
+            prefs().edit()
+                .putInt(KEY_BUBBLE_X, params.x)
+                .putInt(KEY_BUBBLE_Y, params.y)
+                .apply()
+        } catch (error: Exception) {
+            // Losing a position is not worth a crash.
+        }
+    }
+
+    private fun prefs() =
+        getSharedPreferences(ReplyMateNotificationListener.PREFS_NAME, MODE_PRIVATE)
 
     /**
      * Opens the panel. The context is **not** consumed here: the activity
@@ -498,5 +533,9 @@ class OverlayBubbleService : Service() {
 
         /** Default off: the switch only matters once overlay access is granted. */
         const val KEY_BUBBLE_ENABLED = "bubble_enabled"
+
+        /** Last drag position of the bubble, in pixels. */
+        private const val KEY_BUBBLE_X = "bubble_x"
+        private const val KEY_BUBBLE_Y = "bubble_y"
     }
 }

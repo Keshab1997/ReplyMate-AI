@@ -83,7 +83,10 @@ Explain:
 
 Reached only from the bubble, never from normal navigation. Must:
 - show the source app and the message the notification exposed;
-- reuse the language/tone/length chips and the same suggestion cards;
+- reuse the same suggestion cards, and use the reply style saved in Settings
+  rather than asking for it again (a tune icon in the header opens Settings);
+- show only warnings the user can act on - a complete single-chat message says
+  nothing about groups or redaction;
 - make Copy the always-available action;
 - offer quick reply only when the notification still has a valid action, and
   explain the fallback when it does not;

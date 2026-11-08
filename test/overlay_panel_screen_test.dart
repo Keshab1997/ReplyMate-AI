@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:replymate/core/constants/app_constants.dart';
 import 'package:replymate/features/overlay/models/overlay_context.dart';
 import 'package:replymate/features/overlay/presentation/overlay_panel_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 OverlayContext _context({bool hasReplyAction = true, String? text}) =>
     OverlayContext.fromMap(<Object?, Object?>{
@@ -21,7 +23,13 @@ OverlayContext _context({bool hasReplyAction = true, String? text}) =>
     });
 
 void main() {
-  Future<void> pumpPanel(WidgetTester tester, OverlayContext context) async {
+  Future<void> pumpPanel(
+    WidgetTester tester,
+    OverlayContext context, {
+    Map<String, Object> prefs = const <String, Object>{},
+  }) async {
+    // Set per test, not once: the style row reads these.
+    SharedPreferences.setMockInitialValues(prefs);
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -31,6 +39,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    // The saved style is read asynchronously from SharedPreferences; give it a
+    // frame to land before the assertions look at the style row.
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pumpAndSettle();
   }
 
   testWidgets('a stubbed context renders the message and its app', (
@@ -38,10 +50,38 @@ void main() {
   ) async {
     await pumpPanel(tester, _context());
 
-    expect(find.text('WhatsApp'), findsOneWidget);
+    expect(find.text('via WhatsApp'), findsOneWidget);
     expect(find.text('Asha'), findsOneWidget);
     expect(find.text('Can we meet tomorrow?'), findsOneWidget);
     expect(find.text('Generate suggestions'), findsOneWidget);
+  });
+
+  testWidgets('the panel asks nothing the main app already knows', (
+    tester,
+  ) async {
+    // Language / tone / length are Settings' business. The panel shows the
+    // saved choice and links to it - it must not re-ask per message.
+    await pumpPanel(
+      tester,
+      _context(),
+      prefs: const <String, Object>{
+        AppConstants.prefDefaultLanguage: 'bn',
+        AppConstants.prefDefaultTone: 'professional',
+        AppConstants.prefDefaultLength: 'medium',
+      },
+    );
+
+    expect(find.byType(ChoiceChip), findsNothing);
+    expect(find.text('Bengali · Professional · Medium'), findsOneWidget);
+    expect(find.text('Change'), findsOneWidget);
+    // The way out to those controls is the tune icon.
+    expect(find.byTooltip('Settings'), findsOneWidget);
+  });
+
+  testWidgets('a complete message shows no warning noise', (tester) async {
+    await pumpPanel(tester, _context());
+    expect(find.textContaining('grouped'), findsNothing);
+    expect(find.textContaining('redacted'), findsNothing);
   });
 
   testWidgets('guest mode explains itself instead of inventing a reply', (

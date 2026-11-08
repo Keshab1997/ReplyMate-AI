@@ -22,8 +22,11 @@ open ReplyMate seconds earlier. The bubble closes that gap.
    is inside that app.
 2. A small circular ReplyMate bubble appears over the current screen.
 3. The user taps it.
-4. A panel opens over WhatsApp with: the message, language/tone/length chips,
-   and a Generate button.
+4. A panel opens over WhatsApp with: the message, the **reply style the user
+   already chose in Settings**, and a Generate button. The panel deliberately
+   does not re-ask language/tone/length - a bubble is a shortcut, not a second
+   app - and a tune icon in its header opens Settings when the style does need
+   changing.
 5. Suggestions appear. Each can be copied, edited, or sent with quick reply
    when — and only when — the original notification still has a valid
    `RemoteInput` action.
@@ -112,7 +115,7 @@ OverlayPanelActivity : FlutterActivity (new, translucent, exported=false)
        → OverlayPanelScreen (new Dart screen)
 
 OverlayPanelScreen                     (new Dart)
-  └─ reads the context through the channel → renders message + chips +
+  └─ reads the context through the channel → renders message + the saved style +
      Generate + suggestion cards (reuses ReplyRequest / replyRepositoryProvider)
 
 FallbackNotification                   (new, in the listener)

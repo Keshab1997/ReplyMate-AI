@@ -61,16 +61,42 @@ void main() {
       expect(notification.displayTitle, 'com.whatsapp');
     });
 
-    test('truncated, grouped and redacted flags surface as warnings', () {
+    test('truncation is always reported - the text really is cut', () {
       final notification = CapturedNotification.fromMap(
-        wire(isTruncated: true, isGrouped: true, mayBeRedacted: true),
+        wire(isTruncated: true),
+      );
+      expect(notification.contextWarnings, <String>['text may be truncated']);
+    });
+
+    test('a plain chat with text reports no noise', () {
+      // WhatsApp sets a group key on every chat and a non-public visibility on
+      // most messages; both used to produce "grouped notification · may be
+      // redacted" under a perfectly complete message, which taught the user to
+      // ignore the honest warnings.
+      final notification = CapturedNotification.fromMap(
+        wire(isGrouped: true, mayBeRedacted: true),
+      );
+      expect(notification.hasText, isTrue);
+      expect(notification.contextWarnings, isEmpty);
+    });
+
+    test('a summary with no text reports everything that applies', () {
+      final notification = CapturedNotification.fromMap(
+        wire(
+          text: null,
+          isGrouped: true,
+          isGroupSummary: true,
+          mayBeRedacted: true,
+        ),
       );
       expect(notification.contextWarnings, hasLength(3));
-      expect(notification.contextWarnings, contains('text may be truncated'));
-      expect(notification.contextWarnings, contains('grouped notification'));
       expect(
         notification.contextWarnings,
-        contains('may be redacted by privacy settings'),
+        containsAll(<String>[
+          'no message text available',
+          'may be redacted by privacy settings',
+          'grouped notification',
+        ]),
       );
     });
 

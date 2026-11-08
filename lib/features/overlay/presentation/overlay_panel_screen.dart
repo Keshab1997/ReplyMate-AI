@@ -4,23 +4,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/app_theme.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/constants/reply_options.dart';
 import '../../../core/firebase/firebase_providers.dart';
-import '../../../shared/widgets/choice_chips.dart';
+import '../../../shared/widgets/section_label.dart';
 import '../../notifications/providers/notification_providers.dart';
 import '../../reply/data/reply_repository.dart';
 import '../../reply/domain/reply_request.dart';
 import '../../reply/presentation/widgets/suggestion_card.dart';
+import '../../settings/providers/preferences_provider.dart';
+import '../../settings/settings_screen.dart';
 import '../models/overlay_context.dart';
 import '../providers/overlay_providers.dart';
 
 /// Screen 10 of docs/SCREEN_SPECIFICATIONS.md: the panel behind the floating
 /// reply bubble.
 ///
-/// Reached only from the bubble - never from normal navigation - so it is built
-/// as a translucent sheet over whatever the user was doing, not as a page. It
-/// reuses the composer's chips and the suggestions screen's cards on purpose:
-/// one reply flow, two entry points (docs/FLOATING_OVERLAY.md §4.2).
+/// Design rule for this screen: **the bubble is a shortcut, not a second app.**
+/// The reply style (language, tone, length) is whatever the user already chose
+/// in Settings - it is *not* re-asked here. The panel therefore has exactly one
+/// job: show the message, generate, hand back the reply. Anything that needs a
+/// decision opens Settings through the tune icon instead of duplicating the
+/// controls (docs/FLOATING_OVERLAY.md §1).
 ///
 /// What it must never do: keep the message after it closes, show message text
 /// in a log, offer quick reply without a live RemoteInput action, or claim AI
@@ -38,10 +41,6 @@ class OverlayPanelScreen extends ConsumerStatefulWidget {
 }
 
 class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
-  ReplyLanguage _language = ReplyLanguage.english;
-  ReplyTone _tone = ReplyTone.friendly;
-  ReplyLength _length = ReplyLength.short;
-
   bool _generating = false;
   ReplyFailure? _failure;
   List<TextEditingController> _controllers = const [];
@@ -54,12 +53,20 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     super.dispose();
   }
 
-  Future<void> _generate(OverlayContext context) async {
+  Future<void> _openSettings() async {
+    await Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen()));
+  }
+
+  Future<void> _generate(OverlayContext overlay) async {
+    // Style comes from the user's saved defaults, so the same reply style
+    // follows them from the composer into the bubble.
+    final preferences = ref.read(preferencesProvider);
     final request = ReplyRequest(
-      message: context.displayText,
-      language: _language,
-      tone: _tone,
-      length: _length,
+      message: overlay.displayText,
+      language: preferences.language,
+      tone: preferences.tone,
+      length: preferences.length,
       count: AppConstants.maxSuggestionCount,
     );
     final problems = request.validate();
@@ -172,10 +179,16 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
                 padding: const EdgeInsets.all(AppTheme.spaceSm),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    maxHeight: MediaQuery.sizeOf(context).height * 0.8,
+                    maxHeight: MediaQuery.sizeOf(context).height * 0.82,
                   ),
                   child: Card(
                     clipBehavior: Clip.antiAlias,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(AppTheme.cardRadius),
+                        bottom: Radius.circular(AppTheme.cardRadius),
+                      ),
+                    ),
                     child: _buildBody(overlay, loading),
                   ),
                 ),
@@ -210,13 +223,20 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const _Grabber(),
           Row(
             children: [
-              Text(
-                'Nothing to reply to',
-                style: Theme.of(context).textTheme.titleMedium,
+              Expanded(
+                child: Text(
+                  'Nothing to reply to',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
               ),
-              const Spacer(),
+              IconButton(
+                tooltip: 'Settings',
+                icon: const Icon(Icons.tune),
+                onPressed: _openSettings,
+              ),
               IconButton(
                 tooltip: 'Close',
                 icon: const Icon(Icons.close),
@@ -243,32 +263,63 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
   }
 
   Widget _buildPanel(OverlayContext overlay) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final preferences = ref.watch(preferencesProvider);
     final quickReplyAvailable = overlay.notification.hasReplyAction;
     final firebaseReady = ref.watch(firebaseReadyProvider);
 
     return ListView(
       shrinkWrap: true,
-      padding: const EdgeInsets.all(AppTheme.spaceMd),
+      padding: const EdgeInsets.fromLTRB(
+        AppTheme.spaceMd,
+        0,
+        AppTheme.spaceMd,
+        AppTheme.spaceMd,
+      ),
       children: [
+        const _Grabber(),
         Row(
           children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: scheme.primaryContainer,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.chat_bubble_outline,
+                size: 18,
+                color: scheme.onPrimaryContainer,
+              ),
+            ),
+            const SizedBox(width: AppTheme.spaceSm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    overlay.appLabel,
-                    style: Theme.of(context).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  Text(
                     overlay.displayTitle,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  Text(
+                    'via ${overlay.appLabel}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
+            ),
+            IconButton(
+              tooltip: 'Settings',
+              icon: const Icon(Icons.tune),
+              onPressed: _openSettings,
             ),
             IconButton(
               tooltip: 'Close',
@@ -277,68 +328,121 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
             ),
           ],
         ),
-        const SizedBox(height: AppTheme.spaceSm),
-        // The message itself: read-only, capped so a long message scrolls
-        // inside the panel instead of pushing the controls off screen.
-        ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(context).height * 0.4,
+        const SizedBox(height: AppTheme.spaceMd),
+        // The message itself: quoted, read-only, capped so a long message
+        // scrolls inside the panel instead of pushing the button off screen.
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppTheme.spaceMd),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(AppTheme.cardRadius - 6),
           ),
-          child: SingleChildScrollView(
-            child: Text(
-              overlay.displayText.isEmpty
-                  ? 'This notification exposed no message text. There is '
-                        'nothing to reply to here.'
-                  : overlay.displayText,
-              style: Theme.of(context).textTheme.bodyLarge,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * 0.34,
+            ),
+            child: SingleChildScrollView(
+              child: Text(
+                overlay.displayText.isEmpty
+                    ? 'This notification exposed no message text. There is '
+                          'nothing to reply to here.'
+                    : overlay.displayText,
+                style: theme.textTheme.bodyLarge,
+              ),
             ),
           ),
         ),
+        // Only real limitations appear here. A single-chat WhatsApp
+        // notification is not "grouped", and text that arrived is not
+        // "redacted" - those lines used to appear anyway and taught the user
+        // to ignore the honest ones.
         if (overlay.contextWarnings.isNotEmpty) ...[
           const SizedBox(height: AppTheme.spaceSm),
-          Text(
-            overlay.contextWarnings.join(' · '),
-            style: Theme.of(context).textTheme.bodySmall,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.info_outline,
+                size: 16,
+                color: scheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: AppTheme.spaceXs),
+              Expanded(
+                child: Text(
+                  overlay.contextWarnings.join(' · '),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
         const SizedBox(height: AppTheme.spaceMd),
-        ChoiceChips<ReplyLanguage>(
-          options: ReplyLanguage.values,
-          selected: _language,
-          labelOf: (language) => language.label,
-          onSelected: (language) => setState(() => _language = language),
-        ),
-        const SizedBox(height: AppTheme.spaceSm),
-        ChoiceChips<ReplyTone>(
-          options: ReplyTone.values,
-          selected: _tone,
-          labelOf: (tone) => tone.label,
-          onSelected: (tone) => setState(() => _tone = tone),
-        ),
-        const SizedBox(height: AppTheme.spaceSm),
-        ChoiceChips<ReplyLength>(
-          options: ReplyLength.values,
-          selected: _length,
-          labelOf: (length) => length.label,
-          onSelected: (length) => setState(() => _length = length),
+        // The style lives in Settings, not here: one place to change it, one
+        // place to explain it. Tapping the row opens Settings.
+        InkWell(
+          borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
+          onTap: _openSettings,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.spaceSm,
+              vertical: AppTheme.spaceSm,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.auto_awesome_outlined,
+                  size: 16,
+                  color: scheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: AppTheme.spaceSm),
+                Expanded(
+                  child: Text(
+                    '${preferences.language.label} · '
+                    '${preferences.tone.label} · '
+                    '${preferences.length.label}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                Text(
+                  'Change',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: scheme.primary,
+                  ),
+                ),
+                const SizedBox(width: AppTheme.spaceXs),
+                Icon(Icons.chevron_right, size: 18, color: scheme.primary),
+              ],
+            ),
+          ),
         ),
         if (!firebaseReady) ...[
-          const SizedBox(height: AppTheme.spaceSm),
+          const SizedBox(height: AppTheme.spaceXs),
           Text(
             'AI generation is not configured on this install, so generating '
             'will explain that instead of inventing a reply.',
-            style: Theme.of(context).textTheme.bodySmall,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
           ),
         ],
         if (_failure != null) ...[
           const SizedBox(height: AppTheme.spaceMd),
-          Card(
-            color: Theme.of(context).colorScheme.errorContainer,
-            child: Padding(
-              padding: const EdgeInsets.all(AppTheme.spaceMd),
-              child: Text(
-                _failure!.message,
-                style: Theme.of(context).textTheme.bodyMedium,
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppTheme.spaceMd),
+            decoration: BoxDecoration(
+              color: scheme.errorContainer,
+              borderRadius: BorderRadius.circular(AppTheme.cardRadius - 8),
+            ),
+            child: Text(
+              _failure!.message,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onErrorContainer,
               ),
             ),
           ),
@@ -355,25 +459,54 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
               : const Icon(Icons.auto_awesome),
           label: Text(_generating ? 'Generating…' : 'Generate suggestions'),
         ),
-        for (final controller in _controllers) ...[
+        if (_controllers.isNotEmpty) ...[
           const SizedBox(height: AppTheme.spaceMd),
-          SuggestionCard(
-            controller: controller,
-            quickReplyAvailable: quickReplyAvailable,
-            onCopy: _copy,
-            onShare: _share,
-            onQuickReply: (text) => _quickReply(overlay, text),
-          ),
-        ],
-        if (_controllers.isNotEmpty && !quickReplyAvailable) ...[
-          const SizedBox(height: AppTheme.spaceSm),
-          Text(
-            'This notification has no reply action, so quick reply is not '
-            'offered. Copy the reply and paste it in the app.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          const SectionLabel('Suggestions'),
+          for (final controller in _controllers) ...[
+            SuggestionCard(
+              controller: controller,
+              quickReplyAvailable: quickReplyAvailable,
+              onCopy: _copy,
+              onShare: _share,
+              onQuickReply: (text) => _quickReply(overlay, text),
+            ),
+            const SizedBox(height: AppTheme.spaceSm),
+          ],
+          if (!quickReplyAvailable)
+            Text(
+              'This notification has no reply action, so quick reply is not '
+              'offered. Copy the reply and paste it in the app.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
         ],
       ],
+    );
+  }
+}
+
+/// The little bar that says "this is a sheet you can flick away".
+class _Grabber extends StatelessWidget {
+  const _Grabber();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.only(
+          top: AppTheme.spaceSm,
+          bottom: AppTheme.spaceSm,
+        ),
+        child: Container(
+          width: 36,
+          height: 4,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.outlineVariant,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+      ),
     );
   }
 }
