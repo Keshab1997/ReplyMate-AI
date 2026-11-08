@@ -74,6 +74,11 @@ them can be checked from CI.
 | 21 | Revoke overlay permission (Settings → Apps → Special access → Display over other apps), send a message, then tap the fallback notification | No bubble; a notification says "New message from WhatsApp" with **no text**; tapping opens the composer prefilled | _pending_ |
 | 22 | Force-stop ReplyMate, send a message, wait, then open the app | Record what happens: bubble, fallback notification, or nothing. No crash either way | _pending_ |
 | 23 | Drag the bubble to another corner; turn the screen off and on; lock and unlock; wait 10 minutes | Bubble follows the drag, hides while the screen is off/locked, auto-hides after the timeout, leaves no ghost view | _pending_ |
+| 25 | Tap the bubble on a chat you have not opened | Only the panel appears; Close puts you back in WhatsApp, never in ReplyMate | _pending_ |
+| 26 | Drag the bubble to the left or right screen edge and let go | It tucks itself into a slim tab on that edge; the messaging app underneath stays usable |
+| 27 | Tap the tucked tab, then drag the tab back into the middle of the screen | First tap restores the full bubble without opening the panel; releasing it mid-screen leaves a full bubble, not a stray tab |
+| 28 | Tuck the bubble away, then send yourself a message | The bubble expands again on its own and shows the count, so a hidden bubble never misses a message |
+| 29 | Copy a message from the chat, tap the bubble / Paste, then Generate | The pasted text is what gets replies; Copy puts the captured message on the clipboard; Edit lets you change it first |
 | 24 | Close the panel, then inspect storage and logs: `adb shell run-as com.keshabstudios.replymate ls -R files/ shared_prefs/` and `adb logcat -c && adb logcat \| grep -i replymate` | No message text anywhere on disk; no message text in logcat | _pending_ |
 
 ## Reading the results
