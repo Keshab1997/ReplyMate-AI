@@ -36,6 +36,7 @@ class MascotFace extends StatefulWidget {
     this.mood = MascotMood.idle,
     this.glow = true,
     this.animate = true,
+    this.semanticLabel,
     super.key,
   });
 
@@ -47,6 +48,10 @@ class MascotFace extends StatefulWidget {
 
   /// Off for tests and for the small headers where motion would be noise.
   final bool animate;
+
+  /// The picture is decoration, so by default it is hidden from TalkBack.
+  /// Pass a label only when the face itself carries meaning ("Thinking").
+  final String? semanticLabel;
 
   @override
   State<MascotFace> createState() => _MascotFaceState();
@@ -74,11 +79,32 @@ class _MascotFaceState extends State<MascotFace> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _bob.addListener(_maybeBlink);
-    if (widget.animate) _start();
   }
 
-  void _start() {
-    _bob.repeat(reverse: true, count: _cycles);
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncMotion();
+  }
+
+  /// Whether the platform currently wants motion: the widget's own switch AND
+  /// Android's "Remove animations" setting. A stopped controller schedules no
+  /// frames at all, so honouring the setting actually saves the work instead of
+  /// only freezing the picture.
+  bool get _shouldMove {
+    if (!widget.animate) return false;
+    return !(MediaQuery.maybeOf(context)?.disableAnimations ?? false);
+  }
+
+  void _syncMotion() {
+    if (_shouldMove && !_bob.isAnimating) {
+      _bob.repeat(reverse: true, count: _cycles);
+    } else if (!_shouldMove && (_bob.isAnimating || _blink.isAnimating)) {
+      _bob.stop();
+      _blink.stop();
+      _bob.value = 0;
+      _blink.value = 0;
+    }
   }
 
   /// One blink roughly every third bob, so it never looks like a metronome.
@@ -101,7 +127,8 @@ class _MascotFaceState extends State<MascotFace> with TickerProviderStateMixin {
   @override
   void didUpdateWidget(MascotFace oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.mood != widget.mood && widget.animate) {
+    if (oldWidget.animate != widget.animate) _syncMotion();
+    if (oldWidget.mood != widget.mood && _shouldMove) {
       // A mood change is a small acknowledgement, never a loop.
       _bob.forward(from: 0).then((_) {
         if (mounted) _bob.reverse();
@@ -119,6 +146,9 @@ class _MascotFaceState extends State<MascotFace> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    // "Remove animations" in Android settings is a real preference, not a
+    // developer toggle: honour it everywhere, including the decorating bob.
+    final moving = _shouldMove;
     final size = widget.size;
     final tilt = switch (widget.mood) {
       MascotMood.listening => -0.04,
@@ -155,7 +185,7 @@ class _MascotFaceState extends State<MascotFace> with TickerProviderStateMixin {
               // as eyelids, without needing a second artwork.
               transform: Matrix4.diagonal3Values(
                 1,
-                widget.animate ? 1 - (_blink.value * 0.88) : 1,
+                moving ? 1 - (_blink.value * 0.88) : 1,
                 1,
               ),
               child: child,
@@ -181,7 +211,7 @@ class _MascotFaceState extends State<MascotFace> with TickerProviderStateMixin {
       ),
     );
 
-    final bobbing = widget.animate
+    final bobbing = moving
         ? AnimatedBuilder(
             animation: _bob,
             builder: (context, child) => Transform.translate(
@@ -197,51 +227,63 @@ class _MascotFaceState extends State<MascotFace> with TickerProviderStateMixin {
     final thinking = widget.mood == MascotMood.thinking;
 
     if (!widget.glow) {
-      return SizedBox(
-        width: size,
-        height: size,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            tilted,
-            if (thinking)
-              Positioned(
-                bottom: 0,
-                child: _ThinkingDots(size: size, animate: widget.animate),
-              ),
-          ],
+      return _described(
+        SizedBox(
+          width: size,
+          height: size,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              tilted,
+              if (thinking)
+                Positioned(
+                  bottom: 0,
+                  child: _ThinkingDots(size: size, animate: moving),
+                ),
+            ],
+          ),
         ),
       );
     }
 
-    return SizedBox(
-      width: size * 1.55,
-      height: size * 1.55,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: RadialGradient(
-                colors: [
-                  AppTheme.brand.withValues(alpha: 0.32),
-                  AppTheme.cyan.withValues(alpha: 0.10),
-                  Colors.transparent,
-                ],
-                stops: const [0.0, 0.55, 0.74],
+    return _described(
+      SizedBox(
+        width: size * 1.55,
+        height: size * 1.55,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    AppTheme.brand.withValues(alpha: 0.32),
+                    AppTheme.cyan.withValues(alpha: 0.10),
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.55, 0.74],
+                ),
               ),
             ),
-          ),
-          tilted,
-          if (thinking)
-            Positioned(
-              bottom: size * 0.12,
-              child: _ThinkingDots(size: size, animate: widget.animate),
-            ),
-        ],
+            tilted,
+            if (thinking)
+              Positioned(
+                bottom: size * 0.12,
+                child: _ThinkingDots(size: size, animate: moving),
+              ),
+          ],
+        ),
       ),
     );
+  }
+
+  /// Decoration by default: a TalkBack user should not hear "image" between
+  /// two sentences. A caller that gives the face meaning passes a label.
+  Widget _described(Widget child) {
+    final label = widget.semanticLabel;
+    if (label == null) return ExcludeSemantics(child: child);
+    return Semantics(image: true, label: label, child: child);
   }
 }
 

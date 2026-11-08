@@ -285,43 +285,62 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: AppTheme.spaceSm),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: AppTheme.spaceSm,
-                crossAxisSpacing: AppTheme.spaceSm,
-                childAspectRatio: 1.55,
-                children: [
-                  _Tile(
-                    icon: Icons.content_paste_rounded,
-                    title: 'Paste a message',
-                    subtitle: 'Reply to the chat you are in',
-                    onTap: () => _push(context, const ReplyComposerScreen()),
-                  ),
-                  _Tile(
-                    icon: Icons.widgets_outlined,
-                    title: 'Supported apps',
-                    subtitle: selectedApps.isEmpty
-                        ? 'None selected yet'
-                        : '${selectedApps.length} selected',
-                    onTap: () => _push(context, const AppSelectionScreen()),
-                  ),
-                  _Tile(
-                    icon: Icons.bubble_chart_outlined,
-                    title: 'Bubble',
-                    subtitle: permissionEnabled
-                        ? 'Shows over your chats'
-                        : 'Needs a permission',
-                    onTap: () => _push(context, const SettingsScreen()),
-                  ),
-                  _Tile(
-                    icon: Icons.vpn_key_outlined,
-                    title: 'Connection',
-                    subtitle: 'Guest mode unless configured',
-                    onTap: () => _push(context, const SettingsScreen()),
-                  ),
-                ],
+              // Two rows of two, not a GridView with a fixed aspect ratio: at
+              // 2x text size a fixed-ratio tile clips its own label, and the
+              // user who needs the bigger text is exactly the one who loses it.
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _Tile(
+                        icon: Icons.content_paste_rounded,
+                        title: 'Paste a message',
+                        subtitle: 'Reply to the chat you are in',
+                        onTap: () =>
+                            _push(context, const ReplyComposerScreen()),
+                      ),
+                    ),
+                    const SizedBox(width: AppTheme.spaceSm),
+                    Expanded(
+                      child: _Tile(
+                        icon: Icons.widgets_outlined,
+                        title: 'Supported apps',
+                        subtitle: selectedApps.isEmpty
+                            ? 'None selected yet'
+                            : '${selectedApps.length} selected',
+                        onTap: () => _push(context, const AppSelectionScreen()),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppTheme.spaceSm),
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _Tile(
+                        icon: Icons.bubble_chart_outlined,
+                        title: 'Bubble',
+                        subtitle: permissionEnabled
+                            ? 'Shows over your chats'
+                            : 'Needs a permission',
+                        onTap: () => _push(context, const SettingsScreen()),
+                      ),
+                    ),
+                    const SizedBox(width: AppTheme.spaceSm),
+                    Expanded(
+                      child: _Tile(
+                        icon: Icons.vpn_key_outlined,
+                        title: 'Connection',
+                        subtitle: 'Guest mode unless configured',
+                        onTap: () => _push(context, const SettingsScreen()),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -342,15 +361,19 @@ class _StatusDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colour = ok ? AppTheme.mint : AppTheme.amber;
-    return Container(
-      width: 9,
-      height: 9,
-      decoration: BoxDecoration(
-        color: colour,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(color: colour.withValues(alpha: 0.35), blurRadius: 8),
-        ],
+    // Colour is never the only signal, and TalkBack should hear the word too.
+    return Semantics(
+      label: label == 'live' ? 'Live' : 'Off',
+      child: Container(
+        width: 9,
+        height: 9,
+        decoration: BoxDecoration(
+          color: colour,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(color: colour.withValues(alpha: 0.35), blurRadius: 8),
+          ],
+        ),
       ),
     );
   }
@@ -374,60 +397,67 @@ class _Tile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    return Material(
-      color: isDark ? Colors.white.withValues(alpha: 0.045) : Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppTheme.tileRadius),
-        side: BorderSide(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.09)
-              : theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-        ),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppTheme.tileRadius),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppTheme.spaceMd - 4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: AppTheme.brand.withValues(alpha: isDark ? 0.22 : 0.12),
-                ),
-                child: Icon(icon, size: 16, color: AppTheme.brandBright),
-              ),
-              Column(
+    return Semantics(
+      button: true,
+      container: true,
+      // One sentence instead of four fragments: "Paste a message. Reply to the
+      // chat you are in."
+      label: '$title. $subtitle',
+      child: ExcludeSemantics(
+        child: Material(
+          color: isDark ? Colors.white.withValues(alpha: 0.045) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppTheme.tileRadius),
+            side: BorderSide(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.09)
+                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+            ),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppTheme.tileRadius),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(AppTheme.spaceMd - 4),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12.5,
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: AppTheme.brand.withValues(
+                        alpha: isDark ? 0.22 : 0.12,
+                      ),
                     ),
+                    child: Icon(icon, size: 16, color: AppTheme.brandBright),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 10.5,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 10.5,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),

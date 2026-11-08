@@ -101,3 +101,20 @@ affordance instead of four hand-copied chips.
 
 Nothing is left on the old system. From here a new screen starts from
 `ScreenHeader` + `AppTheme` tokens + `MascotFace` when the helper is relevant.
+
+## 7. Accessibility rules
+
+- **Reduce motion is honoured, not decorated.** `MascotFace` stops its
+  controllers when `MediaQuery.disableAnimations` is true, so no frames are
+  scheduled at all (`test/accessibility_test.dart` asserts exactly that).
+- **The mascot is decoration by default.** It is wrapped in `ExcludeSemantics`;
+  a caller passes `semanticLabel` only when the face carries meaning ("Thinking").
+- **A tile reads as one sentence.** Tappable cards use
+  `Semantics(button: true, label: '<title>. <subtitle>')` and hide their inner
+  fragments, so TalkBack says "Paste a message. Reply to the chat you are in."
+  instead of four disconnected labels.
+- **Colour is never the only signal.** Every state dot has the word next to it
+  (`live` / `off`) and a semantics label.
+- **Text scale is a layout constraint.** No fixed-aspect-ratio grid, no
+  `maxLines: 1` on a label the user needs: the quick-start grid became two
+  `IntrinsicHeight` rows so a 2x font grows the card instead of clipping it.
