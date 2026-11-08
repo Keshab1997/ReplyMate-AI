@@ -86,3 +86,16 @@ There is no backend to deploy (architecture A, `docs/API_SECURITY.md`), so
 ## Low-Spec Development
 
 Keep local builds simple. Cloud CI can be used for Android builds if the local Mac cannot comfortably run the full toolchain.
+
+## CI on push
+
+`.github/workflows/ci.yml` now runs on every push to `main` (and on demand).
+Kotlin is only ever compiled in CI, so a manual-only pipeline meant a broken
+service file could sit undetected until the next APK build. To go back to
+manual-only, delete the `push:` block.
+
+`android/app/src/test/kotlin/...` holds JVM unit tests for
+`OverlayBubbleController` (pending-message order, no double-consume, the
+five-chat cap). They are not wired into the reusable Flutter workflow yet - run
+them with `./gradlew :app:testDebugUnitTest` on a machine with the Android SDK,
+or add a gradle job to `ci.yml`.

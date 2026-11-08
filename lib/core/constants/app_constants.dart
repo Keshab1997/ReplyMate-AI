@@ -10,6 +10,10 @@ class AppConstants {
 
   /// SharedPreferences keys (all prefixed to stay obvious in debugging).
   static const String prefOnboardingDone = 'replymate.onboarding_done';
+
+  /// Interface language ('en' / 'bn'). Independent of the reply language: a
+  /// Bengali UI can draft English replies.
+  static const String prefAppLanguage = 'replymate.app_language';
   static const String prefSelectedApps = 'replymate.selected_apps';
   static const String prefDefaultLanguage = 'replymate.default_language';
   static const String prefDefaultTone = 'replymate.default_tone';

@@ -83,6 +83,12 @@ android {
     }
 }
 
+dependencies {
+    // JVM-only unit tests for the overlay controller: the one part of the
+    // bubble feature whose logic can be proven without a device.
+    testImplementation("junit:junit:4.13.2")
+}
+
 kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17

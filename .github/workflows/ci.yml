@@ -1,10 +1,14 @@
 name: Flutter CI — Format, Analyze & Test
 
-# Manual only: nothing runs on push or pull request. Batch your changes, then
-# run this once from Actions -> Flutter CI — Format, Analyze & Test -> Run
-# workflow. That keeps small edits from spending a CI run each.
+# Runs on every push to main as well as on demand. The first version of this
+# file was manual-only to save CI minutes, but the Android side (Kotlin) can
+# only ever be compiled here - a broken service file used to surface days later,
+# when someone got round to building an APK. Analyze + test is cheap; finding
+# out on release day is not. Set `push:` back to nothing to return to manual.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
 
 permissions:
   contents: read

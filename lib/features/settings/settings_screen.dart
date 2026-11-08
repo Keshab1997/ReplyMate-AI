@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_theme.dart';
 import '../../core/constants/reply_options.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/firebase/firebase_providers.dart';
 import '../../shared/widgets/choice_chips.dart';
 import '../../shared/widgets/mascot_face.dart';
@@ -119,6 +120,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     final permissionEnabled = ref.watch(listenerPermissionProvider);
     final overlayEnabled = ref.watch(overlayProvider);
     final bubbleEnabled = ref.watch(bubbleEnabledProvider);
+    final strings = ref.watch(appStringsProvider);
+    final appLanguage = ref.watch(appLanguageProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -235,7 +238,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               ),
 
               section(
-                'Reply style',
+                strings.appLanguageSection,
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: AppTheme.spaceSm,
+                          runSpacing: AppTheme.spaceSm,
+                          children: [
+                            for (final language in AppLanguage.values)
+                              ChoiceChip(
+                                label: Text(language.label),
+                                selected: language == appLanguage,
+                                onSelected: (_) => ref
+                                    .read(appLanguageProvider.notifier)
+                                    .setLanguage(language),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: AppTheme.spaceSm),
+                        Text(
+                          strings.appLanguageNote,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 10.5,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              section(
+                strings.replyStyle,
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
@@ -243,7 +282,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Language',
+                          strings.languageLabel,
                           style: theme.textTheme.labelMedium?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -259,7 +298,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                         ),
                         const SizedBox(height: AppTheme.spaceMd),
                         Text(
-                          'Tone',
+                          strings.toneLabel,
                           style: theme.textTheme.labelMedium?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -275,7 +314,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                         ),
                         const SizedBox(height: AppTheme.spaceMd),
                         Text(
-                          'Length',
+                          strings.lengthLabel,
                           style: theme.textTheme.labelMedium?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -305,7 +344,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               ),
 
               section(
-                'Capture',
+                strings.captureSection,
                 Column(
                   children: [
                     PermissionStatusCard(
@@ -392,7 +431,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               ),
 
               section(
-                'Privacy',
+                strings.privacySection,
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(14),
@@ -401,18 +440,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                       children: [
                         _Promise(
                           icon: Icons.delete_outline_rounded,
-                          title: 'Messages are never stored',
-                          body:
-                              'Nothing you reply to is written to disk or '
-                              'to the logs.',
+                          title: strings.messagesNeverStored,
+                          body: strings.messagesNeverStoredBody,
                         ),
                         const SizedBox(height: AppTheme.spaceMd),
                         _Promise(
                           icon: Icons.pan_tool_alt_outlined,
-                          title: 'Nothing is sent by itself',
-                          body:
-                              'ReplyMate drafts. You press the button that '
-                              'sends.',
+                          title: strings.nothingSentAlone,
+                          body: strings.nothingSentAloneBody,
                         ),
                         const SizedBox(height: AppTheme.spaceMd),
                         Text(
@@ -431,7 +466,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                         const SizedBox(height: AppTheme.spaceMd),
                         OutlinedButton(
                           onPressed: () => _confirmClear(context, ref),
-                          child: const Text('Clear local preferences'),
+                          child: Text(strings.clearLocalPreferences),
                         ),
                       ],
                     ),

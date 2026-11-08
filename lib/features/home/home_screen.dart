@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_theme.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../core/platform/notifications_bridge.dart';
 import '../../shared/widgets/mascot_face.dart';
 import '../../shared/widgets/permission_status_card.dart';
@@ -32,6 +33,7 @@ class HomeScreen extends ConsumerWidget {
     final preferences = ref.watch(preferencesProvider);
     final candidates =
         ref.watch(candidateAppsProvider).value ?? const <CandidateApp>[];
+    final strings = ref.watch(appStringsProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -51,10 +53,13 @@ class HomeScreen extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  Text('ReplyMate', style: theme.appBarTheme.titleTextStyle),
+                  Text(
+                    strings.appName,
+                    style: theme.appBarTheme.titleTextStyle,
+                  ),
                   const Spacer(),
                   IconButton.filledTonal(
-                    tooltip: 'Settings',
+                    tooltip: strings.settings,
                     onPressed: () => _push(context, const SettingsScreen()),
                     icon: const Icon(Icons.settings_outlined, size: 20),
                     style: IconButton.styleFrom(
@@ -80,15 +85,17 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppTheme.spaceSm),
               Text(
-                permissionEnabled ? 'Ready when you are' : 'Almost there',
+                permissionEnabled
+                    ? strings.readyTitle
+                    : strings.almostThereTitle,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineSmall,
               ),
               const SizedBox(height: AppTheme.spaceXs),
               Text(
                 permissionEnabled
-                    ? 'It never sends anything by itself.'
-                    : 'Allow notification access to wake the helper up.',
+                    ? strings.readySubtitle
+                    : strings.almostThereSubtitle,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
@@ -125,8 +132,8 @@ class HomeScreen extends ConsumerWidget {
                           Expanded(
                             child: Text(
                               permissionEnabled
-                                  ? 'Listening for messages'
-                                  : 'Not listening yet',
+                                  ? strings.listeningTitle
+                                  : strings.notListeningTitle,
                               style: theme.textTheme.titleSmall?.copyWith(
                                 fontWeight: FontWeight.w700,
                               ),
@@ -136,7 +143,9 @@ class HomeScreen extends ConsumerWidget {
                             onPressed: () =>
                                 _push(context, const PermissionSetupScreen()),
                             child: Text(
-                              permissionEnabled ? 'Manage' : 'Enable',
+                              permissionEnabled
+                                  ? strings.manage
+                                  : strings.enable,
                             ),
                           ),
                         ],
@@ -165,9 +174,9 @@ class HomeScreen extends ConsumerWidget {
                               accent: true,
                               onTap: () =>
                                   _push(context, const AppSelectionScreen()),
-                              child: const Text(
-                                'Choose apps',
-                                style: TextStyle(
+                              child: Text(
+                                strings.chooseApps,
+                                style: const TextStyle(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -200,7 +209,7 @@ class HomeScreen extends ConsumerWidget {
                           const SizedBox(width: AppTheme.spaceSm),
                           Expanded(
                             child: Text(
-                              'Reply style',
+                              strings.replyStyleTitle,
                               style: theme.textTheme.titleSmall?.copyWith(
                                 fontWeight: FontWeight.w700,
                               ),
@@ -209,7 +218,7 @@ class HomeScreen extends ConsumerWidget {
                           TextButton(
                             onPressed: () =>
                                 _push(context, const SettingsScreen()),
-                            child: const Text('Change'),
+                            child: Text(strings.change),
                           ),
                         ],
                       ),
@@ -267,7 +276,7 @@ class HomeScreen extends ConsumerWidget {
                 child: FilledButton.icon(
                   onPressed: () => _push(context, const ReplyComposerScreen()),
                   icon: const Icon(Icons.auto_awesome, size: 19),
-                  label: const Text('Generate a reply'),
+                  label: Text(strings.generateAReply),
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
@@ -277,7 +286,7 @@ class HomeScreen extends ConsumerWidget {
 
               const SizedBox(height: AppTheme.spaceLg),
               Text(
-                'Quick start',
+                strings.quickStart,
                 style: theme.textTheme.labelSmall?.copyWith(
                   letterSpacing: 1.2,
                   fontWeight: FontWeight.w700,
@@ -295,8 +304,8 @@ class HomeScreen extends ConsumerWidget {
                     Expanded(
                       child: _Tile(
                         icon: Icons.content_paste_rounded,
-                        title: 'Paste a message',
-                        subtitle: 'Reply to the chat you are in',
+                        title: strings.pasteAMessage,
+                        subtitle: strings.pasteAMessageSubtitle,
                         onTap: () =>
                             _push(context, const ReplyComposerScreen()),
                       ),
@@ -305,10 +314,10 @@ class HomeScreen extends ConsumerWidget {
                     Expanded(
                       child: _Tile(
                         icon: Icons.widgets_outlined,
-                        title: 'Supported apps',
+                        title: strings.supportedApps,
                         subtitle: selectedApps.isEmpty
-                            ? 'None selected yet'
-                            : '${selectedApps.length} selected',
+                            ? strings.noneSelectedYet
+                            : strings.selectedAppsCount(selectedApps.length),
                         onTap: () => _push(context, const AppSelectionScreen()),
                       ),
                     ),
@@ -323,10 +332,10 @@ class HomeScreen extends ConsumerWidget {
                     Expanded(
                       child: _Tile(
                         icon: Icons.bubble_chart_outlined,
-                        title: 'Bubble',
+                        title: strings.bubbleTitle,
                         subtitle: permissionEnabled
-                            ? 'Shows over your chats'
-                            : 'Needs a permission',
+                            ? strings.bubbleShowsOverChats
+                            : strings.bubbleNeedsPermission,
                         onTap: () => _push(context, const SettingsScreen()),
                       ),
                     ),
@@ -334,8 +343,8 @@ class HomeScreen extends ConsumerWidget {
                     Expanded(
                       child: _Tile(
                         icon: Icons.vpn_key_outlined,
-                        title: 'Connection',
-                        subtitle: 'Guest mode unless configured',
+                        title: strings.connectionTitle,
+                        subtitle: strings.guestModeUnlessConfigured,
                         onTap: () => _push(context, const SettingsScreen()),
                       ),
                     ),

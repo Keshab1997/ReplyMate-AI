@@ -118,3 +118,20 @@ Nothing is left on the old system. From here a new screen starts from
 - **Text scale is a layout constraint.** No fixed-aspect-ratio grid, no
   `maxLines: 1` on a label the user needs: the quick-start grid became two
   `IntrinsicHeight` rows so a 2x font grows the card instead of clipping it.
+
+## 8. Interface language
+
+`lib/core/l10n/app_strings.dart` holds every string the redesigned screens show,
+in two implementations (`EnglishStrings`, `BengaliStrings`) behind
+`appStringsProvider`. The interface language is **independent of the reply
+language**: a Bengali speaker writing to an English colleague wants a Bengali app
+that drafts English replies, and the docs already treat those as separate
+settings.
+
+Scope today: Home and Settings are wired; their language switch lives in
+Settings -> *App language*. The remaining screens keep English strings for now -
+the migration is mechanical (add getters to the abstract class, replace the
+literal) and the compiler lists what is missing.
+
+Deliberately **not** generated ARB files yet: two languages, one translator, and
+a compile error on a missing string is worth more here than a build step.
