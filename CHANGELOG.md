@@ -56,6 +56,21 @@ read exactly when a reply was most wanted.
 Not done: rows 25-34 of `docs/PHASE1_DEVICE_TESTS.md` are still `_pending_` -
 no Android device was available. The reader is code-complete, not field-proven.
 
+### The panel drafts on open
+
+Tapping the bubble now produces a draft: the panel generates as soon as it
+opens, so the reply is on screen without a second tap. The "Generate" button
+becomes "Generate again" and stays there for edits and second thoughts.
+
+What deliberately did **not** change: nothing is sent before the user acts.
+A message arriving, or being read off the screen, still sends nothing - the
+panel only drafts because the user opened it. Auto-drafting at capture time
+was considered and rejected: it would send every message to the AI before the
+user had looked at anything, and it would need a background Flutter engine
+or a second AI client in Kotlin, which `docs/OVERLAY_TASKS.md` forbids.
+`docs/PRIVACY_AND_PERMISSIONS.md` now states the rule the way the code
+actually behaves.
+
 ### Implemented in the repository
 - Flutter onboarding, home, permissions, app selection, settings and reply-suggestion flows, including a selectable 1–3 suggestion count, copy/edit/share actions and composer-session cleanup of transient message context.
 - Kotlin notification listener, parser and Flutter platform-channel integration, including conditional RemoteInput quick reply and user-initiated share/text-selection entry points.

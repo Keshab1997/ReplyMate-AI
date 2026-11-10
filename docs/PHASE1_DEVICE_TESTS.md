@@ -122,4 +122,4 @@ docs and the reader get changed to match the device, not the other way round.
 - Privacy rows to re-check while here: no message content in `logcat`
   (`adb logcat | grep -i replymate`), nothing retained after the composer
   closes or the bubble panel closes, no network call before the user taps
-  Generate.
+  Generate or opens the panel from the bubble.

@@ -58,6 +58,14 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
   /// for; the switcher can move it to another chat that is also waiting.
   OverlayContext? _active;
 
+  /// Which message the panel has already drafted for, and whether it has
+  /// drafted at all. Keyed rather than a plain bool because the switcher can
+  /// move the panel to another waiting chat, and that chat deserves its own
+  /// draft - while a rebuild (a style change, a keyboard) must not fire a
+  /// second request for the same one.
+  String? _draftedForKey;
+  bool _drafted = false;
+
   @override
   void dispose() {
     _messageController.dispose();
@@ -134,6 +142,29 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     if (_initialisedMessage) return;
     _initialisedMessage = true;
     _messageController.text = overlay.displayText;
+    _draftIfPossible(overlay);
+  }
+
+  /// Drafts the reply without waiting for a tap.
+  ///
+  /// Opening the panel *is* the deliberate action: it only happens because the
+  /// user tapped the bubble, so nothing is sent for a message they never
+  /// opened. That is the line the privacy rule draws, and it has not moved -
+  /// what changed is that a tap on "Generate" is no longer needed on top of a
+  /// tap on the bubble.
+  ///
+  /// An empty capture is left alone on purpose. There is nothing to draft
+  /// from, and an automatic "this failed" would be noise where the Paste
+  /// button is the actual answer.
+  void _draftIfPossible(OverlayContext overlay) {
+    if (_draftedForKey == overlay.notification.key) return;
+    _draftedForKey = overlay.notification.key;
+    if (overlay.displayText.trim().isEmpty) return;
+    _drafted = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _generate(overlay);
+    });
   }
 
   /// Moves the panel to another waiting chat. The message box is reset to that
@@ -147,6 +178,8 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
       _initialisedMessage = false;
       _editingMessage = false;
       _failure = null;
+      _draftedForKey = null;
+      _drafted = false;
       for (final controller in _controllers) {
         controller.dispose();
       }
@@ -655,7 +688,11 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.auto_awesome),
-          label: Text(_generating ? 'Generating…' : 'Generate suggestions'),
+          label: Text(
+            _generating
+                ? 'Generating…'
+                : (_drafted ? 'Generate again' : 'Generate suggestions'),
+          ),
         ),
         if (_controllers.isNotEmpty) ...[
           const SizedBox(height: AppTheme.spaceMd),

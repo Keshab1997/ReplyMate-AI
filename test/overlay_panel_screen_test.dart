@@ -12,9 +12,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Captures what the panel asked for, so a test can prove which text was sent.
 class _RecordingRepository implements ReplyRepository {
   ReplyRequest? request;
+  int calls = 0;
 
   @override
   Future<ReplyResult> generate(ReplyRequest request) async {
+    calls++;
     this.request = request;
     return const ReplyFailure('Recorded.');
   }
@@ -101,7 +103,10 @@ void main() {
     expect(find.text('via WhatsApp'), findsOneWidget);
     expect(find.text('Asha'), findsOneWidget);
     expect(find.text('Can we meet tomorrow?'), findsOneWidget);
-    expect(find.text('Generate suggestions'), findsOneWidget);
+    // The panel drafted on opening, so the button offers another round rather
+    // than asking for the first one.
+    expect(find.text('Generate again'), findsOneWidget);
+    expect(find.text('Generate suggestions'), findsNothing);
   });
 
   testWidgets('the panel asks nothing the main app already knows', (
@@ -135,11 +140,14 @@ void main() {
   testWidgets('guest mode explains itself instead of inventing a reply', (
     tester,
   ) async {
-    // No firebaseReadyProvider override: guest mode, as shipped.
+    // No firebaseReadyProvider override: guest mode, as shipped. The panel now
+    // drafts on opening, so the guest-mode banner and the generation failure
+    // are both on screen straight away - the user does not have to press a
+    // button to find out that this install cannot generate.
     await pumpPanel(tester, _context());
-    expect(find.textContaining('not configured'), findsOneWidget);
+    expect(find.textContaining('not configured'), findsWidgets);
 
-    await tester.tap(find.text('Generate suggestions'));
+    await tester.tap(find.text('Generate again'));
     await tester.pumpAndSettle();
     // The failure is shown in the panel; nothing pretends to be a suggestion.
     expect(find.textContaining('not configured'), findsWidgets);
@@ -189,6 +197,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Pasted from the chat I am looking at'), findsOneWidget);
+    // Nothing was sent while the capture was empty - there was nothing to
+    // send, and guessing would have been worse.
+    expect(repository.request, isNull);
 
     await tester.ensureVisible(find.text('Generate suggestions'));
     await tester.tap(find.text('Generate suggestions'));
@@ -212,8 +223,8 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField).first, 'Edited by hand');
-    await tester.ensureVisible(find.text('Generate suggestions'));
-    await tester.tap(find.text('Generate suggestions'));
+    await tester.ensureVisible(find.text('Generate again'));
+    await tester.tap(find.text('Generate again'));
     await tester.pumpAndSettle();
 
     expect(repository.request?.message, 'Edited by hand');
@@ -253,7 +264,12 @@ void main() {
       ),
     );
 
-    await pumpPanel(tester, _context());
+    final repository = _RecordingRepository();
+    await pumpPanel(
+      tester,
+      _context(),
+      overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+    );
 
     expect(find.text('Office group'), findsOneWidget);
 
@@ -262,5 +278,40 @@ void main() {
 
     expect(find.text('Standup at 10?'), findsOneWidget);
     expect(find.text('Can we meet tomorrow?'), findsNothing);
+    // The draft follows the chat: a reply for the conversation that is no
+    // longer on screen would be the wrong-chat mistake all over again.
+    expect(repository.request?.message, 'Standup at 10?');
+  });
+
+  testWidgets('the panel drafts as soon as it opens - no second tap', (
+    tester,
+  ) async {
+    final repository = _RecordingRepository();
+    await pumpPanel(
+      tester,
+      _context(),
+      overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+    );
+
+    // Tapping the bubble was the user's action; asking for another tap to
+    // spend on the same message was never anything but friction.
+    expect(repository.request?.message, 'Can we meet tomorrow?');
+  });
+
+  testWidgets('a rebuild does not spend a second request on the same message', (
+    tester,
+  ) async {
+    final repository = _RecordingRepository();
+    await pumpPanel(
+      tester,
+      _context(),
+      overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+    );
+    await tester.tap(find.text('Generate again'));
+    await tester.pumpAndSettle();
+
+    // Two requests, both asked for: one on open, one because the user pressed
+    // the button. Not one per frame.
+    expect(repository.calls, 2);
   });
 }

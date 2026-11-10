@@ -14,11 +14,21 @@ Process only notifications from applications selected by the user.
 
 ## AI Processing
 
-When a user taps Generate, the message text on screen is sent to the
+When the user asks for a reply, the message text on screen is sent to the
 configured AI provider through the Firestore key pool
 (`docs/AI_INTEGRATION.md`) — the current MVP calls the provider from the
-client, and a server-side proxy is planned but not implemented. This happens
-only on that explicit tap — never when a notification arrives.
+client, and a server-side proxy is planned but not implemented.
+
+"Asks" means one of two deliberate actions: tapping **Generate**, or opening
+the panel from the bubble (which only exists because the user tapped it, and
+which drafts immediately so the extra tap is not needed). What has *not*
+changed is the line itself: nothing is sent when a message arrives, when it is
+read off the screen, or at any moment the user did not act. Auto-drafting on
+capture — sending text for every message received, before the user has opened
+anything — was considered and rejected for exactly this reason.
+
+An empty capture is never sent: with no message text there is nothing to
+draft from, and the panel waits for the user rather than guessing.
 
 Disclose this in onboarding and in Settings before the feature is used.
 
