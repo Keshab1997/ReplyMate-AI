@@ -72,6 +72,12 @@ abstract class AppStrings {
   String get connectionTitle;
   String get guestModeUnlessConfigured;
 
+  // ------------------------------------------------------------------ tabs
+  String get tabHome;
+  String get tabReply;
+  String get tabApps;
+  String get tabSettings;
+
   // --------------------------------------------------------------- settings
   String get replyStyle;
   String get languageLabel;
@@ -178,6 +184,18 @@ class EnglishStrings extends AppStrings {
   String get connectionTitle => 'Connection';
   @override
   String get guestModeUnlessConfigured => 'Guest mode unless configured';
+
+  @override
+  String get tabHome => 'Home';
+
+  @override
+  String get tabReply => 'Reply';
+
+  @override
+  String get tabApps => 'Apps';
+
+  @override
+  String get tabSettings => 'Settings';
 
   @override
   String get replyStyle => 'Reply style';
@@ -300,6 +318,18 @@ class BengaliStrings extends AppStrings {
   String get connectionTitle => 'সংযোগ';
   @override
   String get guestModeUnlessConfigured => 'কনফিগার না করলে গেস্ট মোড';
+
+  @override
+  String get tabHome => 'হোম';
+
+  @override
+  String get tabReply => 'উত্তর';
+
+  @override
+  String get tabApps => 'অ্যাপ';
+
+  @override
+  String get tabSettings => 'সেটিংস';
 
   @override
   String get replyStyle => 'রিপ্লাইয়ের ধরন';

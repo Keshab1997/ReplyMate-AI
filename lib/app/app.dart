@@ -3,12 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/constants/app_constants.dart';
-import '../features/home/home_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/overlay/presentation/overlay_panel_screen.dart';
 import '../features/overlay/providers/overlay_providers.dart';
-import '../features/reply/presentation/reply_composer_screen.dart';
 import 'app_routes.dart';
+import 'app_shell.dart';
+import 'app_tab.dart';
 import 'theme/app_theme.dart';
 
 class ReplyMateApp extends StatelessWidget {
@@ -105,13 +105,16 @@ class StartupGate extends ConsumerWidget {
           return const OnboardingScreen();
         }
         final reply = replyContext;
-        // A fallback notification is a request to answer a message, so it
-        // opens the composer prefilled instead of Home. A `bubble` context is
-        // not consumed here - that launch has its own panel route.
+        // A fallback notification is a request to answer a message, so the app
+        // opens on the Reply tab with it already in the box. A `bubble` context
+        // is not consumed here - that launch has its own panel route.
         if (reply != null && !reply.opensPanel) {
-          return ReplyComposerScreen(initialNotification: reply.notification);
+          return AppShell(
+            initialTab: AppTab.reply,
+            initialNotification: reply.notification,
+          );
         }
-        return const HomeScreen();
+        return const AppShell();
       },
     );
   }

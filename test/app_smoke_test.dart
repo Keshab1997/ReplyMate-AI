@@ -7,9 +7,31 @@ import 'package:replymate/core/constants/app_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  final binding = TestWidgetsFlutterBinding.ensureInitialized();
+
+  /// The Apps tab is mounted from the first frame now, and it asks the native
+  /// layer for the installed messaging apps. Without a mock that call never
+  /// answers, so the tab's spinner never stops and `pumpAndSettle` waits
+  /// forever - the honest no-native-layer answers keep the UI under test.
+  const channel = MethodChannel(AppConstants.channelName);
 
   Future<void> boot(WidgetTester tester, {bool onboardingDone = false}) async {
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      channel,
+      (call) async => switch (call.method) {
+        'candidateApps' => <Object?>[],
+        'isListenerEnabled' => false,
+        'isOverlayEnabled' => false,
+        'isScreenReadingAvailable' => false,
+        _ => null,
+      },
+    );
+    addTearDown(
+      () => binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        null,
+      ),
+    );
     SharedPreferences.setMockInitialValues({
       if (onboardingDone) AppConstants.prefOnboardingDone: true,
     });

@@ -26,7 +26,12 @@ import 'providers/preferences_provider.dart';
 /// user *did* grant access - the bubble would look broken for a permission
 /// reason nobody could see.
 class SettingsScreen extends ConsumerStatefulWidget {
-  const SettingsScreen({super.key});
+  const SettingsScreen({this.embedded = false, super.key});
+
+  /// See `HomeScreen.embedded`. When true the back button goes too: in a tab
+  /// there is nothing above this screen to pop, and `maybePop` would take the
+  /// whole app with it.
+  final bool embedded;
 
   @override
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
@@ -193,6 +198,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
           gradient: AppTheme.backgroundGradient(theme.brightness),
         ),
         child: SafeArea(
+          bottom: !widget.embedded,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(
               AppTheme.spaceMd,
@@ -203,16 +209,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
             children: [
               Row(
                 children: [
-                  IconButton.filledTonal(
-                    tooltip: 'Back',
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    icon: const Icon(Icons.arrow_back_rounded, size: 19),
-                    style: IconButton.styleFrom(
-                      backgroundColor: isDark
-                          ? Colors.white.withValues(alpha: 0.07)
-                          : Colors.white,
+                  if (widget.embedded) const SizedBox(width: AppTheme.spaceXs),
+                  if (!widget.embedded)
+                    IconButton.filledTonal(
+                      tooltip: 'Back',
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      icon: const Icon(Icons.arrow_back_rounded, size: 19),
+                      style: IconButton.styleFrom(
+                        backgroundColor: isDark
+                            ? Colors.white.withValues(alpha: 0.07)
+                            : Colors.white,
+                      ),
                     ),
-                  ),
                   const SizedBox(width: AppTheme.spaceSm),
                   Text(
                     'Settings',

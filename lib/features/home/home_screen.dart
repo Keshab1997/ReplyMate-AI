@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/app_tab.dart';
 import '../../app/theme/app_theme.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/platform/notifications_bridge.dart';
@@ -10,7 +11,6 @@ import '../app_selection/app_selection_screen.dart';
 import '../app_selection/providers/selected_apps_provider.dart';
 import '../permissions/permission_setup_screen.dart';
 import '../permissions/providers/permission_provider.dart';
-import '../reply/presentation/reply_composer_screen.dart';
 import '../settings/providers/preferences_provider.dart';
 import '../settings/settings_screen.dart';
 
@@ -20,8 +20,15 @@ import '../settings/settings_screen.dart';
 /// style will my replies be in, and where do I go to write one. Everything
 /// that is not one of those three lives behind a tile or the settings icon.
 class HomeScreen extends ConsumerWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({this.embedded = false, super.key});
 
+  /// True when the shell already owns the chrome (a Scaffold of its own). The
+  /// screen then drops its bottom `SafeArea` inset, which would otherwise leave
+  /// a dead band above the tab bar.
+  final bool embedded;
+
+  /// Sub-screens that are not tabs (permission setup, the app list from a
+  /// status pill) are still pushed. The four tabs are not.
   void _push(BuildContext context, Widget screen) {
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
   }
@@ -43,6 +50,7 @@ class HomeScreen extends ConsumerWidget {
           gradient: AppTheme.backgroundGradient(theme.brightness),
         ),
         child: SafeArea(
+          bottom: !embedded,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(
               AppTheme.spaceMd,
@@ -274,81 +282,17 @@ class HomeScreen extends ConsumerWidget {
                   ],
                 ),
                 child: FilledButton.icon(
-                  onPressed: () => _push(context, const ReplyComposerScreen()),
+                  // Not a push: the Reply tab already is this screen, and a
+                  // second copy stacked on top of it is how a tab bar ends up
+                  // with a back button.
+                  onPressed: () =>
+                      ref.read(appTabProvider.notifier).select(AppTab.reply),
                   icon: const Icon(Icons.auto_awesome, size: 19),
                   label: Text(strings.generateAReply),
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
                   ),
-                ),
-              ),
-
-              const SizedBox(height: AppTheme.spaceLg),
-              Text(
-                strings.quickStart,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  letterSpacing: 1.2,
-                  fontWeight: FontWeight.w700,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: AppTheme.spaceSm),
-              // Two rows of two, not a GridView with a fixed aspect ratio: at
-              // 2x text size a fixed-ratio tile clips its own label, and the
-              // user who needs the bigger text is exactly the one who loses it.
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _Tile(
-                        icon: Icons.content_paste_rounded,
-                        title: strings.pasteAMessage,
-                        subtitle: strings.pasteAMessageSubtitle,
-                        onTap: () =>
-                            _push(context, const ReplyComposerScreen()),
-                      ),
-                    ),
-                    const SizedBox(width: AppTheme.spaceSm),
-                    Expanded(
-                      child: _Tile(
-                        icon: Icons.widgets_outlined,
-                        title: strings.supportedApps,
-                        subtitle: selectedApps.isEmpty
-                            ? strings.noneSelectedYet
-                            : strings.selectedAppsCount(selectedApps.length),
-                        onTap: () => _push(context, const AppSelectionScreen()),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppTheme.spaceSm),
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _Tile(
-                        icon: Icons.bubble_chart_outlined,
-                        title: strings.bubbleTitle,
-                        subtitle: permissionEnabled
-                            ? strings.bubbleShowsOverChats
-                            : strings.bubbleNeedsPermission,
-                        onTap: () => _push(context, const SettingsScreen()),
-                      ),
-                    ),
-                    const SizedBox(width: AppTheme.spaceSm),
-                    Expanded(
-                      child: _Tile(
-                        icon: Icons.vpn_key_outlined,
-                        title: strings.connectionTitle,
-                        subtitle: strings.guestModeUnlessConfigured,
-                        onTap: () => _push(context, const SettingsScreen()),
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ],
@@ -382,92 +326,6 @@ class _StatusDot extends StatelessWidget {
           boxShadow: [
             BoxShadow(color: colour.withValues(alpha: 0.35), blurRadius: 8),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// A quick-start tile: icon, one line, one supporting line, nothing else.
-class _Tile extends StatelessWidget {
-  const _Tile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    return Semantics(
-      button: true,
-      container: true,
-      // One sentence instead of four fragments: "Paste a message. Reply to the
-      // chat you are in."
-      label: '$title. $subtitle',
-      child: ExcludeSemantics(
-        child: Material(
-          color: isDark ? Colors.white.withValues(alpha: 0.045) : Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppTheme.tileRadius),
-            side: BorderSide(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.09)
-                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-            ),
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(AppTheme.tileRadius),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.all(AppTheme.spaceMd - 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      color: AppTheme.brand.withValues(
-                        alpha: isDark ? 0.22 : 0.12,
-                      ),
-                    ),
-                    child: Icon(icon, size: 16, color: AppTheme.brandBright),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        title,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12.5,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 10.5,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
         ),
       ),
     );

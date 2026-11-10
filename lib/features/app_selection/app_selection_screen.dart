@@ -28,7 +28,11 @@ String labelForPackage(List<CandidateApp> candidates, String packageName) =>
 /// FR-03: choose which messaging apps ReplyMate may process. The selection is
 /// the privacy boundary and is pushed to the native listener immediately.
 class AppSelectionScreen extends ConsumerWidget {
-  const AppSelectionScreen({super.key});
+  const AppSelectionScreen({this.embedded = false, super.key});
+
+  /// See `HomeScreen.embedded`: drops the bottom inset the tab bar already
+  /// covers.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -42,6 +46,7 @@ class AppSelectionScreen extends ConsumerWidget {
           gradient: AppTheme.backgroundGradient(theme.brightness),
         ),
         child: SafeArea(
+          bottom: !embedded,
           child: candidates.when(
             data: (apps) {
               return ListView(

@@ -20,13 +20,21 @@ import 'suggestions_screen.dart';
 /// four user-initiated routes: a captured notification, the text-selection
 /// action, the share sheet, or plain paste/type (FR-04, FR-08).
 class ReplyComposerScreen extends ConsumerStatefulWidget {
-  const ReplyComposerScreen({this.initialNotification, super.key});
+  const ReplyComposerScreen({
+    this.initialNotification,
+    this.embedded = false,
+    super.key,
+  });
 
   /// Context handed in directly, for a launch that already consumed it: the
   /// fallback notification path opens this screen with the message prefilled
   /// instead of relying on the in-memory capture buffer
   /// (docs/FLOATING_OVERLAY.md §4.3).
   final CapturedNotification? initialNotification;
+
+  /// See `HomeScreen.embedded`. When true the BackButton is dropped as well:
+  /// this screen is a tab then, and a back arrow would pop the whole shell.
+  final bool embedded;
 
   @override
   ConsumerState<ReplyComposerScreen> createState() =>
@@ -161,6 +169,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
             gradient: AppTheme.backgroundGradient(theme.brightness),
           ),
           child: SafeArea(
+            bottom: !widget.embedded,
             child: ListView(
               padding: const EdgeInsets.fromLTRB(
                 AppTheme.spaceMd,
@@ -171,23 +180,23 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
               children: [
                 Row(
                   children: [
-                    // A real BackButton, inside our chip: the platform's own
-                    // affordance keeps its semantics (and its pop behaviour)
-                    // while matching the design.
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.07)
-                            : Colors.white,
-                        border: isDark
-                            ? Border.all(
-                                color: Colors.white.withValues(alpha: 0.10),
-                              )
-                            : null,
+                    // A real BackButton, inside our chip - but only when this
+                    // screen was pushed. As a tab there is nothing behind it.
+                    if (!widget.embedded)
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.07)
+                              : Colors.white,
+                          border: isDark
+                              ? Border.all(
+                                  color: Colors.white.withValues(alpha: 0.10),
+                                )
+                              : null,
+                        ),
+                        child: const BackButton(color: AppTheme.brandBright),
                       ),
-                      child: const BackButton(color: AppTheme.brandBright),
-                    ),
                     const SizedBox(width: AppTheme.spaceSm),
                     Text(
                       'New reply',
