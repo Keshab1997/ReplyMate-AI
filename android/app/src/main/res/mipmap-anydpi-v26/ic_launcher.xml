@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adaptive launcher icon, API 26+.
+
+  Before this existed the app shipped only the flat mipmap PNGs, so every
+  launcher that applies a mask (circle, squircle, teardrop) was cropping a
+  square bitmap however it liked. Adaptive gives the system two layers and
+  keeps the choice of shape with the device.
+
+  The mascot sits at roughly 55% of the canvas, well inside the 72dp safe
+  zone of the 108dp canvas, so no mask crops the face. The foreground art is
+  deliberately full-bleed: its own gradient runs to every edge, so a circle
+  and a squircle both look finished rather than like a shrunken square.
+
+  The background layer is what shows if the foreground is ever replaced with
+  transparent artwork, and what a launcher animates behind it - it is the
+  same brand gradient the artwork uses, not an approximation of it.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+</adaptive-icon>

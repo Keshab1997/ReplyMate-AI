@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The layer behind the adaptive icon's foreground: the brand gradient
+  (AppTheme.brand #1B6EF3 -> AppTheme.ink #070B14), matching the gradient the
+  icon artwork was generated with.
+
+  270 degrees in a GradientDrawable means top-to-bottom.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="270"
+        android:endColor="#FF070B14"
+        android:startColor="#FF1B6EF3"
+        android:type="linear" />
+</shape>
