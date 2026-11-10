@@ -2,26 +2,23 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_theme.dart';
 
-/// One generated reply: editable text, copy/share actions, and conditional
-/// quick reply. The quick-reply button is hidden - not just disabled - when
-/// the source notification exposed no valid action, so the UI never promises a
-/// capability Android did not offer.
+/// One generated reply: editable text, and copy/share to hand it over.
+///
+/// There is no send button, and there never was one that worked. A reply is
+/// handed to the messaging app only when the user pastes it, which is the one
+/// route that works in every app on the allowlist.
 class SuggestionCard extends StatefulWidget {
   const SuggestionCard({
     required this.controller,
-    required this.quickReplyAvailable,
     required this.onCopy,
     required this.onShare,
-    required this.onQuickReply,
     this.best = false,
     super.key,
   });
 
   final TextEditingController controller;
-  final bool quickReplyAvailable;
   final ValueChanged<String> onCopy;
   final ValueChanged<String> onShare;
-  final ValueChanged<String> onQuickReply;
 
   /// The first suggestion, marked so the user does not have to compare three
   /// paragraphs to pick one.
@@ -117,27 +114,6 @@ class _SuggestionCardState extends State<SuggestionCard> {
                     label: 'Share',
                     onPressed: () => widget.onShare(widget.controller.text),
                   ),
-                  const Spacer(),
-                  if (widget.quickReplyAvailable)
-                    FilledButton.icon(
-                      onPressed: () =>
-                          widget.onQuickReply(widget.controller.text),
-                      icon: const Icon(Icons.send_rounded, size: 16),
-                      label: const Text('Quick reply'),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(0, 38),
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(11),
-                        ),
-                        backgroundColor: AppTheme.mint,
-                        foregroundColor: const Color(0xFF062B1E),
-                        textStyle: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ],

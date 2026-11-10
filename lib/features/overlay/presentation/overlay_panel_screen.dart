@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/app_theme.dart';
 import '../../../shared/widgets/mascot_face.dart';
-import '../../../core/constants/app_constants.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../shared/widgets/section_label.dart';
 import '../../notifications/providers/notification_providers.dart';
@@ -58,14 +57,6 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
   /// for; the switcher can move it to another chat that is also waiting.
   OverlayContext? _active;
 
-  /// Which message the panel has already drafted for, and whether it has
-  /// drafted at all. Keyed rather than a plain bool because the switcher can
-  /// move the panel to another waiting chat, and that chat deserves its own
-  /// draft - while a rebuild (a style change, a keyboard) must not fire a
-  /// second request for the same one.
-  String? _draftedForKey;
-  bool _drafted = false;
-
   @override
   void dispose() {
     _messageController.dispose();
@@ -103,7 +94,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
       language: preferences.language,
       tone: preferences.tone,
       length: preferences.length,
-      count: AppConstants.maxSuggestionCount,
+      count: preferences.suggestionCount,
     );
     final problems = request.validate();
     if (problems.isNotEmpty) {
@@ -142,30 +133,12 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     if (_initialisedMessage) return;
     _initialisedMessage = true;
     _messageController.text = overlay.displayText;
-    _draftIfPossible(overlay);
   }
 
-  /// Drafts the reply without waiting for a tap.
-  ///
-  /// Opening the panel *is* the deliberate action: it only happens because the
-  /// user tapped the bubble, so nothing is sent for a message they never
-  /// opened. That is the line the privacy rule draws, and it has not moved -
-  /// what changed is that a tap on "Generate" is no longer needed on top of a
-  /// tap on the bubble.
-  ///
-  /// An empty capture is left alone on purpose. There is nothing to draft
-  /// from, and an automatic "this failed" would be noise where the Paste
-  /// button is the actual answer.
-  void _draftIfPossible(OverlayContext overlay) {
-    if (_draftedForKey == overlay.notification.key) return;
-    _draftedForKey = overlay.notification.key;
-    if (overlay.displayText.trim().isEmpty) return;
-    _drafted = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _generate(overlay);
-    });
-  }
+  /// One card is not "Suggestions", and a lone card must not be badged
+  /// "BEST FIT" as though it had beaten the others.
+  String get _suggestionsLabel =>
+      _controllers.length == 1 ? 'Suggestion' : 'Suggestions';
 
   /// Moves the panel to another waiting chat. The message box is reset to that
   /// chat's text and the old reply drafts are dropped: replies written for one
@@ -178,8 +151,6 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
       _initialisedMessage = false;
       _editingMessage = false;
       _failure = null;
-      _draftedForKey = null;
-      _drafted = false;
       for (final controller in _controllers) {
         controller.dispose();
       }
@@ -233,38 +204,6 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
           opened
               ? 'Share sheet opened. Choose an app to continue.'
               : 'Sharing is unavailable here. Copy the reply instead.',
-        ),
-      ),
-    );
-  }
-
-  /// Quick reply only ever targets the notification this panel was opened for,
-  /// and only when that notification carried a live RemoteInput action. A
-  /// stale key is refused by the native layer, and the refusal is explained -
-  /// never swallowed and never retried against a different chat.
-  Future<void> _quickReply(OverlayContext overlay, String text) async {
-    if (!overlay.notification.hasReplyAction) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Quick reply is unavailable for this message. '
-            'Copy the reply and paste it in the app instead.',
-          ),
-        ),
-      );
-      return;
-    }
-    final sent = await ref
-        .read(notificationsBridgeProvider)
-        .sendQuickReply(text, notificationKey: overlay.notification.key);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          sent
-              ? 'Reply handed to ${overlay.appLabel}.'
-              : 'The reply action is no longer valid. '
-                    'Copy the reply and paste it in the app instead.',
         ),
       ),
     );
@@ -520,7 +459,6 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     final scheme = theme.colorScheme;
     final preferences = ref.watch(preferencesProvider);
     _initMessage(overlay);
-    final quickReplyAvailable = overlay.notification.hasReplyAction;
     final firebaseReady = ref.watch(firebaseReadyProvider);
 
     return ListView(
@@ -691,30 +629,23 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
           label: Text(
             _generating
                 ? 'Generating…'
-                : (_drafted ? 'Generate again' : 'Generate suggestions'),
+                : (preferences.suggestionCount == 1
+                      ? 'Generate a reply'
+                      : 'Generate ${preferences.suggestionCount} suggestions'),
           ),
         ),
         if (_controllers.isNotEmpty) ...[
           const SizedBox(height: AppTheme.spaceMd),
-          const SectionLabel('Suggestions'),
-          for (final controller in _controllers) ...[
+          SectionLabel(_suggestionsLabel),
+          for (var index = 0; index < _controllers.length; index++) ...[
             SuggestionCard(
-              controller: controller,
-              quickReplyAvailable: quickReplyAvailable,
+              controller: _controllers[index],
               onCopy: _copy,
               onShare: _share,
-              onQuickReply: (text) => _quickReply(overlay, text),
+              best: index == 0 && _controllers.length > 1,
             ),
             const SizedBox(height: AppTheme.spaceSm),
           ],
-          if (!quickReplyAvailable)
-            Text(
-              'This notification has no reply action, so quick reply is not '
-              'offered. Copy the reply and paste it in the app.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
         ],
       ],
     );

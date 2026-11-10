@@ -103,10 +103,9 @@ void main() {
     expect(find.text('via WhatsApp'), findsOneWidget);
     expect(find.text('Asha'), findsOneWidget);
     expect(find.text('Can we meet tomorrow?'), findsOneWidget);
-    // The panel drafted on opening, so the button offers another round rather
-    // than asking for the first one.
-    expect(find.text('Generate again'), findsOneWidget);
-    expect(find.text('Generate suggestions'), findsNothing);
+    // Nothing is generated until the user asks: opening the panel is not a
+    // decision to spend a request on the model behind it.
+    expect(find.text('Generate a reply'), findsOneWidget);
   });
 
   testWidgets('the panel asks nothing the main app already knows', (
@@ -140,24 +139,26 @@ void main() {
   testWidgets('guest mode explains itself instead of inventing a reply', (
     tester,
   ) async {
-    // No firebaseReadyProvider override: guest mode, as shipped. The panel now
-    // drafts on opening, so the guest-mode banner and the generation failure
-    // are both on screen straight away - the user does not have to press a
-    // button to find out that this install cannot generate.
+    // No firebaseReadyProvider override: guest mode, as shipped. The banner is
+    // up before anything is spent, so this install says it cannot generate
+    // rather than letting the user find out from a failure.
     await pumpPanel(tester, _context());
     expect(find.textContaining('not configured'), findsWidgets);
 
-    await tester.tap(find.text('Generate again'));
+    await tester.tap(find.text('Generate a reply'));
     await tester.pumpAndSettle();
     // The failure is shown in the panel; nothing pretends to be a suggestion.
     expect(find.textContaining('not configured'), findsWidgets);
   });
 
-  testWidgets('a notification without a reply action offers no quick reply', (
+  testWidgets('the panel never offers to send anything on its own', (
     tester,
   ) async {
+    // Quick reply is gone: the button did not work, and a send affordance that
+    // cannot send is worse than none. Copy and share are the whole offer.
     await pumpPanel(tester, _context(hasReplyAction: false));
     expect(find.text('Quick reply'), findsNothing);
+    expect(find.byIcon(Icons.send_rounded), findsNothing);
   });
 
   testWidgets('a message with no text says so rather than showing a shell', (
@@ -197,12 +198,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Pasted from the chat I am looking at'), findsOneWidget);
-    // Nothing was sent while the capture was empty - there was nothing to
-    // send, and guessing would have been worse.
+    // Nothing was generated on the way in - there was nothing to draft from,
+    // and guessing would have been worse.
     expect(repository.request, isNull);
 
-    await tester.ensureVisible(find.text('Generate suggestions'));
-    await tester.tap(find.text('Generate suggestions'));
+    await tester.ensureVisible(find.text('Generate a reply'));
+    await tester.tap(find.text('Generate a reply'));
     await tester.pumpAndSettle();
 
     expect(repository.request?.message, 'Pasted from the chat I am looking at');
@@ -223,8 +224,8 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField).first, 'Edited by hand');
-    await tester.ensureVisible(find.text('Generate again'));
-    await tester.tap(find.text('Generate again'));
+    await tester.ensureVisible(find.text('Generate a reply'));
+    await tester.tap(find.text('Generate a reply'));
     await tester.pumpAndSettle();
 
     expect(repository.request?.message, 'Edited by hand');
@@ -278,14 +279,19 @@ void main() {
 
     expect(find.text('Standup at 10?'), findsOneWidget);
     expect(find.text('Can we meet tomorrow?'), findsNothing);
-    // The draft follows the chat: a reply for the conversation that is no
-    // longer on screen would be the wrong-chat mistake all over again.
+    // Switching chats is not a request either: nothing is generated for either
+    // conversation until the button is pressed.
+    expect(repository.request, isNull);
+    await tester.ensureVisible(find.text('Generate a reply'));
+    await tester.tap(find.text('Generate a reply'));
+    await tester.pumpAndSettle();
+    // The reply is for the chat now on screen, not the one left behind.
     expect(repository.request?.message, 'Standup at 10?');
   });
 
-  testWidgets('the panel drafts as soon as it opens - no second tap', (
-    tester,
-  ) async {
+  testWidgets('nothing is generated until the user asks', (tester) async {
+    // Drafting on open was tried and taken back: opening the bubble is not the
+    // same decision as spending a request on the model behind it.
     final repository = _RecordingRepository();
     await pumpPanel(
       tester,
@@ -293,9 +299,29 @@ void main() {
       overrides: [replyRepositoryProvider.overrideWithValue(repository)],
     );
 
-    // Tapping the bubble was the user's action; asking for another tap to
-    // spend on the same message was never anything but friction.
+    expect(repository.calls, 0);
+
+    await tester.tap(find.text('Generate a reply'));
+    await tester.pumpAndSettle();
+
+    expect(repository.calls, 1);
     expect(repository.request?.message, 'Can we meet tomorrow?');
+  });
+
+  testWidgets('one suggestion is asked for by default', (tester) async {
+    // Comparing three paragraphs is more work than editing the one you would
+    // have picked anyway, so one is the default and Settings can raise it.
+    final repository = _RecordingRepository();
+    await pumpPanel(
+      tester,
+      _context(),
+      overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+    );
+
+    await tester.tap(find.text('Generate a reply'));
+    await tester.pumpAndSettle();
+
+    expect(repository.request?.count, 1);
   });
 
   testWidgets('a rebuild does not spend a second request on the same message', (
@@ -307,11 +333,11 @@ void main() {
       _context(),
       overrides: [replyRepositoryProvider.overrideWithValue(repository)],
     );
-    await tester.tap(find.text('Generate again'));
+    await tester.tap(find.text('Generate a reply'));
     await tester.pumpAndSettle();
 
-    // Two requests, both asked for: one on open, one because the user pressed
-    // the button. Not one per frame.
-    expect(repository.calls, 2);
+    // One request, asked for once. A rebuild - a style change, a keyboard - is
+    // not a second instruction to generate.
+    expect(repository.calls, 1);
   });
 }

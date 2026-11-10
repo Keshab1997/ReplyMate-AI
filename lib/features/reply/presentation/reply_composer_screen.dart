@@ -56,7 +56,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
   ReplyLanguage _language = ReplyLanguage.english;
   ReplyTone _tone = ReplyTone.friendly;
   ReplyLength _length = ReplyLength.short;
-  int _count = AppConstants.maxSuggestionCount;
+  int _count = AppConstants.defaultSuggestionCount;
 
   CapturedNotification? _context;
   bool _initialised = false;
@@ -408,7 +408,12 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                           ),
                           selected: _count,
                           labelOf: (count) => '$count',
-                          onSelected: (count) => setState(() => _count = count),
+                          onSelected: (count) {
+                            setState(() => _count = count);
+                            ref
+                                .read(preferencesProvider.notifier)
+                                .setSuggestionCount(count);
+                          },
                         ),
                       ],
                     ),

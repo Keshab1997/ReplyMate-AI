@@ -14,20 +14,27 @@ class ReplyPreferences {
     this.language = ReplyLanguage.english,
     this.tone = ReplyTone.friendly,
     this.length = ReplyLength.short,
+    this.suggestionCount = AppConstants.defaultSuggestionCount,
   });
 
   final ReplyLanguage language;
   final ReplyTone tone;
   final ReplyLength length;
 
+  /// How many replies to draft per request. Held here, not in the panel, so
+  /// the bubble and the composer agree without asking twice.
+  final int suggestionCount;
+
   ReplyPreferences copyWith({
     ReplyLanguage? language,
     ReplyTone? tone,
     ReplyLength? length,
+    int? suggestionCount,
   }) => ReplyPreferences(
     language: language ?? this.language,
     tone: tone ?? this.tone,
     length: length ?? this.length,
+    suggestionCount: suggestionCount ?? this.suggestionCount,
   );
 }
 
@@ -58,6 +65,9 @@ class PreferencesNotifier extends Notifier<ReplyPreferences> {
       length: ReplyLength.fromName(
         prefs.getString(AppConstants.prefDefaultLength),
       ),
+      suggestionCount: _clampCount(
+        prefs.getInt(AppConstants.prefSuggestionCount),
+      ),
     );
   }
 
@@ -76,6 +86,24 @@ class PreferencesNotifier extends Notifier<ReplyPreferences> {
     (prefs) => prefs.setString(AppConstants.prefDefaultLength, length.name),
   );
 
+  Future<void> setSuggestionCount(int count) => _update(
+    state.copyWith(suggestionCount: _clampCount(count)),
+    (prefs) => prefs.setInt(AppConstants.prefSuggestionCount, count),
+  );
+
+  /// A stored count outside the supported range would fail validation on every
+  /// request, so it is clamped on the way in rather than reported later.
+  static int _clampCount(int? value) {
+    if (value == null) return AppConstants.defaultSuggestionCount;
+    if (value < AppConstants.minSuggestionCount) {
+      return AppConstants.minSuggestionCount;
+    }
+    if (value > AppConstants.maxSuggestionCount) {
+      return AppConstants.maxSuggestionCount;
+    }
+    return value;
+  }
+
   Future<void> _update(
     ReplyPreferences next,
     Future<void> Function(SharedPreferences prefs) persist,
@@ -92,6 +120,7 @@ class PreferencesNotifier extends Notifier<ReplyPreferences> {
     await prefs.remove(AppConstants.prefDefaultLanguage);
     await prefs.remove(AppConstants.prefDefaultTone);
     await prefs.remove(AppConstants.prefDefaultLength);
+    await prefs.remove(AppConstants.prefSuggestionCount);
     await prefs.remove(AppConstants.prefSelectedApps);
     await prefs.remove(AppConstants.prefOnboardingDone);
     state = const ReplyPreferences();

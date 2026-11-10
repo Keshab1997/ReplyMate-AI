@@ -33,7 +33,7 @@ Widget app(Widget screen) => ProviderScope(child: MaterialApp(home: screen));
 
 /// Outbound calls on the bridge channel hang in widget tests when the app has
 /// registered an inbound handler on the same channel but no mock exists.
-/// Mock the honest no-native-layer answer: sendQuickReply fails (false).
+/// shareText answers true; there is no send path left to mock.
 const MethodChannel bridgeChannel = MethodChannel(
   'com.keshabstudios.replymate/notifications',
 );
@@ -42,12 +42,10 @@ void main() {
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
 
   String? clipboardText;
-  Map<Object?, Object?>? quickReplyArgs;
   Map<Object?, Object?>? shareArgs;
   var shareAvailable = true;
 
   setUp(() {
-    quickReplyArgs = null;
     shareArgs = null;
     shareAvailable = true;
     // Capture Clipboard.setData instead of touching a real clipboard.
@@ -63,9 +61,6 @@ void main() {
       call,
     ) async {
       switch (call.method) {
-        case 'sendQuickReply':
-          quickReplyArgs = call.arguments as Map<Object?, Object?>;
-          return false;
         case 'shareText':
           shareArgs = call.arguments as Map<Object?, Object?>;
           return shareAvailable;
@@ -83,72 +78,6 @@ void main() {
       null,
     );
   });
-
-  testWidgets('quick reply is hidden when no reply action exists', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      app(
-        SuggestionsScreen(
-          replies: const ['Sure!', 'Yes.'],
-          request: request,
-          context: contextWith(hasReplyAction: false),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('Quick reply'), findsNothing);
-    expect(
-      find.textContaining('Quick reply works only in apps that support it'),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets(
-    'quick reply appears only with a valid action, and its failure falls back honestly',
-    (tester) async {
-      await tester.pumpWidget(
-        app(
-          SuggestionsScreen(
-            replies: const ['Sure!'],
-            request: request,
-            context: contextWith(hasReplyAction: true),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('Quick reply'), findsOneWidget);
-
-      // No native layer in tests: sendQuickReply answers false, and the UI must
-      // say the action is gone instead of claiming success.
-      await tester.tap(find.text('Quick reply'));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('no longer valid'), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'quick reply carries the notification key, so it can only reach its own chat',
-    (tester) async {
-      await tester.pumpWidget(
-        app(
-          SuggestionsScreen(
-            replies: const ['Sure!'],
-            request: request,
-            context: contextWith(hasReplyAction: true),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Quick reply'));
-      await tester.pumpAndSettle();
-      // The key of the notification being replied to travels with the call:
-      // the native layer refuses a reply aimed at any other conversation.
-      expect(quickReplyArgs, isNotNull);
-      expect(quickReplyArgs!['text'], 'Sure!');
-      expect(quickReplyArgs!['key'], 'sbn-1');
-    },
-  );
 
   testWidgets('copy puts the suggestion on the clipboard', (tester) async {
     clipboardText = null;

@@ -19,6 +19,11 @@ class AppConstants {
   static const String prefDefaultTone = 'replymate.default_tone';
   static const String prefDefaultLength = 'replymate.default_length';
 
+  /// How many replies the app drafts at once. One is the default: comparing
+  /// three paragraphs is more work than editing the one you would have picked
+  /// anyway, and it costs three times the tokens.
+  static const String prefSuggestionCount = 'replymate.suggestion_count';
+
   /// The user's bubble switch. Mirrored natively (same meaning, native prefs)
   /// because the notification listener must read it while no Flutter engine is
   /// alive (docs/FLOATING_OVERLAY.md §5.3).
@@ -37,4 +42,6 @@ class AppConstants {
   /// Suggestion count bounds offered by the composer.
   static const int minSuggestionCount = 1;
   static const int maxSuggestionCount = 3;
+
+  static const int defaultSuggestionCount = 1;
 }

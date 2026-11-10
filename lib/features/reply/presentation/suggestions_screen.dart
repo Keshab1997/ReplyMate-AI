@@ -64,41 +64,8 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     );
   }
 
-  /// Quick reply is attempted only against a notification that exposed a
-  /// valid action; every failure falls back to copy / open-app with an
-  /// honest explanation instead of pretending it worked.
-  Future<void> _quickReply(String text) async {
-    final notification = widget.context;
-    if (notification == null || !notification.hasReplyAction) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Quick reply is unavailable for this message. '
-            'Copy the reply and paste it in the app instead.',
-          ),
-        ),
-      );
-      return;
-    }
-    final sent = await ref
-        .read(notificationsBridgeProvider)
-        .sendQuickReply(text, notificationKey: notification.key);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          sent
-              ? 'Reply handed to ${notification.displayTitle}.'
-              : 'The reply action is no longer valid. '
-                    'Copy the reply and paste it in the app instead.',
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final quickReplyAvailable = widget.context?.hasReplyAction ?? false;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final count = widget.replies.length;
@@ -203,42 +170,13 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
               for (var index = 0; index < widget.replies.length; index++) ...[
                 SuggestionCard(
                   controller: _controllers[index],
-                  quickReplyAvailable: quickReplyAvailable,
-                  best: index == 0,
+                  best: index == 0 && count > 1,
                   onCopy: _copy,
                   onShare: _share,
-                  onQuickReply: _quickReply,
                 ),
                 const SizedBox(height: AppTheme.spaceMd),
               ],
 
-              // The honest capability line, kept as a quiet footer rather than
-              // a card that competes with the replies.
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.info_outline_rounded,
-                    size: 15,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: AppTheme.spaceSm),
-                  Expanded(
-                    child: Text(
-                      quickReplyAvailable
-                          ? 'Quick reply sends through the app\'s own '
-                                'notification action. You stay in control.'
-                          : 'Quick reply works only in apps that support it. '
-                                'Otherwise copy the reply.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 11,
-                        height: 1.5,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
               const SizedBox(height: AppTheme.spaceMd),
               OutlinedButton(
                 onPressed: () => Navigator.of(context).pop(),

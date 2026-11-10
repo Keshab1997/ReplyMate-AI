@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_theme.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/constants/reply_options.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/firebase/firebase_providers.dart';
@@ -376,6 +377,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                           onSelected: (length) => ref
                               .read(preferencesProvider.notifier)
                               .setLength(length),
+                        ),
+                        const SizedBox(height: AppTheme.spaceMd),
+                        Text(
+                          'How many options',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        ChoiceChips<int>(
+                          options: List<int>.generate(
+                            AppConstants.maxSuggestionCount -
+                                AppConstants.minSuggestionCount +
+                                1,
+                            (index) => AppConstants.minSuggestionCount + index,
+                          ),
+                          selected: preferences.suggestionCount,
+                          labelOf: (count) => '$count',
+                          onSelected: (count) => ref
+                              .read(preferencesProvider.notifier)
+                              .setSuggestionCount(count),
                         ),
                         const SizedBox(height: AppTheme.spaceSm),
                         Text(
