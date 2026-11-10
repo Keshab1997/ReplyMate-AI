@@ -51,6 +51,41 @@ class ScreenTextReaderTest {
                 ),
             )
 
+        /**
+         * The shape WhatsApp actually hands a service: a row the width of the
+         * screen, holding a bubble that is not.
+         *
+         * The older fake rows were 720px wide on a 1080px screen, which is not
+         * how a RecyclerView item is laid out - and that is exactly why a width
+         * test on the row passed every test and read nothing on a phone.
+         */
+        fun fullWidthRow(message: String, top: Int, incoming: Boolean): ScreenNode {
+            val left = if (incoming) 30 else 420
+            val right = if (incoming) 780 else 1050
+            return FakeNode(
+                className = "android.widget.FrameLayout",
+                bounds = ScreenRect(0, top, SCREEN_WIDTH, top + 120),
+                children = listOf(
+                    FakeNode(
+                        className = "android.widget.LinearLayout",
+                        bounds = ScreenRect(left, top, right, top + 120),
+                        children = listOf(
+                            FakeNode(
+                                text = message,
+                                className = "android.widget.TextView",
+                                bounds = ScreenRect(left + 20, top + 10, right - 20, top + 70),
+                            ),
+                            FakeNode(
+                                text = "10:42",
+                                className = "android.widget.TextView",
+                                bounds = ScreenRect(right - 90, top + 80, right - 20, top + 110),
+                            ),
+                        ),
+                    ),
+                ),
+            )
+        }
+
         fun chatScreen(vararg rows: ScreenNode, title: String? = "Riya"): ScreenNode =
             FakeNode(
                 className = "android.widget.FrameLayout",
@@ -202,5 +237,66 @@ class ScreenTextReaderTest {
         // No rectangle means we cannot tell incoming from outgoing, so we say
         // nothing rather than guess.
         assertNull(ScreenTextReader.readNewestMessage(screen, SCREEN_WIDTH))
+    }
+
+    @Test
+    fun aFullWidthRowIsStillAMessage() {
+        // The bug that made screen reading look switched off. A message row is
+        // as wide as the list in every app this reader targets, so measuring
+        // the row instead of the bubble rejected every message on screen.
+        val screen = chatScreen(
+            fullWidthRow("kalke meeting e ashbe?", top = 400, incoming = true),
+        )
+
+        val message = ScreenTextReader.readNewestMessage(screen, SCREEN_WIDTH)
+
+        assertEquals("kalke meeting e ashbe?", message?.text)
+        assertFalse(message!!.isOutgoing)
+    }
+
+    @Test
+    fun aFullWidthOutgoingRowIsStillRecognisedAsSent() {
+        val screen = chatScreen(
+            fullWidthRow("haan, ashchi", top = 400, incoming = false),
+        )
+
+        val message = ScreenTextReader.readNewestMessage(screen, SCREEN_WIDTH)
+
+        assertEquals("haan, ashchi", message?.text)
+        assertTrue(message!!.isOutgoing)
+    }
+
+    @Test
+    fun aFullWidthNodeThatIsNotABubbleIsStillRejected() {
+        // The width test has not been thrown away, only moved onto the right
+        // node: a notice spanning the screen is chrome in any app.
+        val screen = chatScreen(
+            FakeNode(
+                className = "android.widget.FrameLayout",
+                bounds = ScreenRect(0, 600, SCREEN_WIDTH, 700),
+                children = listOf(
+                    FakeNode(
+                        text = "This chat is with a business account",
+                        className = "android.widget.TextView",
+                        bounds = ScreenRect(20, 610, SCREEN_WIDTH - 20, 680),
+                    ),
+                ),
+            ),
+        )
+
+        assertNull(ScreenTextReader.readNewestMessage(screen, SCREEN_WIDTH))
+    }
+
+    @Test
+    fun aShortReplyInAFullWidthRowIsNotTooSmallToRead() {
+        // "ok" is a reply. A minimum width on the bubble swallowed exactly the
+        // messages that are quickest to answer by hand.
+        val screen = chatScreen(
+            fullWidthRow("ok", top = 400, incoming = true),
+        )
+
+        val message = ScreenTextReader.readNewestMessage(screen, SCREEN_WIDTH)
+
+        assertEquals("ok", message?.text)
     }
 }

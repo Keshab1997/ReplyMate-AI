@@ -97,11 +97,19 @@ its heuristics are proven on a plain JVM (`ScreenTextReaderTest.kt`, 8 tests).
    keyboard or a system dialog is not "the app the user allowed".
 3. The message list is the scrolling container with the most children.
 4. Rows are read newest-first, up to six, skipping the app's own chrome: date
-   headers, timestamps, `typing…`, "last seen", and any row wider than 92 % of
-   the screen (that is a menu or an input bar, not a bubble).
+   headers, timestamps, `typing…` and "last seen".
 5. The first row that holds a message decides: incoming if it sits on the left
    half of the screen, outgoing if the right. **A newest message that is
    outgoing means the user already answered**, so nothing is drafted.
+
+   **Both of those are measured on the node that holds the text, never on the
+   row that contains it.** A message row is as wide as the list in every app
+   this reader targets - the bubble inside it is not - so a width test on the
+   row rejects the whole conversation and a centre test on the row calls every
+   message outgoing. A bubble wider than 92 % of the screen is still rejected
+   as chrome (a menu, an input bar, an encryption notice). Getting this wrong
+   is not a small error: it reads, from the outside, exactly like a feature
+   that was never switched on.
 6. The longest readable string in that row is taken as the message — a bubble
    also holds its timestamp, and a group bubble holds the sender's name.
 7. Text longer than 2000 characters is cut and flagged `isTruncated`.

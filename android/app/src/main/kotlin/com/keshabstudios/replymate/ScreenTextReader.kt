@@ -14,9 +14,17 @@ package com.keshabstudios.replymate
  * It is a **heuristic**, and the docs say so (docs/SCREEN_READING.md). Messaging
  * apps give message bubbles no stable resource id, so the tree is read by
  * shape: the message list is the scrolling container with the most children,
- * the newest message is its last child, and an incoming bubble is the one that
- * sits on the left half of the screen. When the shape cannot be trusted, this
- * returns null - a message we cannot attribute is a message we do not invent.
+ * the newest message is among its last rows, and an incoming bubble is the one
+ * that sits on the left half of the screen. When the shape cannot be trusted,
+ * this returns null - a message we cannot attribute is a message we do not
+ * invent.
+ *
+ * One shape rule matters more than the rest, and getting it wrong is what made
+ * this feature look switched off: **a message row spans the full width of the
+ * list in every app this reader targets; the bubble inside it does not.** Every
+ * measurement - the width test that separates a bubble from chrome, and the
+ * centre that separates an arrival from something the user sent - therefore
+ * runs on the node that holds the text, never on the row that contains it.
  */
 data class ScreenRect(
     val left: Int,
@@ -72,11 +80,8 @@ object ScreenTextReader {
      */
     const val MAX_CANDIDATE_ROWS = 6
 
-    /** A row narrower than this fraction of the screen is a chip, not a bubble. */
-    private const val MIN_BUBBLE_WIDTH_FRACTION = 0.15f
-
     /**
-     * A row this wide is chrome, not a bubble. Every messaging app we target
+     * A bubble this wide is chrome, not a bubble. Every messaging app we target
      * caps a bubble at roughly four fifths of the screen - the input bar, a
      * menu row, a settings row and the "messages are encrypted" notice are the
      * rows that span it. Without this bound a settings screen reads as one
@@ -130,7 +135,7 @@ object ScreenTextReader {
     fun readNewestMessage(root: ScreenNode, screenWidth: Int): ScreenMessage? {
         if (screenWidth <= 0) return null
         val list = findMessageList(root) ?: return null
-        val rows = list.children.filter { it.isVisibleRow(screenWidth) }
+        val rows = list.children.filter { it.isVisibleRow() }
         if (rows.isEmpty()) return null
 
         val newestFirst = rows.takeLast(MAX_CANDIDATE_ROWS).reversed()
@@ -177,15 +182,17 @@ object ScreenTextReader {
     }
 
     /**
-     * A row worth reading: it has a plausible rectangle and at least one text
-     * node that is not the app's own chrome.
+     * A row worth reading: it has a plausible rectangle and holds at least one
+     * text node that is not the app's own chrome.
+     *
+     * Deliberately **not** filtered by width. A message row is as wide as the
+     * list in every app this reader targets, so a width test on the row throws
+     * away the entire conversation; the bubble inside it is measured in
+     * [readRow], which is the only place a width says anything.
      */
-    private fun ScreenNode.isVisibleRow(screenWidth: Int): Boolean {
+    private fun ScreenNode.isVisibleRow(): Boolean {
         val rect = bounds ?: return false
         if (!rect.isPlausible) return false
-        val width = rect.right - rect.left
-        if (width < screenWidth * MIN_BUBBLE_WIDTH_FRACTION) return false
-        if (width > screenWidth * MAX_BUBBLE_WIDTH_FRACTION) return false
         return collectTextNodes().any { it.isReadableText() }
     }
 
@@ -200,15 +207,29 @@ object ScreenTextReader {
     private fun readRow(row: ScreenNode, screenWidth: Int): ScreenMessage? {
         val texts = row.collectTextNodes()
             .filter { it.isReadableText() }
-            .mapNotNull { it.text?.trim() }
-            .filter { it.isNotBlank() }
-            .filterNot { text -> NOISE_PATTERNS.any { it.matches(text) } }
+            .mapNotNull { node ->
+                val value = node.text?.trim().orEmpty()
+                // The node is kept next to its text: the rectangle that says
+                // whether this arrived or was sent belongs to that node, not to
+                // the row, and throwing it away here is what broke reading.
+                if (value.isBlank()) null else (node to value)
+            }
+            .filterNot { (_, text) -> NOISE_PATTERNS.any { it.matches(text) } }
         if (texts.isEmpty()) return null
 
         // A bubble holds the message plus its furniture - the time, and in a
-        // group the sender's name. The longest readable string is the message.
-        val message = texts.maxByOrNull { it.length } ?: return null
-        val rect = row.bounds ?: return null
+        // group the sender's name. The longest readable string is the message,
+        // and the node holding it is the bubble that can be measured.
+        val (node, message) = texts.maxByOrNull { (_, text) -> text.length }
+            ?: return null
+
+        // Measure the bubble, not the row. A row spans the full width of the
+        // list; measuring it rejected every message on the screen, which from
+        // the outside is indistinguishable from the feature being off. The row
+        // is only a fallback for an app that reports no bounds on its text.
+        val rect = node.bounds ?: row.bounds ?: return null
+        val width = rect.right - rect.left
+        if (width > screenWidth * MAX_BUBBLE_WIDTH_FRACTION) return null
         val isOutgoing = rect.centreX > screenWidth / 2
         val truncated = message.length > MAX_TEXT_LENGTH
 
