@@ -57,6 +57,10 @@ class CapturedNotificationsNotifier
         _ref.read(listenerPermissionProvider.notifier).markConnected(true);
       case 'listener_disconnected':
         _ref.read(listenerPermissionProvider.notifier).markConnected(false);
+      // A screen reading carries the same payload as a notification, so both
+      // events take the same path: the difference is recorded on the model
+      // (`isScreenRead`), not by handling them differently here.
+      case 'screen_captured':
       case 'notification_captured':
         final payload = event['notification'];
         if (payload is! Map) return;

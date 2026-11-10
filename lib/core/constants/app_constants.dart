@@ -24,6 +24,12 @@ class AppConstants {
   /// alive (docs/FLOATING_OVERLAY.md §5.3).
   static const String prefBubbleEnabled = 'replymate.bubble_enabled';
 
+  /// The user's screen-reading switch (docs/SCREEN_READING.md). Mirrored
+  /// natively for the same reason as the bubble switch: the accessibility
+  /// service must read it at a moment when no Flutter engine is alive.
+  static const String prefScreenReadingEnabled =
+      'replymate.screen_reading_enabled';
+
   /// Hard ceiling on a message we will send to an AI provider (FR-10: fail
   /// with a clear error instead of an oversized request).
   static const int maxMessageLength = 4000;

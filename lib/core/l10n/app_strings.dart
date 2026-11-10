@@ -62,6 +62,13 @@ abstract class AppStrings {
   String get bubbleTitle;
   String get bubbleShowsOverChats;
   String get bubbleNeedsPermission;
+  String get screenReadingTitle;
+  String get screenReadingSubtitle;
+  String get screenReadingNeedsPermission;
+  String get screenReadingDisclosureTitle;
+  String get screenReadingDisclosureBody;
+  String get screenReadingOpenSettings;
+  String get screenReadingBlocked;
   String get connectionTitle;
   String get guestModeUnlessConfigured;
 
@@ -137,6 +144,36 @@ class EnglishStrings extends AppStrings {
   String get bubbleShowsOverChats => 'Shows over your chats';
   @override
   String get bubbleNeedsPermission => 'Needs a permission';
+
+  @override
+  String get screenReadingTitle => 'Read the open chat';
+
+  @override
+  String get screenReadingSubtitle =>
+      'Drafts a reply from the chat you already have open, where the app '
+      'posts no notification.';
+
+  @override
+  String get screenReadingNeedsPermission => 'Needs accessibility access';
+
+  @override
+  String get screenReadingDisclosureTitle => 'Before you turn this on';
+
+  @override
+  String get screenReadingDisclosureBody =>
+      'ReplyMate will read the message shown on the screen of the apps you '
+      'selected, so it can draft a reply even when no notification appears '
+      'because you already have the chat open. It never types into another '
+      'app and never sends anything by itself. The text is held in memory '
+      'only and is gone when the app closes.';
+
+  @override
+  String get screenReadingOpenSettings => 'Open accessibility settings';
+
+  @override
+  String get screenReadingBlocked =>
+      'Android is not allowing accessibility access for this app, so nothing '
+      'is being read.';
   @override
   String get connectionTitle => 'Connection';
   @override
@@ -229,6 +266,36 @@ class BengaliStrings extends AppStrings {
   String get bubbleShowsOverChats => 'চ্যাটের উপরে ভাসে';
   @override
   String get bubbleNeedsPermission => 'একটা অনুমতি লাগবে';
+
+  @override
+  String get screenReadingTitle => 'খোলা চ্যাট পড়া';
+
+  @override
+  String get screenReadingSubtitle =>
+      'যে চ্যাট খোলা আছে সেখান থেকেই উত্তর তৈরি করে — ওখানে কোনো '
+      'notification আসে না।';
+
+  @override
+  String get screenReadingNeedsPermission => 'Accessibility অনুমতি লাগবে';
+
+  @override
+  String get screenReadingDisclosureTitle => 'চালু করার আগে';
+
+  @override
+  String get screenReadingDisclosureBody =>
+      'আপনি যে অ্যাপগুলো বেছে দিয়েছেন, ReplyMate সেগুলোর স্ক্রিনে দেখা '
+      'মেসেজটি পড়বে — যাতে চ্যাট খোলা থাকায় notification না এলেও উত্তর '
+      'তৈরি করা যায়। এটি অন্য কোনো অ্যাপে নিজে থেকে কিছু লিখবে না, নিজে '
+      'থেকে কিছু পাঠাবে না। টেক্সট শুধু মেমোরিতে থাকে, অ্যাপ বন্ধ হলে '
+      'মুছে যায়।';
+
+  @override
+  String get screenReadingOpenSettings => 'Accessibility সেটিংস খুলুন';
+
+  @override
+  String get screenReadingBlocked =>
+      'Android এই অ্যাপকে accessibility অনুমতি দিচ্ছে না, তাই কিছুই '
+      'পড়া হচ্ছে না।';
   @override
   String get connectionTitle => 'সংযোগ';
   @override

@@ -20,6 +20,7 @@ class CapturedNotification {
     required this.hasReplyAction,
     this.replyActionLabel,
     required this.postedAtMillis,
+    this.isScreenRead = false,
   });
 
   factory CapturedNotification.fromMap(Map<Object?, Object?> map) {
@@ -47,6 +48,7 @@ class CapturedNotification {
       hasReplyAction: map['hasReplyAction'] == true,
       replyActionLabel: replyActionLabel is String ? replyActionLabel : null,
       postedAtMillis: postedAt is int ? postedAt : 0,
+      isScreenRead: map['fromScreen'] == true,
     );
   }
 
@@ -64,6 +66,13 @@ class CapturedNotification {
   final bool hasReplyAction;
   final String? replyActionLabel;
   final int postedAtMillis;
+
+  /// True when this text was read off the screen rather than delivered by a
+  /// notification (docs/SCREEN_READING.md). It is not a warning and not a
+  /// problem - it is a fact the UI says out loud, because "where did this
+  /// message come from" is exactly the question a privacy-first app owes an
+  /// answer to.
+  final bool isScreenRead;
 
   bool get hasText => (text ?? '').trim().isNotEmpty;
 
@@ -105,5 +114,5 @@ class CapturedNotification {
   @override
   String toString() =>
       'CapturedNotification($packageName, key=$key, text=$hasText, '
-      'replyAction=$hasReplyAction)';
+      'replyAction=$hasReplyAction, screen=$isScreenRead)';
 }

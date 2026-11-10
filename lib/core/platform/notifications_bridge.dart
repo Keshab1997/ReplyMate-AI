@@ -26,7 +26,10 @@ class NotificationsBridge {
       StreamController<Map<String, Object?>>.broadcast();
 
   /// Native -> Dart events: `listener_connected`, `listener_disconnected`,
-  /// `notification_captured`.
+  /// `notification_captured` (a notification arrived) and `screen_captured`
+  /// (a message was read off the screen, docs/SCREEN_READING.md). Both carry
+  /// the same `notification` payload, so both are parsed by
+  /// `CapturedNotification`.
   Stream<Map<String, Object?>> get events => _events.stream;
 
   /// Starts forwarding `onEvent` calls into [events]. Idempotent.
@@ -196,6 +199,50 @@ class NotificationsBridge {
       // No native layer: the Dart-side preference still records the choice.
     } on PlatformException {
       // Surfaced by the service's own state, never by a crash.
+    }
+  }
+
+  /// True when Android has granted ReplyMate accessibility access, which is
+  /// the only way the screen reader can run at all. False on a device that
+  /// refuses it - Android 16+ Advanced Protection does exactly that for an app
+  /// it does not classify as an accessibility tool, and ReplyMate does not
+  /// claim to be one (docs/SCREEN_READING.md).
+  Future<bool> isScreenReadingAvailable() async {
+    try {
+      return await _channel.invokeMethod<bool>('isScreenReadingAvailable') ??
+          false;
+    } on MissingPluginException {
+      return false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  /// Opens Android's accessibility settings, where the user grants (or
+  /// revokes) access. Like every permission here, this opens a screen and
+  /// grants nothing by itself.
+  Future<void> openAccessibilitySettings() async {
+    try {
+      await _channel.invokeMethod<void>('openAccessibilitySettings');
+    } on MissingPluginException {
+      // No native layer (tests / web): nothing to open.
+    } on PlatformException {
+      // Some OEMs hide the screen; the switch keeps saying "not granted",
+      // which is the truth.
+    }
+  }
+
+  /// Persists the screen-reading switch natively as well, because the
+  /// accessibility service runs with no Flutter engine alive.
+  Future<void> setScreenReadingEnabled(bool enabled) async {
+    try {
+      await _channel.invokeMethod<void>('setScreenReadingEnabled', {
+        'enabled': enabled,
+      });
+    } on MissingPluginException {
+      // No native layer: the Dart-side preference still records the choice.
+    } on PlatformException {
+      // Surfaced by the switch's own state, never by a crash.
     }
   }
 

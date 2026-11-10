@@ -114,6 +114,31 @@ abstract class ReplyMateFlutterActivity : FlutterActivity() {
                     setBubbleEnabled(enabled)
                     result.success(null)
                 }
+                "isScreenReadingAvailable" ->
+                    result.success(isScreenReadingAvailable())
+                "openAccessibilitySettings" -> {
+                    // Grants nothing by itself: Android keeps the decision.
+                    try {
+                        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                    } catch (error: Exception) {
+                        // Some OEMs hide the screen; the switch then keeps
+                        // saying "not granted", which is the truth.
+                    }
+                    result.success(null)
+                }
+                "setScreenReadingEnabled" -> {
+                    val enabled = call.argument<Boolean>("enabled") == true
+                    getSharedPreferences(
+                        ReplyMateNotificationListener.PREFS_NAME,
+                        MODE_PRIVATE,
+                    ).edit()
+                        .putBoolean(
+                            ReplyMateScreenReaderService.KEY_SCREEN_READING_ENABLED,
+                            enabled,
+                        )
+                        .apply()
+                    result.success(null)
+                }
                 "consumeOverlayContext" -> {
                     // One-shot: the pending map is cleared as it is handed out,
                     // so the panel can never read the same message twice.
@@ -217,6 +242,26 @@ abstract class ReplyMateFlutterActivity : FlutterActivity() {
             OverlayBubbleController.clear()
             OverlayBubbleService.stop(this)
         }
+    }
+
+    /**
+     * Whether Android has actually granted accessibility access to our screen
+     * reader - the only way it can run at all.
+     *
+     * Read from the system setting rather than remembered, because the grant
+     * happens on a screen Android owns: the user can turn it off there without
+     * this app ever being told. This is also how an Android 16+ device with
+     * Advanced Protection Mode shows up - the grant simply is not there, and
+     * the UI says so instead of blaming the reader (docs/SCREEN_READING.md).
+     */
+    private fun isScreenReadingAvailable(): Boolean {
+        val expected =
+            ComponentName(this, ReplyMateScreenReaderService::class.java).flattenToString()
+        val enabled = Settings.Secure.getString(
+            contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+        ) ?: return false
+        return enabled.split(':').any { it.equals(expected, ignoreCase = true) }
     }
 
     /**

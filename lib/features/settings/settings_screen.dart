@@ -12,6 +12,7 @@ import '../../shared/widgets/permission_status_card.dart';
 import '../app_selection/app_selection_screen.dart';
 import '../notifications/providers/notification_providers.dart';
 import '../overlay/providers/bubble_providers.dart';
+import '../screen_reading/providers/screen_reading_provider.dart';
 import '../permissions/permission_setup_screen.dart';
 import '../permissions/providers/permission_provider.dart';
 import 'providers/preferences_provider.dart';
@@ -40,6 +41,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     // Re-read on entry, not only on first build.
     ref.read(overlayProvider.notifier).refresh();
     ref.read(listenerPermissionProvider.notifier).refresh();
+    ref.read(screenReadingAvailableProvider.notifier).refresh();
   }
 
   @override
@@ -53,6 +55,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     if (state == AppLifecycleState.resumed) {
       ref.read(overlayProvider.notifier).refresh();
       ref.read(listenerPermissionProvider.notifier).refresh();
+      ref.read(screenReadingAvailableProvider.notifier).refresh();
     }
   }
 
@@ -114,12 +117,50 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     await ref.read(bubbleEnabledProvider.notifier).setEnabled(enabled);
   }
 
+  /// Turns screen reading on or off (default off).
+  ///
+  /// Turning it **on** shows the disclosure first and waits for a real
+  /// confirmation: this is the one feature that reads text off the screen
+  /// rather than out of a notification, and "I agreed to that" has to be an
+  /// answer the user gave, not a side effect of tapping a switch. A refusal
+  /// leaves the switch exactly where it was (docs/SCREEN_READING.md).
+  Future<void> _setScreenReading(
+    BuildContext context,
+    WidgetRef ref,
+    bool enabled,
+  ) async {
+    if (enabled) {
+      final strings = ref.read(appStringsProvider);
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(strings.screenReadingDisclosureTitle),
+          content: Text(strings.screenReadingDisclosureBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Not now'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Turn on'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+    await ref.read(screenReadingProvider.notifier).setEnabled(enabled);
+  }
+
   @override
   Widget build(BuildContext context) {
     final preferences = ref.watch(preferencesProvider);
     final permissionEnabled = ref.watch(listenerPermissionProvider);
     final overlayEnabled = ref.watch(overlayProvider);
     final bubbleEnabled = ref.watch(bubbleEnabledProvider);
+    final screenReading = ref.watch(screenReadingProvider);
+    final screenReadingAvailable = ref.watch(screenReadingAvailableProvider);
     final strings = ref.watch(appStringsProvider);
     final appLanguage = ref.watch(appLanguageProvider);
     final theme = Theme.of(context);
@@ -381,6 +422,62 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                                         'come back.',
                             ),
                           ),
+                          const Divider(height: 1),
+                          // Screen reading: the only feature here that can see
+                          // text the platform never hands us, so it asks twice
+                          // - once on Android's own accessibility screen, and
+                          // once here, in words, before it is ever switched on.
+                          SwitchListTile(
+                            value: screenReading && screenReadingAvailable,
+                            onChanged: screenReadingAvailable
+                                ? (value) =>
+                                      _setScreenReading(context, ref, value)
+                                : null,
+                            title: Text(strings.screenReadingTitle),
+                            subtitle: Text(
+                              screenReadingAvailable
+                                  ? strings.screenReadingSubtitle
+                                  : strings.screenReadingNeedsPermission,
+                            ),
+                          ),
+                          if (!screenReadingAvailable)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                AppTheme.spaceMd,
+                                0,
+                                AppTheme.spaceMd,
+                                AppTheme.spaceMd,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: OutlinedButton.icon(
+                                      onPressed: () => ref
+                                          .read(notificationsBridgeProvider)
+                                          .openAccessibilitySettings(),
+                                      icon: const Icon(
+                                        Icons.open_in_new,
+                                        size: 18,
+                                      ),
+                                      label: Text(
+                                        strings.screenReadingOpenSettings,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: AppTheme.spaceSm),
+                                  Text(
+                                    strings.screenReadingBlocked,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      fontSize: 10.5,
+                                      height: 1.5,
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           // The fix for "the switch does nothing": the reason
                           // is a permission, so the permission gets a button
                           // *here*, not three screens away.
