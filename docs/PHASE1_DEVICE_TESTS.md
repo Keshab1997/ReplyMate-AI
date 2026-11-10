@@ -91,6 +91,26 @@ them can be checked from CI.
 | 29 | Copy a message from the chat, tap the bubble / Paste, then Generate | The pasted text is what gets replies; Copy puts the captured message on the clipboard; Edit lets you change it first |
 | 24 | Close the panel, then inspect storage and logs: `adb shell run-as com.keshabstudios.replymate ls -R files/ shared_prefs/` and `adb logcat -c && adb logcat \| grep -i replymate` | No message text anywhere on disk; no message text in logcat | _pending_ |
 
+## Screen reading (docs/SCREEN_READING.md)
+
+Every row below is `_pending_`: no device was available when this was written.
+These are the rows that decide whether the feature works at all, and they are
+also **evidence rows** — if WhatsApp's shape does not match the heuristics, the
+docs and the reader get changed to match the device, not the other way round.
+
+| # | Step | Expected | Result |
+|---|---|---|---|
+| 25 | Settings → turn *Read the open chat* on (accessibility not yet granted) | The switch is inert and explains why; *Open accessibility settings* opens Android's accessibility screen | _pending_ |
+| 26 | Grant accessibility access in Android Settings, come back, turn the switch on | A disclosure appears first; *Not now* leaves the switch off; *Turn on* turns it on | _pending_ |
+| 27 | With the switch on, open a WhatsApp chat and get a message | Within a couple of seconds the bubble appears; tapping it shows that message, not an empty panel | _pending_ |
+| 28 | Reply to that message yourself (send a message) | No new bubble: the newest message is your own, so there is nothing to answer | _pending_ |
+| 29 | Start typing a reply in the WhatsApp input box and wait ten seconds | Nothing is captured from the draft; no bubble, no capture entry | _pending_ |
+| 30 | Receive two messages in a row, one minute apart | Two separate captures; the second replaces the first behind the bubble, it does not stack a duplicate | _pending_ |
+| 31 | Turn the switch off, receive another message, then check `adb logcat \| grep -i replymate` | Nothing is read while the switch is off; no message text in logcat | _pending_ |
+| 32 | Open a chat in a second allowed app (Telegram or Messenger) | It is read too — or, if its layout defeats the heuristics, nothing happens and nothing is invented | _pending_ |
+| 33 | Put a device with Advanced Protection Mode on and try to grant access | Android refuses the grant; the settings screen says nothing is being read | _pending_ |
+| 34 | Generate a reply from a screen-read message, then inspect storage | A reply is drafted; quick reply is never offered; no message text on disk | _pending_ |
+
 ## Reading the results
 
 - Any _pending_ left when someone claims Phase 1 done = the gate is not met.

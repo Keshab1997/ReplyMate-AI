@@ -66,10 +66,18 @@ Android may restrict background execution. Implement lifecycle-safe handling and
 A foreground service may not be started from the background on Android 12+.
 Catch `ForegroundServiceStartNotAllowedException` and take the fallback path.
 
-## MVP Restriction
+## Screen reading
 
-Do not use AccessibilityService or screen scraping in the MVP.
+An `AccessibilityService` **is** used, in exactly one place and for exactly one
+job: `ReplyMateScreenReaderService` reads the newest visible message so the app
+can draft a reply to the conversation the user is already looking at - the one
+place a notification is never posted. The rules it lives by, and the reason each
+one exists, are in docs/SCREEN_READING.md. The short version:
 
-That restriction is permanent for the bubble too: an overlay that can draw is
-not allowed to read. If a requirement seems to need screen reading, the
-requirement is wrong.
+- off by default, and allowed only for packages on the user's allowlist;
+- it reads and reports - it performs **no action** on the user's behalf, ever;
+- nothing it reads is written to disk or to a log.
+
+No other component reads the screen. That boundary has not moved: the bubble can
+draw over other apps, and it still does not inspect them. If a requirement seems
+to need screen reading anywhere else, the requirement is still wrong.

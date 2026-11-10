@@ -100,10 +100,13 @@ ten minutes, and while the screen is off or locked.
 ### Why nothing appears while you are in the chat
 
 While the user is looking at a conversation, the messaging app usually posts no
-notification for it. No notification means no event, no context and no bubble;
-the alternative (reading the screen) needs an `AccessibilityService`, which this
-project forbids. Text selection (PROCESS_TEXT), the share sheet and pasting into
-the composer are the supported routes in that situation.
+notification for it, so this listener sees nothing at exactly the moment a reply
+is most likely to be wanted. That gap is closed by a different component - the
+screen reader, docs/SCREEN_READING.md - not by this service, which stays a
+notification listener and nothing else.
+
+Text selection (PROCESS_TEXT), the share sheet and pasting into the composer
+remain supported routes in that situation, and they need no permission at all.
 
 ### Known limitation: the fallback tap while the app is already open
 

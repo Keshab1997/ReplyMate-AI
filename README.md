@@ -19,6 +19,9 @@ Make replying to messages faster, easier, and more natural without taking contro
   you are in, a panel to draft the reply, and a fallback notification when the
   bubble cannot be drawn
 - Copy, edit, and share generated suggestions
+- Optional screen reading: draft a reply to the chat you already have open,
+  where the app posts no notification (spec in
+  [docs/SCREEN_READING.md](docs/SCREEN_READING.md))
 - User reviews and sends every reply
 - Privacy-first design
 - No automatic message sending
@@ -47,6 +50,16 @@ The core app prototype is implemented: Flutter onboarding, home, settings and re
 On 2026-11-06, Keshab reported a real-device smoke check confirming that the admin flow, API request and reply generation work. Device/build details and individual test steps were not recorded. This does **not** verify every notification, quick-reply, share/selection or OEM behavior; see [the Phase 1 device checklist](docs/PHASE1_DEVICE_TESTS.md).
 
 A floating reply bubble — the answer to "why does nothing appear when a WhatsApp message arrives?" — is implemented: tap the bubble, get a panel with the message and the same generation flow. It is **optional and off by default**, needs the "Display over other apps" permission, keeps the message in memory only, and shows an icon — never the message — in the bubble. When it cannot run (no permission, switched off, or the app process was dead in the background) the honest fallback is a "New message from \<app\>" notification that opens the composer prefilled. **The bubble may not survive aggressive OEM battery managers**; the fallback notification is the reliable path. Device evidence for rows 17–24 of [the Phase 1 checklist](docs/PHASE1_DEVICE_TESTS.md) is still pending, so treat the bubble as code-complete, not field-proven.
+
+Reading the open chat uses an Android `AccessibilityService`, and it asks for
+that access explicitly: the switch is off by default, shows a disclosure before
+it moves, and stays inert until Android grants the access itself. It reads the
+apps you selected and reports what it saw - it never types into another app,
+never sends anything, and keeps nothing on disk. It also cannot run on a device
+with Android's Advanced Protection Mode switched on, because the system will not
+grant accessibility access to an app it does not classify as an accessibility
+tool; ReplyMate is not one and does not claim to be. Rows 25-34 of the Phase 1
+checklist are still pending, so this is code-complete, not field-proven.
 
 The app is not release-ready. The current AI design lets signed-in clients read a Firestore key pool and call providers directly; the planned server-side proxy and rate limiting are not implemented. See [API security](docs/API_SECURITY.md) and the [roadmap](ROADMAP.md) for remaining work.
 

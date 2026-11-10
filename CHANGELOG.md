@@ -31,6 +31,31 @@ All notable project changes are recorded here.
   no Android device was available. The bubble is code-complete, not
   device-proven.
 
+### Screen reading — implemented (device verification pending)
+
+The gap the notification listener can never close: a messaging app posts no
+notification for the chat you are already looking at, so there was nothing to
+read exactly when a reply was most wanted.
+
+- `ReplyMateScreenReaderService` (an `AccessibilityService`) reads the visible
+  conversation of the apps on the user's allowlist and hands the newest
+  incoming message to the same pipeline a notification uses - the bubble or the
+  fallback notification (`OverlayRouter`), and the in-app capture list.
+- `ScreenTextReader` holds the heuristics and is a pure function of a node tree,
+  so it is proven on a plain JVM: 8 tests, including one that asserts what the
+  user is typing is never captured.
+- Off by default, behind a switch that shows a disclosure before it moves, and
+  inert until Android grants accessibility access. Nothing is written to disk
+  or to a log, and `hasReplyAction` is always false for a screen reading - the
+  service reads and reports, it never types and never sends.
+- Docs: `docs/SCREEN_READING.md`, including the honest limitation that Android
+  16+ Advanced Protection refuses accessibility access to an app it does not
+  classify as an accessibility tool, which ReplyMate is not and does not claim
+  to be.
+
+Not done: rows 25-34 of `docs/PHASE1_DEVICE_TESTS.md` are still `_pending_` -
+no Android device was available. The reader is code-complete, not field-proven.
+
 ### Implemented in the repository
 - Flutter onboarding, home, permissions, app selection, settings and reply-suggestion flows, including a selectable 1–3 suggestion count, copy/edit/share actions and composer-session cleanup of transient message context.
 - Kotlin notification listener, parser and Flutter platform-channel integration, including conditional RemoteInput quick reply and user-initiated share/text-selection entry points.

@@ -6,8 +6,9 @@ buildable and every check green.
 
 **Repo rules that still apply:** `AGENTS.md` (manual CI, preflight before every
 push, commit straight to `main`, conventional messages), guest-mode invariant,
-no automatic message sending, no AccessibilityService, no message content on
-disk, no message text in logs.
+no automatic message sending, no message content on disk, no message text in
+logs, and screen reading only through the consented path in
+docs/SCREEN_READING.md.
 
 ---
 
@@ -213,8 +214,10 @@ code that produced them.
 
 ## Do not
 
-- Do not add `AccessibilityService`, `MediaProjection`, or any screen-reading
-  API. If a task seems to need one, stop and report — the spec says no.
+- Do not add `MediaProjection` or any screen-capture API. Screen reading
+  exists in exactly one place - `ReplyMateScreenReaderService`, documented in
+  docs/SCREEN_READING.md - and it only ever reads. Do not add a second one; if
+  a task seems to need one, stop and report.
 - Do not persist the pending message, its sender, or its text.
 - Do not add a Kotlin HTTP client or a second AI integration.
 - Do not send anything automatically, including "obvious" replies.

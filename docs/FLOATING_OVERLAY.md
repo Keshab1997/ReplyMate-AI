@@ -57,8 +57,10 @@ The bubble never reads the screen. It only knows what the notification posted.
 
 ### Out of scope (do not build now)
 
-- Reading text under the bubble (no AccessibilityService, no MediaProjection,
-  no screen capture, ever).
+- Reading text *under the bubble* (no MediaProjection, no screen capture,
+  ever). The bubble draws; it does not inspect the app underneath. Reading the
+  visible conversation is a separate, consented feature with its own switch and
+  disclosure (docs/SCREEN_READING.md) that feeds this same bubble.
 - Reply to a conversation the notification does not identify.
 - Automatic sending of anything.
 - Persisting message content to disk.
@@ -69,8 +71,11 @@ The bubble never reads the screen. It only knows what the notification posted.
 
 ## 3. Hard rules (violating one of these fails review)
 
-1. **No AccessibilityService, no screen scraping.** The bubble is drawn with
-   `WindowManager`; it does not inspect the app underneath.
+1. **The bubble does not read the screen.** It is drawn with `WindowManager`
+   and inspects nothing underneath. Screen reading is a separate service with
+   its own switch, its own disclosure and its own rules
+   (docs/SCREEN_READING.md); it shares this bubble's pipeline, never its
+   permission to act.
 2. **No message content on disk.** The pending message lives in process memory
    (`OverlayBubbleController`) and, while the panel is open, in the intent that
    launched it. It is cleared when the panel closes.
@@ -267,13 +272,18 @@ existence before a finger could reach it. A tap inside the window is still
 honest: the panel opens with the message and quick reply refuses, because the
 action it would have used is gone.
 
-### What this cannot do: the chat you are already looking at
+### What notifications cannot do: the chat you are already looking at
 
-The bubble is driven by **notifications**. When the user is inside a chat, the
-messaging app normally posts no notification for that conversation at all, so
-there is nothing for any notification listener to read. ReplyMate does not work
-around this with an `AccessibilityService` or screen reading - that is banned by
-this spec and would change what the app is (and what Play reviews it as).
+The bubble was originally driven by **notifications** only. When the user is
+inside a chat, the messaging app normally posts no notification for that
+conversation at all, so there is nothing for any notification listener to read -
+the bubble stayed away at exactly the moment it would have been most useful.
+
+That gap is now closed by the screen reader, a separate service with its own
+switch and disclosure (docs/SCREEN_READING.md). This section still applies to
+notifications themselves, and one thing has not changed: **the bubble never
+reads anything**. It is drawn, it is tapped, and the text it shows was given to
+it by one of the two message sources, both of which the user switched on.
 
 The in-app alternatives that do work in that situation: select the message text
 and use the *ReplyMate AI* entry in the selection menu (route 2 in

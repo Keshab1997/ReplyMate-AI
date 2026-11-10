@@ -40,6 +40,7 @@ it.
 | `listener_connected` | – | The notification listener service is live. |
 | `listener_disconnected` | – | The service died or access was revoked. |
 | `notification_captured` | `{notification: <map below>}` | A notification from an allowed package arrived. |
+| `screen_captured` | `{notification: <map below>}` | A message was read off the screen of an allowed package (docs/SCREEN_READING.md). Same payload, plus `fromScreen: true`. |
 
 Events posted before the engine exists, or after it is torn down, are
 **dropped on purpose**: queueing them would retain message content
@@ -60,6 +61,7 @@ Events posted before the engine exists, or after it is torn down, are
 | `hasReplyAction` | `bool` | True only when some action carries a non-empty `remoteInputs`. |
 | `replyActionLabel` | `String?` | That action's title. |
 | `postedAtMillis` | `int` | `StatusBarNotification.postTime`. |
+| `fromScreen` | `bool` | `true` when the text was read off the screen rather than delivered by a notification; absent means false. Surfaced on the model as `isScreenRead` so the UI can say where a message came from. |
 
 Dart mirror: `CapturedNotification.fromMap` - strict about structure, lenient
 about content, and unit-tested against every row of this table.
@@ -75,9 +77,10 @@ about content, and unit-tested against every row of this table.
    needed.
 
 Routes 2 and 3 are user-initiated by construction: Android only delivers them
-after an explicit user action in another app. No AccessibilityService and no
-screen scraping is used anywhere (MVP restriction,
-docs/ANDROID_NATIVE_SERVICES.md).
+after an explicit user action in another app. Route 5 (screen reading) is
+user-initiated by consent instead: it needs accessibility access granted in
+Android Settings **and** the in-app switch, and it is documented in
+docs/SCREEN_READING.md.
 
 ---
 
@@ -97,6 +100,9 @@ service, the panel route (`/overlay`) and the listener wiring shipped with them.
 | `openOverlaySettings` | – | `null` | **implemented** | `ACTION_MANAGE_OVERLAY_PERMISSION` with our package uri. Grants nothing by itself. |
 | `requestNotificationPermission` | – | `bool` | **implemented** | Runtime `POST_NOTIFICATIONS` on Android 13+; `true` on older versions. Needed before the bubble service can show its own notification. |
 | `setBubbleEnabled` | `{enabled: bool}` | `null` | **implemented** | Persists in native prefs and starts/stops `OverlayBubbleService`. Starting from the background may throw `ForegroundServiceStartNotAllowedException`; that is caught and reported as `false`, never a crash. |
+| `isScreenReadingAvailable` | – | `bool` | **implemented** | Whether Android has granted accessibility access to `ReplyMateScreenReaderService`, read from `Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES`. `false` on a device that refuses the grant (Android 16+ Advanced Protection Mode does exactly this for an app it does not classify as an accessibility tool). |
+| `openAccessibilitySettings` | – | `null` | **implemented** | Starts `ACTION_ACCESSIBILITY_SETTINGS`. Grants nothing by itself. |
+| `setScreenReadingEnabled` | `{enabled: bool}` | `null` | **implemented** | Persists the user's screen-reading switch in native prefs, because the accessibility service runs with no Flutter engine alive. |
 
 `source` is `bubble` (the panel activity launched at route `/overlay`) or
 `fallback` (ReplyMate's own notification, which opens the composer). An unknown

@@ -287,9 +287,19 @@ down here is never touched).
   only against a live RemoteInput action; capability claims in UI copy and
   docs stay honest (missing / truncated / grouped / redacted content is
   shown, never hidden); admin access only through the Firestore
-  `admin_config/access` allowlist.
+  `admin_config/access` allowlist; screen reading
+  (`ReplyMateScreenReaderService`, docs/SCREEN_READING.md) stays inside its
+  four walls - off by default, allowlist-bound, nothing on disk, and no
+  action performed on the user's behalf (it never types, clicks or sends).
+  `ScreenTextReader` takes no Android imports, so its heuristics stay
+  provable on a plain JVM: keep it that way, and add a test there for
+  every heuristic you change.
 - **Extra verification:** Phase 1 is not done until the real-device checklist
   in `docs/PHASE1_DEVICE_TESTS.md` has no `_pending_` rows — CI cannot see
-  notifications, quick reply or the selection menu. Before any release:
-  Play Console declaration for notification-listener access, prominent
+  notifications, quick reply, the selection menu or the screen reader. Rows
+  25–34 are the screen-reading rows, and they are **evidence rows**: if a
+  messaging app's real layout disagrees with `ScreenTextReader`, the reader
+  and the docs change to match the device, never the other way round.
+  Before any release: Play Console declaration for notification-listener
+  access, prominent
   in-app disclosure for AI processing, privacy policy published.

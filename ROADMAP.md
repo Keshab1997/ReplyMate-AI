@@ -82,9 +82,11 @@ Spec: [`docs/FLOATING_OVERLAY.md`](docs/FLOATING_OVERLAY.md). Batches:
 - [ ] Device rows 17–24 filled on a real phone. **The feature is not done until
       this is checked.**
 
-Non-negotiable: no AccessibilityService, no screen reading, no message text on
-disk, no automatic send, and no claim that the bubble survives every OEM's
-battery manager.
+Non-negotiable: no message text on disk, no automatic send, no claim that the
+bubble survives every OEM's battery manager, and **no screen reading without
+the user's explicit switch** - docs/SCREEN_READING.md. Exactly one component
+reads the screen (`ReplyMateScreenReaderService`), and it only ever reads: it
+never types, never clicks and never sends.
 
 ## Phase 7 — Future Features
 
