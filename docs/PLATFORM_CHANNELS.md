@@ -63,6 +63,8 @@ Events posted before the engine exists, or after it is torn down, are
 | `postedAtMillis` | `int` | `StatusBarNotification.postTime`. |
 | `fromScreen` | `bool` | `true` when the text was read off the screen rather than delivered by a notification; absent means false. Surfaced on the model as `isScreenRead` so the UI can say where a message came from. |
 
+| `priorMessages` | `List<String>` | The lines that came before `text`, oldest first, when the notification carried them: `EXTRA_HISTORIC_MESSAGES` + `EXTRA_MESSAGES` for MessagingStyle, `EXTRA_TEXT_LINES` otherwise. Empty is the normal answer for an app that posts only the line that triggered the notification. Capped at six lines and 400 characters each by `ConversationHistory`. |
+
 Dart mirror: `CapturedNotification.fromMap` - strict about structure, lenient
 about content, and unit-tested against every row of this table.
 

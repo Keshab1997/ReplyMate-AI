@@ -95,6 +95,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
       tone: preferences.tone,
       length: preferences.length,
       count: preferences.suggestionCount,
+      priorMessages: overlay.notification.priorMessages,
     );
     final problems = request.validate();
     if (problems.isNotEmpty) {

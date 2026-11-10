@@ -13,6 +13,7 @@ class ReplyRequest {
     required this.tone,
     required this.length,
     this.count = 3,
+    this.priorMessages = const <String>[],
   });
 
   final String message;
@@ -20,6 +21,11 @@ class ReplyRequest {
   final ReplyTone tone;
   final ReplyLength length;
   final int count;
+
+  /// The lines that led up to [message], oldest first, when they were
+  /// captured. Carried into the prompt so a reply answers a conversation
+  /// instead of a single line pulled out of one.
+  final List<String> priorMessages;
 
   String get trimmedMessage => message.trim();
 
@@ -57,5 +63,6 @@ class ReplyRequest {
     'tone': tone.label,
     'length': length.label,
     'count': count,
+    'priorMessages': priorMessages,
   };
 }

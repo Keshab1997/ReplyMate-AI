@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:replymate/features/notifications/models/captured_notification.dart';
+import 'package:replymate/core/constants/reply_options.dart';
+import 'package:replymate/features/reply/data/prompt_builder.dart';
+import 'package:replymate/features/reply/domain/reply_request.dart';
 
 // Every parameter is Object? on purpose: the point of several tests is that
 // wrongly-typed wire values degrade safely instead of throwing.
@@ -133,5 +136,97 @@ void main() {
         throwsFormatException,
       );
     });
+  });
+
+  testWidgets('prior messages travel with the capture', (tester) async {
+    final notification = CapturedNotification.fromMap(<Object?, Object?>{
+      'packageName': 'com.whatsapp',
+      'key': 'sbn-1',
+      'title': 'Asha',
+      'text': 'Shall we move it to Friday?',
+      'priorMessages': <Object?>['Are we still on for tomorrow?', 'Yes - 4pm?'],
+      'isTruncated': false,
+      'isGrouped': false,
+      'isGroupSummary': false,
+      'mayBeRedacted': false,
+      'hasReplyAction': true,
+      'postedAtMillis': 1,
+    });
+
+    expect(notification.priorMessages, <String>[
+      'Are we still on for tomorrow?',
+      'Yes - 4pm?',
+    ]);
+  });
+
+  testWidgets('a capture with no history is normal, not a failure', (
+    tester,
+  ) async {
+    final notification = CapturedNotification.fromMap(<Object?, Object?>{
+      'packageName': 'com.whatsapp',
+      'key': 'sbn-1',
+      'text': 'Hi',
+      'isTruncated': false,
+      'isGrouped': false,
+      'isGroupSummary': false,
+      'mayBeRedacted': false,
+      'hasReplyAction': false,
+      'postedAtMillis': 1,
+    });
+
+    expect(notification.priorMessages, isEmpty);
+  });
+
+  testWidgets('wrong-typed history degrades to empty', (tester) async {
+    final notification = CapturedNotification.fromMap(<Object?, Object?>{
+      'packageName': 'com.whatsapp',
+      'key': 'sbn-1',
+      'text': 'Hi',
+      'priorMessages': 'not a list',
+      'isTruncated': false,
+      'isGrouped': false,
+      'isGroupSummary': false,
+      'mayBeRedacted': false,
+      'hasReplyAction': false,
+      'postedAtMillis': 1,
+    });
+
+    expect(notification.priorMessages, isEmpty);
+  });
+
+  testWidgets('the history reaches the prompt', (tester) async {
+    // "Shall we move it to Friday?" is unanswerable on its own; the lines that
+    // led up to it are what make the reply make sense.
+    final request = ReplyRequest(
+      message: 'Shall we move it to Friday?',
+      language: ReplyLanguage.english,
+      tone: ReplyTone.friendly,
+      length: ReplyLength.short,
+      count: 1,
+      priorMessages: const ['Are we still on for tomorrow?', 'Yes - 4pm?'],
+    );
+
+    final prompt = ReplyPrompt.user(request);
+
+    expect(prompt, contains('Earlier in this conversation'));
+    expect(prompt, contains('- Are we still on for tomorrow?'));
+    expect(prompt, contains('- Yes - 4pm?'));
+    // The history sits before the message, never after it.
+    expect(
+      prompt.indexOf('Earlier in this conversation'),
+      lessThan(prompt.indexOf('Incoming message')),
+    );
+  });
+
+  testWidgets('no history means no history section', (tester) async {
+    final request = ReplyRequest(
+      message: 'Hi',
+      language: ReplyLanguage.english,
+      tone: ReplyTone.friendly,
+      length: ReplyLength.short,
+      count: 1,
+    );
+
+    expect(ReplyPrompt.user(request), isNot(contains('Earlier in')));
   });
 }

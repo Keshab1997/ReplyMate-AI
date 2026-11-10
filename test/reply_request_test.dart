@@ -54,6 +54,7 @@ void main() {
         'tone': 'Professional',
         'length': 'Short',
         'count': 3,
+        'priorMessages': const <String>[],
       });
     });
   });

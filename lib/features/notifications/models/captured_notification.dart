@@ -13,6 +13,7 @@ class CapturedNotification {
     required this.key,
     this.title,
     this.text,
+    this.priorMessages = const <String>[],
     required this.isTruncated,
     required this.isGrouped,
     required this.isGroupSummary,
@@ -41,6 +42,7 @@ class CapturedNotification {
       key: key,
       title: title is String ? title : null,
       text: text is String ? text : null,
+      priorMessages: _priorMessages(map['priorMessages']),
       isTruncated: map['isTruncated'] == true,
       isGrouped: map['isGrouped'] == true,
       isGroupSummary: map['isGroupSummary'] == true,
@@ -59,6 +61,13 @@ class CapturedNotification {
   final String key;
   final String? title;
   final String? text;
+
+  /// The lines that came before this one, oldest first, when the notification
+  /// carried them. Empty is normal - plenty of apps post only the line that
+  /// triggered the notification - and it is never guessed at from anywhere
+  /// else.
+  final List<String> priorMessages;
+
   final bool isTruncated;
   final bool isGrouped;
   final bool isGroupSummary;
@@ -73,6 +82,16 @@ class CapturedNotification {
   /// message come from" is exactly the question a privacy-first app owes an
   /// answer to.
   final bool isScreenRead;
+
+  /// Missing or wrong-typed history degrades to empty rather than throwing.
+  /// Only the structural fields of a capture are worth refusing an event for.
+  static List<String> _priorMessages(Object? raw) {
+    if (raw is! List) return const <String>[];
+    return <String>[
+      for (final entry in raw)
+        if (entry is String && entry.trim().isNotEmpty) entry.trim(),
+    ];
+  }
 
   bool get hasText => (text ?? '').trim().isNotEmpty;
 

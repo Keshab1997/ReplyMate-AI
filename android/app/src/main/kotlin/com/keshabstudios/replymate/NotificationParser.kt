@@ -1,6 +1,8 @@
 package com.keshabstudios.replymate
 
 import android.app.Notification
+import android.os.Bundle
+import android.os.Parcelable
 import android.service.notification.StatusBarNotification
 
 /**
@@ -19,6 +21,9 @@ object NotificationParser {
 
     /** Android caps EXTRA_BIG_TEXT at this many characters; hitting it means cut text. */
     private const val BIG_TEXT_TRUNCATION_LIMIT = 5120
+
+    /** Android's own key for the text of one MessagingStyle message. */
+    private const val KEY_MESSAGE_TEXT = "text"
 
     fun parse(sbn: StatusBarNotification): Map<String, Any?> {
         val notification = sbn.notification
@@ -59,6 +64,50 @@ object NotificationParser {
             "hasReplyAction" to (replyAction != null),
             "replyActionLabel" to replyAction?.title?.toString(),
             "postedAtMillis" to sbn.postTime,
+            "priorMessages" to priorMessages(extras, text),
         )
+    }
+
+    /**
+     * The lines that came before the newest one, oldest first.
+     *
+     * A messaging app posts a conversation, not a line: Android carries the
+     * recent exchange inside the notification itself, and reading it is the
+     * only way to answer "shall we move it to Friday?" knowing what "it" is -
+     * without reading the screen and without one extra permission.
+     *
+     * Coming back empty is a normal answer. Plenty of apps post only the line
+     * that triggered the notification, and the app simply replies to what it
+     * has, which is exactly what it did before.
+     */
+    private fun priorMessages(extras: Bundle?, newest: String?): List<String> {
+        val raw = mutableListOf<String>()
+        readMessageBundles(
+            extras?.getParcelableArray(Notification.EXTRA_HISTORIC_MESSAGES),
+            raw,
+        )
+        readMessageBundles(
+            extras?.getParcelableArray(Notification.EXTRA_MESSAGES),
+            raw,
+        )
+        if (raw.isEmpty()) {
+            extras
+                ?.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
+                ?.forEach { line -> raw.add(line?.toString().orEmpty()) }
+        }
+        return ConversationHistory.fromLines(raw, newest)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun readMessageBundles(
+        array: Array<Parcelable>?,
+        into: MutableList<String>,
+    ) {
+        array ?: return
+        for (item in array) {
+            val bundle = item as? Bundle ?: continue
+            val value = bundle.getCharSequence(KEY_MESSAGE_TEXT)?.toString()
+            if (!value.isNullOrEmpty()) into.add(value)
+        }
     }
 }
