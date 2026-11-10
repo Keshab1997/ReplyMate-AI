@@ -1,0 +1,269 @@
+package com.keshabstudios.replymate
+
+/**
+ * Reads the newest visible message out of an accessibility node tree.
+ *
+ * **This file must stay free of Android imports.** Everything here is a pure
+ * function of a [ScreenNode] tree: the platform adapter lives in
+ * [AndroidScreenNode], the service that receives the events lives in
+ * [ReplyMateScreenReaderService]. That split is deliberate and it is the whole
+ * reason this logic can be proven at all - the JVM unit test in
+ * `android/app/src/test/kotlin/.../ScreenTextReaderTest.kt` builds fake trees
+ * and runs the real code, with no device, no emulator and no Android SDK.
+ *
+ * It is a **heuristic**, and the docs say so (docs/SCREEN_READING.md). Messaging
+ * apps give message bubbles no stable resource id, so the tree is read by
+ * shape: the message list is the scrolling container with the most children,
+ * the newest message is its last child, and an incoming bubble is the one that
+ * sits on the left half of the screen. When the shape cannot be trusted, this
+ * returns null - a message we cannot attribute is a message we do not invent.
+ */
+data class ScreenRect(
+    val left: Int,
+    val top: Int,
+    val right: Int,
+    val bottom: Int,
+) {
+    val centreX: Int get() = (left + right) / 2
+    val isPlausible: Boolean get() = right > left && bottom > top
+}
+
+/**
+ * A read-only view of one accessibility node.
+ *
+ * The interface exists so a JVM test can hand [ScreenTextReader] a tree built
+ * from plain data classes instead of `AccessibilityNodeInfo`, which cannot be
+ * constructed off-device.
+ */
+interface ScreenNode {
+    val text: String?
+    val viewId: String?
+    val className: String?
+    val bounds: ScreenRect?
+    val children: List<ScreenNode>
+}
+
+/** One message read off the screen, with everything we could not promise. */
+data class ScreenMessage(
+    val text: String,
+    /** The chat's own title, when the screen exposed one. */
+    val conversationTitle: String?,
+    /** True when the text was cut at [ScreenTextReader.MAX_TEXT_LENGTH]. */
+    val isTruncated: Boolean,
+    /**
+     * True when the newest message looks like one the user sent. Kept so the
+     * caller can decide, honestly, that there is nothing to reply to.
+     */
+    val isOutgoing: Boolean,
+)
+
+object ScreenTextReader {
+
+    /**
+     * Screen-read text is capped here; the app drafts a reply, not an essay,
+     * and a caption that long is almost always a forward or a copied block.
+     */
+    const val MAX_TEXT_LENGTH = 2000
+
+    /**
+     * How many of the newest list rows are examined before giving up. Three
+     * covers a date header, a "typing…" row and the message itself; six
+     * absorbs the reaction and quote rows that sit under the newest bubble.
+     */
+    const val MAX_CANDIDATE_ROWS = 6
+
+    /** A row narrower than this fraction of the screen is a chip, not a bubble. */
+    private const val MIN_BUBBLE_WIDTH_FRACTION = 0.15f
+
+    /**
+     * A row this wide is chrome, not a bubble. Every messaging app we target
+     * caps a bubble at roughly four fifths of the screen - the input bar, a
+     * menu row, a settings row and the "messages are encrypted" notice are the
+     * rows that span it. Without this bound a settings screen reads as one
+     * enormous message.
+     */
+    private const val MAX_BUBBLE_WIDTH_FRACTION = 0.92f
+
+    /**
+     * Text that belongs to the app's chrome rather than to a message: the box
+     * the user types in, the search field, the emoji tray.
+     */
+    private val EXCLUDED_ID_FRAGMENTS = listOf(
+        "entry",
+        "search",
+        "emoji",
+        "input",
+        "compose",
+        "edit_text",
+        "conversation_contact_name",
+        "toolbar",
+        "action_bar",
+    )
+
+    /** Rows that carry no message: separators, receipts, typing indicators. */
+    private val NOISE_PATTERNS = listOf(
+        Regex("""^\d{1,2}[:.]\d{2}\s*(am|pm)?$""", RegexOption.IGNORE_CASE),
+        Regex("""^typing(\.*|…)$""", RegexOption.IGNORE_CASE),
+        Regex("""^(today|yesterday|taday|tomorrow)$""", RegexOption.IGNORE_CASE),
+        Regex("""^(online|last seen.*|offline)$""", RegexOption.IGNORE_CASE),
+        Regex("""^messages (you send|and calls) .*$""", RegexOption.IGNORE_CASE),
+        Regex("""^\p{Punct}+$"""),
+    )
+
+    /** Ids that carry the conversation's name, in the apps we have seen. */
+    private val TITLE_ID_FRAGMENTS = listOf(
+        "conversation_contact_name",
+        "contact_name",
+        "conversation_title",
+        "action_bar_title",
+        "title",
+    )
+
+    /**
+     * The newest visible message, or null when the screen holds nothing this
+     * reader is willing to call a message.
+     *
+     * @param root the active window's root node.
+     * @param screenWidth the display width in pixels, used only to tell the
+     *   left half of the screen from the right one.
+     */
+    fun readNewestMessage(root: ScreenNode, screenWidth: Int): ScreenMessage? {
+        if (screenWidth <= 0) return null
+        val list = findMessageList(root) ?: return null
+        val rows = list.children.filter { it.isVisibleRow(screenWidth) }
+        if (rows.isEmpty()) return null
+
+        val newestFirst = rows.takeLast(MAX_CANDIDATE_ROWS).reversed()
+        for (row in newestFirst) {
+            val candidate = readRow(row, screenWidth)
+            // Stop at the first row that actually holds a message: a newer
+            // outgoing message means the user already answered, and a newer
+            // row of chrome means the layout changed underneath us.
+            if (candidate != null) return candidate
+        }
+        return null
+    }
+
+    /**
+     * The scrolling container with the most children: in every messaging app
+     * this reader targets, the conversation is the biggest list on screen. A
+     * layout with two equally large lists is not one we claim to understand,
+     * so the tie is resolved by taking the lower one (the chat sits below the
+     * header in every app we have seen).
+     *
+     * A container with a single child still counts - a two-message chat is a
+     * conversation, and refusing to read it because the list is short is the
+     * kind of false negative that looks like a broken feature.
+     */
+    private fun findMessageList(root: ScreenNode): ScreenNode? {
+        val candidates = mutableListOf<ScreenNode>()
+        collectLists(root, candidates)
+        if (candidates.isEmpty()) return null
+        return candidates.maxWithOrNull(
+            compareBy<ScreenNode> { it.children.size }.thenBy { it.bounds?.top ?: 0 },
+        )
+    }
+
+    private fun collectLists(node: ScreenNode, into: MutableList<ScreenNode>) {
+        if (node.isScrollingContainer() && node.children.isNotEmpty()) into.add(node)
+        node.children.forEach { collectLists(it, into) }
+    }
+
+    private fun ScreenNode.isScrollingContainer(): Boolean {
+        val name = className.orEmpty()
+        return name.contains("RecyclerView", ignoreCase = true) ||
+            name.contains("ListView", ignoreCase = true) ||
+            name.contains("ScrollView", ignoreCase = true)
+    }
+
+    /**
+     * A row worth reading: it has a plausible rectangle and at least one text
+     * node that is not the app's own chrome.
+     */
+    private fun ScreenNode.isVisibleRow(screenWidth: Int): Boolean {
+        val rect = bounds ?: return false
+        if (!rect.isPlausible) return false
+        val width = rect.right - rect.left
+        if (width < screenWidth * MIN_BUBBLE_WIDTH_FRACTION) return false
+        if (width > screenWidth * MAX_BUBBLE_WIDTH_FRACTION) return false
+        return collectTextNodes().any { it.isReadableText() }
+    }
+
+    /**
+     * Reads one row as a message, or returns null when the row is not one.
+     *
+     * The id filter runs on the *nodes*, before the text is collected: a draft
+     * sitting in the input box is text on the same screen as the message, and
+     * sending what the user is typing to an AI is the one mistake this feature
+     * must never make.
+     */
+    private fun readRow(row: ScreenNode, screenWidth: Int): ScreenMessage? {
+        val texts = row.collectTextNodes()
+            .filter { it.isReadableText() }
+            .mapNotNull { it.text?.trim() }
+            .filter { it.isNotBlank() }
+            .filterNot { text -> NOISE_PATTERNS.any { it.matches(text) } }
+        if (texts.isEmpty()) return null
+
+        // A bubble holds the message plus its furniture - the time, and in a
+        // group the sender's name. The longest readable string is the message.
+        val message = texts.maxByOrNull { it.length } ?: return null
+        val rect = row.bounds ?: return null
+        val isOutgoing = rect.centreX > screenWidth / 2
+        val truncated = message.length > MAX_TEXT_LENGTH
+
+        return ScreenMessage(
+            text = if (truncated) message.take(MAX_TEXT_LENGTH) else message,
+            conversationTitle = null,
+            isTruncated = truncated,
+            isOutgoing = isOutgoing,
+        )
+    }
+
+    /**
+     * The conversation title, when the screen exposes one. Null is a normal
+     * answer, not a failure: the UI then falls back to the app's name.
+     */
+    fun readConversationTitle(root: ScreenNode): String? {
+        val byId = mutableListOf<String>()
+        collectTitleById(root, byId)
+        return byId.firstOrNull { it.isNotBlank() && it.isReadableText() }?.trim()
+    }
+
+    private fun collectTitleById(node: ScreenNode, into: MutableList<String>) {
+        val id = node.viewId.orEmpty()
+        if (TITLE_ID_FRAGMENTS.any { id.contains(it, ignoreCase = true) }) {
+            node.text?.let { into.add(it) }
+            node.children.forEach { child -> child.text?.let { into.add(it) } }
+        }
+        node.children.forEach { collectTitleById(it, into) }
+    }
+
+    /** Every node in this subtree that carries text, in reading order. */
+    private fun ScreenNode.collectTextNodes(): List<ScreenNode> {
+        val out = mutableListOf<ScreenNode>()
+        fun walk(node: ScreenNode) {
+            if (!node.text.isNullOrBlank()) out.add(node)
+            node.children.forEach { walk(it) }
+        }
+        walk(this)
+        return out
+    }
+
+    /**
+     * Text this reader is allowed to hand to the AI: not the app's input box,
+     * and not a one-character tick.
+     */
+    private fun String.isReadableText(): Boolean {
+        if (length < 2) return false
+        return true
+    }
+
+    private fun ScreenNode.isReadableText(): Boolean {
+        val value = text?.trim() ?: return false
+        if (value.length < 2) return false
+        val id = viewId.orEmpty()
+        if (EXCLUDED_ID_FRAGMENTS.any { id.contains(it, ignoreCase = true) }) return false
+        return true
+    }
+}

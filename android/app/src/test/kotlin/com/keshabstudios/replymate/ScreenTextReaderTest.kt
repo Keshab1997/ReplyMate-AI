@@ -1,0 +1,206 @@
+package com.keshabstudios.replymate
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * The one part of screen reading that can be proven without a phone.
+ *
+ * `ScreenTextReader` takes a [ScreenNode] tree, so these tests build the same
+ * tree WhatsApp hands an accessibility service - a RecyclerView of bubbles,
+ * each with a message, a time and a rectangle - and assert what the reader
+ * concludes from it. No Android classes are constructed here, which is why
+ * this runs on a plain JVM.
+ */
+class ScreenTextReaderTest {
+
+    /** A node built from data, standing in for `AccessibilityNodeInfo`. */
+    private class FakeNode(
+        override val text: String? = null,
+        override val viewId: String? = null,
+        override val className: String? = null,
+        override val bounds: ScreenRect? = null,
+        override val children: List<ScreenNode> = emptyList(),
+    ) : ScreenNode
+
+    private companion object {
+        const val SCREEN_WIDTH = 1080
+
+        /** An incoming bubble: left-aligned, 70% of the screen wide. */
+        fun incomingBubble(message: String, top: Int = 400): ScreenNode =
+            FakeNode(
+                className = "android.widget.FrameLayout",
+                bounds = ScreenRect(40, top, 760, top + 120),
+                children = listOf(
+                    FakeNode(text = message, className = "android.widget.TextView"),
+                    FakeNode(text = "10:42", className = "android.widget.TextView"),
+                ),
+            )
+
+        /** An outgoing bubble: right-aligned, same size. */
+        fun outgoingBubble(message: String, top: Int = 400): ScreenNode =
+            FakeNode(
+                className = "android.widget.FrameLayout",
+                bounds = ScreenRect(320, top, 1040, top + 120),
+                children = listOf(
+                    FakeNode(text = message, className = "android.widget.TextView"),
+                    FakeNode(text = "10:43", className = "android.widget.TextView"),
+                ),
+            )
+
+        fun chatScreen(vararg rows: ScreenNode, title: String? = "Riya"): ScreenNode =
+            FakeNode(
+                className = "android.widget.FrameLayout",
+                children = listOf(
+                    FakeNode(
+                        viewId = "com.whatsapp:id/action_bar_root",
+                        className = "android.widget.LinearLayout",
+                        children = listOf(
+                            FakeNode(
+                                viewId = "com.whatsapp:id/conversation_contact_name",
+                                text = title,
+                                className = "android.widget.TextView",
+                            ),
+                        ),
+                    ),
+                    FakeNode(
+                        className = "androidx.recyclerview.widget.RecyclerView",
+                        children = rows.toList(),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun readsTheNewestIncomingMessage() {
+        val screen = chatScreen(
+            incomingBubble("kalke meeting e ashbe?", top = 200),
+            incomingBubble("haan, ashchi", top = 340),
+        )
+
+        val message = ScreenTextReader.readNewestMessage(screen, SCREEN_WIDTH)
+
+        assertEquals("haan, ashchi", message?.text)
+        assertFalse(message!!.isOutgoing)
+        assertFalse(message.isTruncated)
+    }
+
+    @Test
+    fun readsTheConversationTitle() {
+        val screen = chatScreen(incomingBubble("hello"))
+
+        assertEquals("Riya", ScreenTextReader.readConversationTitle(screen))
+    }
+
+    @Test
+    fun skipsDateHeadersAndTypingIndicators() {
+        val screen = chatScreen(
+            incomingBubble("first message", top = 200),
+            FakeNode(
+                className = "android.widget.TextView",
+                text = "TODAY",
+                bounds = ScreenRect(400, 340, 680, 380),
+            ),
+            FakeNode(
+                className = "android.widget.TextView",
+                text = "typing…",
+                bounds = ScreenRect(40, 400, 760, 440),
+            ),
+        )
+
+        val message = ScreenTextReader.readNewestMessage(screen, SCREEN_WIDTH)
+
+        assertEquals("first message", message?.text)
+    }
+
+    @Test
+    fun reportsTheUsersOwnMessageAsOutgoing() {
+        val screen = chatScreen(
+            incomingBubble("ashbe?", top = 200),
+            outgoingBubble("ashchi", top = 340),
+        )
+
+        val message = ScreenTextReader.readNewestMessage(screen, SCREEN_WIDTH)
+
+        // The reader reports what it saw and flags whose it is; the service is
+        // what decides that a message the user just sent is not a message the
+        // user wants to answer. Both facts belong on the record.
+        assertEquals("ashchi", message?.text)
+        assertTrue(message!!.isOutgoing)
+    }
+
+    @Test
+    fun neverCapturesWhatTheUserIsTyping() {
+        val screen = chatScreen(
+            FakeNode(
+                className = "android.widget.FrameLayout",
+                bounds = ScreenRect(40, 340, 760, 460),
+                children = listOf(
+                    FakeNode(text = "party te ashbe?", className = "android.widget.TextView"),
+                    FakeNode(
+                        text = "ami ashbo na bole dibo",
+                        viewId = "com.whatsapp:id/entry",
+                        className = "android.widget.EditText",
+                    ),
+                ),
+            ),
+        )
+
+        val message = ScreenTextReader.readNewestMessage(screen, SCREEN_WIDTH)
+
+        assertEquals("party te ashbe?", message?.text)
+    }
+
+    @Test
+    fun marksVeryLongTextAsTruncated() {
+        val long = "a".repeat(ScreenTextReader.MAX_TEXT_LENGTH + 500)
+        val screen = chatScreen(incomingBubble(long))
+
+        val message = ScreenTextReader.readNewestMessage(screen, SCREEN_WIDTH)
+
+        assertTrue(message!!.isTruncated)
+        assertEquals(ScreenTextReader.MAX_TEXT_LENGTH, message.text.length)
+    }
+
+    @Test
+    fun returnsNullWhenThereIsNoConversationOnScreen() {
+        val home = FakeNode(
+            className = "android.widget.FrameLayout",
+            children = listOf(
+                FakeNode(
+                    className = "androidx.recyclerview.widget.RecyclerView",
+                    children = listOf(
+                        FakeNode(
+                            text = "Settings",
+                            className = "android.widget.TextView",
+                            bounds = ScreenRect(0, 100, SCREEN_WIDTH, 180),
+                        ),
+                    ),
+                ),
+            ),
+        )
+
+        // One row is not a conversation, and a menu row is not a message we
+        // would hand to an AI.
+        assertNull(ScreenTextReader.readNewestMessage(home, SCREEN_WIDTH))
+    }
+
+    @Test
+    fun refusesToGuessWithoutBounds() {
+        val screen = chatScreen(
+            FakeNode(
+                className = "android.widget.FrameLayout",
+                children = listOf(
+                    FakeNode(text = "no rectangle on this one", className = "android.widget.TextView"),
+                ),
+            ),
+        )
+
+        // No rectangle means we cannot tell incoming from outgoing, so we say
+        // nothing rather than guess.
+        assertNull(ScreenTextReader.readNewestMessage(screen, SCREEN_WIDTH))
+    }
+}
