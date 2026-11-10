@@ -18,4 +18,10 @@
     <!-- %1$s = the messaging app's label. Never the message. -->
     <string name="overlay_fallback_title">New message from %1$s</string>
     <string name="overlay_fallback_text">Draft a reply</string>
+
+    <!-- Screen reader. Android shows these on its own accessibility screen, so
+         they are written for someone who has not read our docs: what is read,
+         what is never sent, and what is never kept. -->
+    <string name="screen_reader_summary">Draft replies from the conversation you already have open.</string>
+    <string name="screen_reader_description">Reads the newest message shown on the screen of the messaging apps you choose, so ReplyMate can draft a reply even when the app posts no notification because you are already in the chat. ReplyMate never sends anything, never types into another app, and keeps nothing: the text lives in memory only and is gone when the app closes. You can turn this off at any time.</string>
 </resources>

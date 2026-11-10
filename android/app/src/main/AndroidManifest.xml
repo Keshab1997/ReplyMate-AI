@@ -83,6 +83,25 @@
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize" />
 
+        <!-- Entry point 2: the screen itself. Off by default, allowlist-bound
+             and read-only - see docs/SCREEN_READING.md. The binding permission
+             is Android's own; the user grants access in Settings, and only
+             after the in-app disclosure explained what it means. Android shows
+             its own warning for any service that can read window content, and
+             this one claims nothing it is not: no isAccessibilityTool, no
+             gestures, no actions on the user's behalf. -->
+        <service
+            android:name=".ReplyMateScreenReaderService"
+            android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/screen_reader_service_config" />
+        </service>
+
         <!-- The bubble itself: a tiny WindowManager view kept alive by a
              foreground service. `specialUse` is declared honestly (and must be
              declared in Play Console) because no narrower FGS type covers

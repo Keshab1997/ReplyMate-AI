@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Configuration for ReplyMate's screen reader (docs/SCREEN_READING.md).
+
+  Two lines here carry the whole privacy contract:
+
+  canRetrieveWindowContent is what lets the service read text at all. Without
+  it, getSource() returns null and the feature silently does nothing - which is
+  the safer failure.
+
+  isAccessibilityTool is deliberately absent. It is reserved for real
+  assistive technology - screen readers, switch access, voice control - and
+  ReplyMate is not one. Claiming it would be a lie to the system that is
+  tightening exactly this rule (Android 16+ Advanced Protection refuses
+  accessibility access to apps that do not declare it), so the honest
+  consequence is accepted instead: on a device with Advanced Protection Mode
+  on, this service will not run.
+
+  No packageNames filter: the allowlist is the user's choice, made in the app,
+  and it changes without a reinstall - so it belongs in the app's preferences
+  (AppAllowlist), not compiled into this file.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/screen_reader_description"
+    android:summary="@string/screen_reader_summary"
+    android:accessibilityEventTypes="typeWindowContentChanged|typeWindowStateChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagIncludeNotImportantViews|flagRetrieveInteractiveWindows"
+    android:canRetrieveWindowContent="true"
+    android:notificationTimeout="300"
+    android:settingsActivity="com.keshabstudios.replymate.MainActivity" />
