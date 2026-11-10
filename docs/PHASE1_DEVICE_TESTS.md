@@ -110,6 +110,8 @@ docs and the reader get changed to match the device, not the other way round.
 | 32 | Open a chat in a second allowed app (Telegram or Messenger) | It is read too — or, if its layout defeats the heuristics, nothing happens and nothing is invented | _pending_ |
 | 33 | Put a device with Advanced Protection Mode on and try to grant access | Android refuses the grant; the settings screen says nothing is being read | _pending_ |
 | 34 | Generate a reply from a screen-read message, then inspect storage | A reply is drafted; quick reply is never offered; no message text on disk | _pending_ |
+| 35 | With the switch on, scroll back through a long chat, then stop on an old message | No bubble appears for any message you scrolled past, and none for the one you stopped on | _pending_ |
+| 36 | Scroll back, then receive a new message | The new message is still read - the gate closes for the scroll, not for good | _pending_ |
 
 ## Reading the results
 

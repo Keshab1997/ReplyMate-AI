@@ -18,9 +18,12 @@ import android.view.accessibility.AccessibilityEvent
  *  - **Off by default**, and only ever on for the apps on the user's allowlist
  *    ([AppAllowlist]). Screen reading is a bigger ask than notification access
  *    and it is not switched on behind the user's back.
- *  - **Nothing is stored.** The last message text per package lives in a map in
- *    this process's heap and dies with it: no SharedPreferences, no file, no
- *    database, no log (docs/PRIVACY_AND_PERMISSIONS.md).
+ *  - **Nothing is stored.** A short, bounded memory of recent texts per package
+ *    lives in this process's heap and dies with it: no SharedPreferences, no
+ *    file, no database, no log (docs/PRIVACY_AND_PERMISSIONS.md).
+ *  - **Scrolling is not an arrival.** Reading the newest visible bubble would
+ *    otherwise report an old message every time the user scrolled back through
+ *    a chat, so [ScreenReadingGate] decides what is actually new.
  *  - **Nothing is sent on the user's behalf.** A screen-read message carries
  *    `hasReplyAction = false`, always - this service types nothing and sends
  *    nothing, in any app, ever.
@@ -60,17 +63,21 @@ class ReplyMateScreenReaderService : AccessibilityService() {
     }
 
     /**
-     * The last message read per package. Memory only: it exists so an unchanged
-     * screen is not re-drafted on every repaint, and it is wiped when the
-     * service dies.
+     * Decides whether what the reader found is *new*.
+     *
+     * The reader reports the newest bubble it can see, and while the user
+     * scrolls back through a chat that bubble is an old message - same text,
+     * same shape, nothing on screen saying "this arrived two days ago". The
+     * gate is what keeps a scroll from looking like an arrival
+     * (ScreenReadingGate, and its tests).
      */
-    private val lastRead = HashMap<String, String>()
+    private val gate = ScreenReadingGate()
 
     private var lastScanAtMillis = 0L
 
     override fun onServiceConnected() {
         instance = this
-        lastRead.clear()
+        gate.clear()
     }
 
     override fun onInterrupt() {
@@ -79,26 +86,33 @@ class ReplyMateScreenReaderService : AccessibilityService() {
 
     override fun onDestroy() {
         instance = null
-        lastRead.clear()
+        gate.clear()
         super.onDestroy()
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val source = event ?: return
         if (!isEnabledByUser(this)) return
+        val now = SystemClock.elapsedRealtime()
         when (source.eventType) {
             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED,
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
             -> Unit
+            AccessibilityEvent.TYPE_VIEW_SCROLLED -> {
+                // Recorded even though no scan follows it: a scroll teaches the
+                // gate every message it passed, so that none of them fires
+                // later when the user stops on one.
+                gate.noteScroll(now)
+                return
+            }
             else -> return
         }
         val packageName = source.packageName?.toString() ?: return
         if (!AppAllowlist.contains(this, packageName)) return
 
-        val now = SystemClock.elapsedRealtime()
         if (now - lastScanAtMillis < SCAN_INTERVAL_MILLIS) return
         lastScanAtMillis = now
-        scan(packageName)
+        scan(packageName, now)
     }
 
     /**
@@ -106,7 +120,7 @@ class ReplyMateScreenReaderService : AccessibilityService() {
      * has not answered yet, hands it to the same pipeline a notification would
      * have used.
      */
-    private fun scan(packageName: String) {
+    private fun scan(packageName: String, nowMillis: Long) {
         val root = rootInActiveWindow ?: return
         try {
             // The active window may belong to another app entirely - a toast, a
@@ -122,8 +136,8 @@ class ReplyMateScreenReaderService : AccessibilityService() {
             // The newest message is the user's own, so they have already
             // answered; there is nothing here for us to draft.
             if (message.isOutgoing) return
-            if (lastRead[packageName] == message.text) return
-            lastRead[packageName] = message.text
+            // New to us, and not something the user just scrolled past.
+            if (!gate.shouldEmit(packageName, message.text, nowMillis)) return
 
             val parsed = mapOf<String, Any?>(
                 "packageName" to packageName,

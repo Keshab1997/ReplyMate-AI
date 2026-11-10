@@ -105,6 +105,9 @@ its heuristics are proven on a plain JVM (`ScreenTextReaderTest.kt`, 8 tests).
 6. The longest readable string in that row is taken as the message — a bubble
    also holds its timestamp, and a group bubble holds the sender's name.
 7. Text longer than 2000 characters is cut and flagged `isTruncated`.
+8. `ScreenReadingGate` then decides whether that text is **new**: anything seen
+   before, for that package, is dropped - and everything seen while the user is
+   scrolling is remembered but never emitted.
 
 **These are heuristics, and the code says so.** Messaging apps give message
 bubbles no stable resource id, so this reads shape. When the shape cannot be
@@ -113,6 +116,11 @@ guessing. A message we cannot attribute is a message we do not invent.
 
 ### Known limitations, stated rather than hidden
 
+- **A message you scrolled back to will not raise a bubble.** The gate
+  remembers the texts a scroll passed, which is what stops an old message
+  looking like an arrival; the price is that scrolling back down to one does
+  not re-offer it either. Calm was chosen over completeness on purpose - a
+  bubble that fires every time you scroll is a bubble you switch off.
 - **A messaging app update can break it.** There is no contract for bubble
   layout. When the shape changes, the reader stops finding messages; it fails
   by saying nothing, never by inventing text.
@@ -160,6 +168,7 @@ question a privacy-first assistant has to answer before it is asked.
 | `ScreenTextReader.kt` | The heuristics. Pure, no Android, JVM-tested. |
 | `AndroidScreenNode.kt` | The only adapter to `AccessibilityNodeInfo`. |
 | `ReplyMateScreenReaderService.kt` | The service: throttle, allowlist, dedupe, hand-off. |
+| `ScreenReadingGate.kt` | "Is this text new?" - keeps a scroll from looking like an arrival. Pure, JVM-tested. |
 | `AppAllowlist.kt` | The user's app selection, read the same way by both sources. |
 | `OverlayRouter.kt` | Bubble-or-fallback, one decision for both sources. |
 | `screen_reading_provider.dart` | The switch and the availability read. |
