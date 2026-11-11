@@ -51,251 +51,276 @@ class HomeScreen extends ConsumerWidget {
         ),
         child: SafeArea(
           bottom: !embedded,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(
-              AppTheme.spaceMd,
-              AppTheme.spaceSm,
-              AppTheme.spaceMd,
-              AppTheme.spaceXl,
-            ),
-            children: [
-              Row(
-                children: [
-                  Text(
-                    strings.appName,
-                    style: theme.appBarTheme.titleTextStyle,
-                  ),
-                  const Spacer(),
-                  IconButton.filledTonal(
-                    tooltip: strings.settings,
-                    onPressed: () => _push(context, const SettingsScreen()),
-                    icon: const Icon(Icons.settings_outlined, size: 20),
-                    style: IconButton.styleFrom(
-                      backgroundColor: isDark
-                          ? Colors.white.withValues(alpha: 0.07)
-                          : Colors.white,
-                      side: BorderSide(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.10)
-                            : theme.colorScheme.outlineVariant,
-                      ),
+          child: AppSurfaces.centered(
+            ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spaceMd,
+                AppTheme.spaceSm,
+                AppTheme.spaceMd,
+                AppTheme.spaceXl,
+              ),
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      strings.appName,
+                      style: theme.appBarTheme.titleTextStyle,
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppTheme.spaceMd),
-
-              // The helper. It is the app's face, so it gets the middle of the
-              // screen at the top - not a 40dp icon in a list row.
-              MascotFace(
-                size: 96,
-                mood: permissionEnabled ? MascotMood.idle : MascotMood.alert,
-              ),
-              const SizedBox(height: AppTheme.spaceSm),
-              Text(
-                permissionEnabled
-                    ? strings.readyTitle
-                    : strings.almostThereTitle,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.headlineSmall,
-              ),
-              const SizedBox(height: AppTheme.spaceXs),
-              Text(
-                permissionEnabled
-                    ? strings.readySubtitle
-                    : strings.almostThereSubtitle,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: AppTheme.spaceMd),
-
-              // The one thing that actually blocks the feature goes first, in
-              // full, and only while it is true. A "granted" banner the user
-              // cannot act on is just decoration.
-              if (!permissionEnabled) ...[
-                PermissionStatusCard(
-                  enabled: permissionEnabled,
-                  onManage: () => _push(context, const PermissionSetupScreen()),
-                ),
-                const SizedBox(height: AppTheme.spaceMd),
-              ],
-
-              // Guarded status in one row of pills: helper state and what it
-              // is watching. Tapping any of it goes to the screen that owns it.
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppTheme.spaceMd - 2),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          _StatusDot(
-                            ok: permissionEnabled,
-                            label: permissionEnabled ? 'live' : 'off',
-                          ),
-                          const SizedBox(width: AppTheme.spaceSm),
-                          Expanded(
-                            child: Text(
-                              permissionEnabled
-                                  ? strings.listeningTitle
-                                  : strings.notListeningTitle,
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () =>
-                                _push(context, const PermissionSetupScreen()),
-                            child: Text(
-                              permissionEnabled
-                                  ? strings.manage
-                                  : strings.enable,
-                            ),
-                          ),
-                        ],
+                    const Spacer(),
+                    IconButton.filledTonal(
+                      tooltip: strings.settings,
+                      onPressed: () => _push(context, const SettingsScreen()),
+                      icon: const Icon(Icons.settings_outlined, size: 20),
+                      style: IconButton.styleFrom(
+                        backgroundColor: isDark
+                            ? Colors.white.withValues(alpha: 0.07)
+                            : Colors.white,
+                        side: BorderSide(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.10)
+                              : theme.colorScheme.outlineVariant,
+                        ),
                       ),
-                      const SizedBox(height: AppTheme.spaceSm),
-                      Wrap(
-                        spacing: AppTheme.spaceSm,
-                        runSpacing: AppTheme.spaceSm,
-                        children: [
-                          for (final packageName in selectedApps)
-                            AppSurfaces.pill(
-                              context,
-                              child: Text(
-                                labelForPackage(candidates, packageName),
-                                style: const TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              onTap: () =>
-                                  _push(context, const AppSelectionScreen()),
-                            ),
-                          if (selectedApps.isEmpty)
-                            AppSurfaces.pill(
-                              context,
-                              accent: true,
-                              onTap: () =>
-                                  _push(context, const AppSelectionScreen()),
-                              child: Text(
-                                strings.chooseApps,
-                                style: const TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppTheme.spaceMd),
-
-              // The reply style is decided in Settings and applied silently;
-              // this row is a mirror, not a question (the panel taught us that
-              // asking again is noise).
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppTheme.spaceMd - 2),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.tune_rounded,
-                            size: 17,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: AppTheme.spaceSm),
-                          Expanded(
-                            child: Text(
-                              strings.replyStyleTitle,
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () =>
-                                _push(context, const SettingsScreen()),
-                            child: Text(strings.change),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppTheme.spaceSm),
-                      Wrap(
-                        spacing: AppTheme.spaceSm,
-                        runSpacing: AppTheme.spaceSm,
-                        children: [
-                          AppSurfaces.pill(
-                            context,
-                            accent: true,
-                            child: Text(
-                              preferences.language.label,
-                              style: const TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          AppSurfaces.pill(
-                            context,
-                            child: Text(
-                              preferences.tone.label,
-                              style: const TextStyle(fontSize: 11.5),
-                            ),
-                          ),
-                          AppSurfaces.pill(
-                            context,
-                            child: Text(
-                              preferences.length.label,
-                              style: const TextStyle(fontSize: 11.5),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppTheme.spaceLg),
-
-              // The one big action.
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
-                  gradient: AppTheme.primaryGradient,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.brand.withValues(alpha: 0.45),
-                      blurRadius: 26,
-                      offset: const Offset(0, 12),
                     ),
                   ],
                 ),
-                child: FilledButton.icon(
-                  // Not a push: the Reply tab already is this screen, and a
-                  // second copy stacked on top of it is how a tab bar ends up
-                  // with a back button.
+                const SizedBox(height: AppTheme.spaceMd),
+
+                // The helper is the product's face. A single tinted hero gives
+                // it presence without turning the top of Home into decoration.
+                Card(
+                  color: AppTheme.brand.withValues(
+                    alpha: isDark ? 0.13 : 0.065,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppTheme.spaceLg - 4),
+                    child: Column(
+                      children: [
+                        AppSurfaces.pill(
+                          context,
+                          accent: true,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _StatusDot(
+                                ok: permissionEnabled,
+                                label: permissionEnabled ? 'live' : 'off',
+                              ),
+                              const SizedBox(width: 7),
+                              Text(
+                                permissionEnabled
+                                    ? 'READY TO HELP'
+                                    : 'SETUP NEEDED',
+                                style: const TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.spaceMd),
+                        MascotFace(
+                          size: 88,
+                          mood: permissionEnabled
+                              ? MascotMood.idle
+                              : MascotMood.alert,
+                        ),
+                        const SizedBox(height: AppTheme.spaceMd - 4),
+                        Text(
+                          permissionEnabled
+                              ? strings.readyTitle
+                              : strings.almostThereTitle,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.headlineSmall,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          permissionEnabled
+                              ? strings.readySubtitle
+                              : strings.almostThereSubtitle,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 13,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spaceMd),
+
+                // The one thing that actually blocks the feature goes first, in
+                // full, and only while it is true. A "granted" banner the user
+                // cannot act on is just decoration.
+                if (!permissionEnabled) ...[
+                  PermissionStatusCard(
+                    enabled: permissionEnabled,
+                    onManage: () =>
+                        _push(context, const PermissionSetupScreen()),
+                  ),
+                  const SizedBox(height: AppTheme.spaceMd),
+                ],
+
+                // Guarded status in one row of pills: helper state and what it
+                // is watching. Tapping any of it goes to the screen that owns it.
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppTheme.spaceMd - 2),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            _StatusDot(
+                              ok: permissionEnabled,
+                              label: permissionEnabled ? 'live' : 'off',
+                            ),
+                            const SizedBox(width: AppTheme.spaceSm),
+                            Expanded(
+                              child: Text(
+                                permissionEnabled
+                                    ? strings.listeningTitle
+                                    : strings.notListeningTitle,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () =>
+                                  _push(context, const PermissionSetupScreen()),
+                              child: Text(
+                                permissionEnabled
+                                    ? strings.manage
+                                    : strings.enable,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppTheme.spaceSm),
+                        Wrap(
+                          spacing: AppTheme.spaceSm,
+                          runSpacing: AppTheme.spaceSm,
+                          children: [
+                            for (final packageName in selectedApps)
+                              AppSurfaces.pill(
+                                context,
+                                child: Text(
+                                  labelForPackage(candidates, packageName),
+                                  style: const TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                onTap: () =>
+                                    _push(context, const AppSelectionScreen()),
+                              ),
+                            if (selectedApps.isEmpty)
+                              AppSurfaces.pill(
+                                context,
+                                accent: true,
+                                onTap: () =>
+                                    _push(context, const AppSelectionScreen()),
+                                child: Text(
+                                  strings.chooseApps,
+                                  style: const TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spaceMd),
+
+                // The reply style is decided in Settings and applied silently;
+                // this row is a mirror, not a question (the panel taught us that
+                // asking again is noise).
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppTheme.spaceMd - 2),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.tune_rounded,
+                              size: 17,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: AppTheme.spaceSm),
+                            Expanded(
+                              child: Text(
+                                strings.replyStyleTitle,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () =>
+                                  _push(context, const SettingsScreen()),
+                              child: Text(strings.change),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppTheme.spaceSm),
+                        Wrap(
+                          spacing: AppTheme.spaceSm,
+                          runSpacing: AppTheme.spaceSm,
+                          children: [
+                            AppSurfaces.pill(
+                              context,
+                              accent: true,
+                              child: Text(
+                                preferences.language.label,
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            AppSurfaces.pill(
+                              context,
+                              child: Text(
+                                preferences.tone.label,
+                                style: const TextStyle(fontSize: 11.5),
+                              ),
+                            ),
+                            AppSurfaces.pill(
+                              context,
+                              child: Text(
+                                preferences.length.label,
+                                style: const TextStyle(fontSize: 11.5),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spaceLg),
+
+                // The one big action. Not a push: the Reply tab already owns
+                // the composer, so a second copy never lands on the back stack.
+                AppSurfaces.primaryAction(
+                  context,
+                  label: strings.generateAReply,
                   onPressed: () =>
                       ref.read(appTabProvider.notifier).select(AppTab.reply),
                   icon: const Icon(Icons.auto_awesome, size: 19),
-                  label: Text(strings.generateAReply),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

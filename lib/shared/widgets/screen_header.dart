@@ -29,19 +29,23 @@ class ScreenHeader extends StatelessWidget {
     return Row(
       children: [
         if (showBack)
-          DecoratedBox(
+          Container(
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
               color: isDark
-                  ? Colors.white.withValues(alpha: 0.07)
-                  : Colors.white,
-              border: isDark
-                  ? Border.all(color: Colors.white.withValues(alpha: 0.10))
-                  : null,
+                  ? Colors.white.withValues(alpha: 0.065)
+                  : Colors.white.withValues(alpha: 0.9),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.10)
+                    : theme.colorScheme.outlineVariant.withValues(alpha: 0.75),
+              ),
             ),
-            child: const BackButton(color: AppTheme.brandBright),
+            child: BackButton(color: theme.colorScheme.primary),
           ),
-        if (showBack) const SizedBox(width: AppTheme.spaceSm),
+        if (showBack) const SizedBox(width: AppTheme.spaceMd - 4),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,7 +55,7 @@ class ScreenHeader extends StatelessWidget {
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: theme.appBarTheme.titleTextStyle?.copyWith(fontSize: 20),
+                style: theme.appBarTheme.titleTextStyle?.copyWith(fontSize: 21),
               ),
               if (subtitle != null)
                 Padding(
@@ -61,7 +65,7 @@ class ScreenHeader extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      fontSize: 10.5,
+                      fontSize: 12,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -69,7 +73,10 @@ class ScreenHeader extends StatelessWidget {
             ],
           ),
         ),
-        ?trailing,
+        if (trailing != null) ...[
+          const SizedBox(width: AppTheme.spaceMd - 4),
+          trailing!,
+        ],
       ],
     );
   }

@@ -62,102 +62,105 @@ class AdminGateScreen extends ConsumerWidget {
           gradient: AppTheme.backgroundGradient(theme.brightness),
         ),
         child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(
-              AppTheme.spaceMd,
-              AppTheme.spaceSm,
-              AppTheme.spaceMd,
-              AppTheme.spaceXl,
-            ),
-            children: [
-              const ScreenHeader(
-                title: 'Admin',
-                subtitle: 'AI key pool · allowlisted accounts only',
+          child: AppSurfaces.centered(
+            ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spaceMd,
+                AppTheme.spaceSm,
+                AppTheme.spaceMd,
+                AppTheme.spaceXl,
               ),
-              const SizedBox(height: AppTheme.spaceMd),
-              if (!firebaseReady)
-                const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(AppTheme.spaceMd),
-                    child: Text(
-                      'Firebase is not configured on this install, so the '
-                      'admin section is unavailable. Drop google-services.json '
-                      'into android/app/ and rebuild - nothing else changes.',
-                    ),
-                  ),
-                )
-              else if (user == null) ...[
-                const Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(AppTheme.spaceMd),
-                    child: Text(
-                      'The admin section manages the AI key pool. Sign in with '
-                      'a Google account that is on the admin allowlist '
-                      '(Firestore: admin_config/access).',
-                    ),
-                  ),
+              children: [
+                const ScreenHeader(
+                  title: 'Admin',
+                  subtitle: 'AI key pool · allowlisted accounts only',
                 ),
                 const SizedBox(height: AppTheme.spaceMd),
-                FilledButton.icon(
-                  onPressed: () async {
-                    final problem = await _signInWithGoogle();
-                    if (problem != null && context.mounted) {
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(SnackBar(content: Text(problem)));
-                    }
-                  },
-                  icon: const Icon(Icons.login),
-                  label: const Text('Sign in with Google'),
-                ),
-              ] else ...[
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppTheme.spaceMd),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Signed in as ${user.email ?? user.uid}',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: AppTheme.spaceSm),
-                        adminAccess.when(
-                          data: (isAdmin) => isAdmin
-                              ? const Text(
-                                  'This account is on the admin allowlist.',
-                                )
-                              : const Text(
-                                  'This account is NOT on the admin allowlist. '
-                                  'Ask an admin to add its email or uid to '
-                                  'admin_config/access in Firestore.',
-                                ),
-                          loading: () => const Text('Checking admin access…'),
-                          error: (_, _) =>
-                              const Text('Could not read the admin allowlist.'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppTheme.spaceMd),
-                if (adminAccess.value == true)
-                  FilledButton.icon(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const AdminApiKeysScreen(),
+                if (!firebaseReady)
+                  const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(AppTheme.spaceMd),
+                      child: Text(
+                        'Firebase is not configured on this install, so the '
+                        'admin section is unavailable. Drop google-services.json '
+                        'into android/app/ and rebuild - nothing else changes.',
                       ),
                     ),
-                    icon: const Icon(Icons.key_outlined),
-                    label: const Text('Open API key manager'),
+                  )
+                else if (user == null) ...[
+                  const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(AppTheme.spaceMd),
+                      child: Text(
+                        'The admin section manages the AI key pool. Sign in with '
+                        'a Google account that is on the admin allowlist '
+                        '(Firestore: admin_config/access).',
+                      ),
+                    ),
                   ),
-                const SizedBox(height: AppTheme.spaceSm),
-                OutlinedButton.icon(
-                  onPressed: () => _signOut(),
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Sign out'),
-                ),
+                  const SizedBox(height: AppTheme.spaceMd),
+                  FilledButton.icon(
+                    onPressed: () async {
+                      final problem = await _signInWithGoogle();
+                      if (problem != null && context.mounted) {
+                        ScaffoldMessenger.of(context)
+                            .showSnackBar(SnackBar(content: Text(problem)));
+                      }
+                    },
+                    icon: const Icon(Icons.login),
+                    label: const Text('Sign in with Google'),
+                  ),
+                ] else ...[
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppTheme.spaceMd),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Signed in as ${user.email ?? user.uid}',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: AppTheme.spaceSm),
+                          adminAccess.when(
+                            data: (isAdmin) => isAdmin
+                                ? const Text(
+                                    'This account is on the admin allowlist.',
+                                  )
+                                : const Text(
+                                    'This account is NOT on the admin allowlist. '
+                                    'Ask an admin to add its email or uid to '
+                                    'admin_config/access in Firestore.',
+                                  ),
+                            loading: () => const Text('Checking admin access…'),
+                            error: (_, _) => const Text(
+                              'Could not read the admin allowlist.',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spaceMd),
+                  if (adminAccess.value == true)
+                    FilledButton.icon(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const AdminApiKeysScreen(),
+                        ),
+                      ),
+                      icon: const Icon(Icons.key_outlined),
+                      label: const Text('Open API key manager'),
+                    ),
+                  const SizedBox(height: AppTheme.spaceSm),
+                  OutlinedButton.icon(
+                    onPressed: () => _signOut(),
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Sign out'),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

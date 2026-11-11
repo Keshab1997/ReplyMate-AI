@@ -8,13 +8,14 @@ in a browser; it is self-contained). The bubble's own reference is
 
 One 3D face (`design/bubble_mascot_bubble.png`) is the app's whole personality.
 It is not decoration bolted onto a UI; it is the thing the user recognises, so
-it appears in exactly four places and nowhere else:
+it appears only in these familiar places:
 
 | Where | Size | Why |
 | --- | --- | --- |
 | Floating bubble (`OverlayBubbleService`) | 56 dp | the product's front door |
-| Home hero (`MascotFace`) | 96 dp | "your helper" — the first thing on screen |
-| Settings header | 34 dp | continuity, not a second hero |
+| Home hero (`MascotFace`) | 88 dp | "your helper" — the first thing on screen |
+| Onboarding hero (`MascotFace`) | 88 dp | meet the character before any permission request |
+| Settings header | 44 dp | continuity, not a second hero |
 | Thinking / result states | 40–56 dp | same face, different mood |
 
 `MascotMood` (`lib/shared/widgets/mascot_face.dart`) is how the face reacts:
@@ -64,11 +65,16 @@ State is never colour alone: the dot always has a word next to it (`live` /
 
 ## 4. Shape and space
 
-- Cards `18 dp`, tiles `16 dp`, buttons `16 dp`, pills `9 dp`. Pills are for
+- Cards `20 dp`, tiles `16 dp`, buttons `16 dp`, pills `11 dp`. Pills are for
   values the app already decided (language, tone, length), never for questions.
 - Spacing scale is the same one the code already had: 4 / 8 / 16 / 24 / 32.
+- Content stays at most `680 dp` wide (`AppSurfaces.centered`), so tablets get
+  a readable column rather than edge-to-edge cards.
+- Body-small text starts at `12.5 dp`; important explanations do not use the
+  old 10–11 dp microcopy treatment.
 - One gradient (`AppTheme.primaryGradient`) for the primary action and nothing
-  else, so "the gradient" always means "press this".
+  else, so "the gradient" always means "press this". Disabled actions lose the
+  gradient and glow as well as their tap callback.
 
 ## 5. Screen rules
 
@@ -89,6 +95,10 @@ State is never colour alone: the dot always has a word next to it (`live` /
 The redesign landed in waves. Done: theme + tokens, the mascot, Home, the
 bubble panel, onboarding, suggestions (cards, BEST FIT badge, quoted message)
 and Settings (grouped sections, helper header, privacy promises as rows).
+The premium polish pass keeps that language while grouping onboarding's four
+promises into one surface, making its bottom action permanently reachable,
+and sharing the same gradient button, icon badge, responsive width and header
+across the main and inner screens.
 
 The composer moved too: message card first, one style card for the four axes,
 a quiet error strip instead of an error card, and the honest "sent only when you

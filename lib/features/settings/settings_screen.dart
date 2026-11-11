@@ -10,6 +10,7 @@ import '../../shared/widgets/choice_chips.dart';
 import '../../shared/widgets/mascot_face.dart';
 import '../admin/admin_gate_screen.dart';
 import '../../shared/widgets/permission_status_card.dart';
+import '../../shared/widgets/screen_header.dart';
 import '../app_selection/app_selection_screen.dart';
 import '../notifications/providers/notification_providers.dart';
 import '../overlay/providers/bubble_providers.dart';
@@ -195,7 +196,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     final strings = ref.watch(appStringsProvider);
     final appLanguage = ref.watch(appLanguageProvider);
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     Widget section(String label, Widget child) => Padding(
       padding: const EdgeInsets.only(top: AppTheme.spaceLg),
@@ -225,325 +225,260 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         ),
         child: SafeArea(
           bottom: !widget.embedded,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(
-              AppTheme.spaceMd,
-              AppTheme.spaceSm,
-              AppTheme.spaceMd,
-              AppTheme.spaceXl,
-            ),
-            children: [
-              Row(
-                children: [
-                  if (widget.embedded) const SizedBox(width: AppTheme.spaceXs),
-                  if (!widget.embedded)
-                    IconButton.filledTonal(
-                      tooltip: 'Back',
-                      onPressed: () => Navigator.of(context).maybePop(),
-                      icon: const Icon(Icons.arrow_back_rounded, size: 19),
-                      style: IconButton.styleFrom(
-                        backgroundColor: isDark
-                            ? Colors.white.withValues(alpha: 0.07)
-                            : Colors.white,
-                      ),
-                    ),
-                  const SizedBox(width: AppTheme.spaceSm),
-                  Text(
-                    'Settings',
-                    style: theme.appBarTheme.titleTextStyle?.copyWith(
-                      fontSize: 20,
-                    ),
-                  ),
-                ],
+          child: AppSurfaces.centered(
+            ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spaceMd,
+                AppTheme.spaceSm,
+                AppTheme.spaceMd,
+                AppTheme.spaceXl,
               ),
-              const SizedBox(height: AppTheme.spaceMd),
-
-              // The helper, small, with its state in words: the same face the
-              // bubble shows, so the settings screen and the bubble feel like
-              // one thing.
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppTheme.spaceMd - 2),
-                  child: Row(
-                    children: [
-                      MascotFace(
-                        size: 44,
-                        glow: false,
-                        animate: false,
-                        mood: bubbleEnabled
-                            ? MascotMood.happy
-                            : MascotMood.idle,
-                      ),
-                      const SizedBox(width: AppTheme.spaceMd - 4),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Your helper',
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              bubbleEnabled
-                                  ? 'Bubble on · waits over your chats'
-                                  : 'Bubble off · replies still work here',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                fontSize: 11,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Icon(
-                        bubbleEnabled
-                            ? Icons.bubble_chart_rounded
-                            : Icons.bubble_chart_outlined,
-                        size: 20,
-                        color: bubbleEnabled
-                            ? AppTheme.mint
-                            : theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ],
-                  ),
+              children: [
+                ScreenHeader(
+                  title: 'Settings',
+                  subtitle: 'Replies, permissions and privacy',
+                  showBack: !widget.embedded,
                 ),
-              ),
+                const SizedBox(height: AppTheme.spaceMd),
 
-              section(
-                strings.appLanguageSection,
+                // The helper, small, with its state in words: the same face the
+                // bubble shows, so the settings screen and the bubble feel like
+                // one thing.
                 Card(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    padding: const EdgeInsets.all(AppTheme.spaceMd - 2),
+                    child: Row(
                       children: [
-                        Wrap(
-                          spacing: AppTheme.spaceSm,
-                          runSpacing: AppTheme.spaceSm,
-                          children: [
-                            for (final language in AppLanguage.values)
-                              ChoiceChip(
-                                label: Text(language.label),
-                                selected: language == appLanguage,
-                                onSelected: (_) => ref
-                                    .read(appLanguageProvider.notifier)
-                                    .setLanguage(language),
-                              ),
-                          ],
+                        MascotFace(
+                          size: 44,
+                          glow: false,
+                          animate: false,
+                          mood: bubbleEnabled
+                              ? MascotMood.happy
+                              : MascotMood.idle,
                         ),
-                        const SizedBox(height: AppTheme.spaceSm),
-                        Text(
-                          strings.appLanguageNote,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontSize: 10.5,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              section(
-                strings.replyStyle,
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          strings.languageLabel,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        ChoiceChips<ReplyLanguage>(
-                          options: ReplyLanguage.values,
-                          selected: preferences.language,
-                          labelOf: (language) => language.label,
-                          onSelected: (language) => ref
-                              .read(preferencesProvider.notifier)
-                              .setLanguage(language),
-                        ),
-                        const SizedBox(height: AppTheme.spaceMd),
-                        Text(
-                          strings.toneLabel,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        ChoiceChips<ReplyTone>(
-                          options: ReplyTone.values,
-                          selected: preferences.tone,
-                          labelOf: (tone) => tone.label,
-                          onSelected: (tone) => ref
-                              .read(preferencesProvider.notifier)
-                              .setTone(tone),
-                        ),
-                        const SizedBox(height: AppTheme.spaceMd),
-                        Text(
-                          strings.lengthLabel,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        ChoiceChips<ReplyLength>(
-                          options: ReplyLength.values,
-                          selected: preferences.length,
-                          labelOf: (length) => length.label,
-                          onSelected: (length) => ref
-                              .read(preferencesProvider.notifier)
-                              .setLength(length),
-                        ),
-                        const SizedBox(height: AppTheme.spaceMd),
-                        Text(
-                          'How many options',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        ChoiceChips<int>(
-                          options: List<int>.generate(
-                            AppConstants.maxSuggestionCount -
-                                AppConstants.minSuggestionCount +
-                                1,
-                            (index) => AppConstants.minSuggestionCount + index,
-                          ),
-                          selected: preferences.suggestionCount,
-                          labelOf: (count) => '$count',
-                          onSelected: (count) => ref
-                              .read(preferencesProvider.notifier)
-                              .setSuggestionCount(count),
-                        ),
-                        const SizedBox(height: AppTheme.spaceSm),
-                        Text(
-                          'Every screen and the bubble use this style. '
-                          'Nothing asks again.',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontSize: 10.5,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              section(
-                strings.captureSection,
-                Column(
-                  children: [
-                    PermissionStatusCard(
-                      enabled: permissionEnabled,
-                      onManage: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const PermissionSetupScreen(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppTheme.spaceSm),
-                    Card(
-                      child: Column(
-                        children: [
-                          SwitchListTile(
-                            value: bubbleEnabled,
-                            // Off - and unswitchable - until Android actually
-                            // lets us draw over other apps. A switch that
-                            // promises something the OS refuses would be the
-                            // dishonest version of it.
-                            onChanged: overlayEnabled
-                                ? (value) => _setBubble(context, ref, value)
-                                : null,
-                            title: Text(strings.bubbleSwitchTitle),
-                            subtitle: Text(
-                              overlayEnabled
-                                  ? 'Shows a bubble over the app you are in '
-                                        'when an allowed app sends a message. '
-                                        'Off by default; turn it off again any '
-                                        'time.'
-                                  : 'Needs the optional "Display over other '
-                                        'apps" access. Grant it below; the '
-                                        'switch turns on by itself when you '
-                                        'come back.',
-                            ),
-                          ),
-                          const Divider(height: 1),
-                          // Screen reading: the only feature here that can see
-                          // text the platform never hands us, so it asks twice
-                          // - once on Android's own accessibility screen, and
-                          // once here, in words, before it is ever switched on.
-                          SwitchListTile(
-                            value: screenReading && screenReadingAvailable,
-                            onChanged: screenReadingAvailable
-                                ? (value) =>
-                                      _setScreenReading(context, ref, value)
-                                : null,
-                            title: Text(strings.screenReadingTitle),
-                            subtitle: Text(
-                              screenReadingAvailable
-                                  ? strings.screenReadingSubtitle
-                                  : strings.screenReadingNeedsPermission,
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(
-                              AppTheme.spaceMd,
-                              0,
-                              AppTheme.spaceMd,
-                              AppTheme.spaceMd,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: OutlinedButton.icon(
-                                    onPressed: () => _openAccessibilitySettings(
-                                      context,
-                                      ref,
-                                    ),
-                                    icon: const Icon(
-                                      Icons.open_in_new,
-                                      size: 18,
-                                    ),
-                                    label: Text(
-                                      strings.screenReadingOpenSettings,
-                                    ),
-                                  ),
+                        const SizedBox(width: AppTheme.spaceMd - 4),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Your helper',
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
                                 ),
-                                if (!screenReadingAvailable) ...[
-                                  const SizedBox(height: AppTheme.spaceSm),
-                                  Text(
-                                    strings.screenReadingBlocked,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      fontSize: 10.5,
-                                      height: 1.5,
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                bubbleEnabled
+                                    ? 'Bubble on · waits over your chats'
+                                    : 'Bubble off · replies still work here',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontSize: 12.5,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          bubbleEnabled
+                              ? Icons.bubble_chart_rounded
+                              : Icons.bubble_chart_outlined,
+                          size: 20,
+                          color: bubbleEnabled
+                              ? AppTheme.mint
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                section(
+                  strings.appLanguageSection,
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Wrap(
+                            spacing: AppTheme.spaceSm,
+                            runSpacing: AppTheme.spaceSm,
+                            children: [
+                              for (final language in AppLanguage.values)
+                                ChoiceChip(
+                                  label: Text(language.label),
+                                  selected: language == appLanguage,
+                                  onSelected: (_) => ref
+                                      .read(appLanguageProvider.notifier)
+                                      .setLanguage(language),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: AppTheme.spaceSm),
+                          Text(
+                            strings.appLanguageNote,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 12,
+                              color: theme.colorScheme.onSurfaceVariant,
                             ),
                           ),
-                          // Shown once Android has granted access: that is the
-                          // only point at which "it reads nothing" is a
-                          // question about the reading rather than the grant.
-                          if (screenReadingAvailable)
-                            const ScreenReadingStatusCard(),
-                          // The fix for "the switch does nothing": the reason
-                          // is a permission, so the permission gets a button
-                          // *here*, not three screens away.
-                          if (!overlayEnabled)
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                section(
+                  strings.replyStyle,
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            strings.languageLabel,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          ChoiceChips<ReplyLanguage>(
+                            options: ReplyLanguage.values,
+                            selected: preferences.language,
+                            labelOf: (language) => language.label,
+                            onSelected: (language) => ref
+                                .read(preferencesProvider.notifier)
+                                .setLanguage(language),
+                          ),
+                          const SizedBox(height: AppTheme.spaceMd),
+                          Text(
+                            strings.toneLabel,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          ChoiceChips<ReplyTone>(
+                            options: ReplyTone.values,
+                            selected: preferences.tone,
+                            labelOf: (tone) => tone.label,
+                            onSelected: (tone) => ref
+                                .read(preferencesProvider.notifier)
+                                .setTone(tone),
+                          ),
+                          const SizedBox(height: AppTheme.spaceMd),
+                          Text(
+                            strings.lengthLabel,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          ChoiceChips<ReplyLength>(
+                            options: ReplyLength.values,
+                            selected: preferences.length,
+                            labelOf: (length) => length.label,
+                            onSelected: (length) => ref
+                                .read(preferencesProvider.notifier)
+                                .setLength(length),
+                          ),
+                          const SizedBox(height: AppTheme.spaceMd),
+                          Text(
+                            'How many options',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          ChoiceChips<int>(
+                            options: List<int>.generate(
+                              AppConstants.maxSuggestionCount -
+                                  AppConstants.minSuggestionCount +
+                                  1,
+                              (index) =>
+                                  AppConstants.minSuggestionCount + index,
+                            ),
+                            selected: preferences.suggestionCount,
+                            labelOf: (count) => '$count',
+                            onSelected: (count) => ref
+                                .read(preferencesProvider.notifier)
+                                .setSuggestionCount(count),
+                          ),
+                          const SizedBox(height: AppTheme.spaceSm),
+                          Text(
+                            'Every screen and the bubble use this style. '
+                            'Nothing asks again.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 12,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                section(
+                  strings.captureSection,
+                  Column(
+                    children: [
+                      PermissionStatusCard(
+                        enabled: permissionEnabled,
+                        onManage: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const PermissionSetupScreen(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppTheme.spaceSm),
+                      Card(
+                        child: Column(
+                          children: [
+                            SwitchListTile(
+                              value: bubbleEnabled,
+                              // Off - and unswitchable - until Android actually
+                              // lets us draw over other apps. A switch that
+                              // promises something the OS refuses would be the
+                              // dishonest version of it.
+                              onChanged: overlayEnabled
+                                  ? (value) => _setBubble(context, ref, value)
+                                  : null,
+                              title: Text(strings.bubbleSwitchTitle),
+                              subtitle: Text(
+                                overlayEnabled
+                                    ? 'Shows a bubble over the app you are in '
+                                          'when an allowed app sends a message. '
+                                          'Off by default; turn it off again any '
+                                          'time.'
+                                    : 'Needs the optional "Display over other '
+                                          'apps" access. Grant it below; the '
+                                          'switch turns on by itself when you '
+                                          'come back.',
+                              ),
+                            ),
+                            const Divider(height: 1),
+                            // Screen reading: the only feature here that can see
+                            // text the platform never hands us, so it asks twice
+                            // - once on Android's own accessibility screen, and
+                            // once here, in words, before it is ever switched on.
+                            SwitchListTile(
+                              value: screenReading && screenReadingAvailable,
+                              onChanged: screenReadingAvailable
+                                  ? (value) =>
+                                        _setScreenReading(context, ref, value)
+                                  : null,
+                              title: Text(strings.screenReadingTitle),
+                              subtitle: Text(
+                                screenReadingAvailable
+                                    ? strings.screenReadingSubtitle
+                                    : strings.screenReadingNeedsPermission,
+                              ),
+                            ),
                             Padding(
                               padding: const EdgeInsets.fromLTRB(
                                 AppTheme.spaceMd,
@@ -551,104 +486,161 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                                 AppTheme.spaceMd,
                                 AppTheme.spaceMd,
                               ),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: OutlinedButton.icon(
-                                  onPressed: () => ref
-                                      .read(overlayProvider.notifier)
-                                      .openSettings(),
-                                  icon: const Icon(Icons.open_in_new, size: 18),
-                                  label: const Text('Grant overlay access'),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: OutlinedButton.icon(
+                                      onPressed: () =>
+                                          _openAccessibilitySettings(
+                                            context,
+                                            ref,
+                                          ),
+                                      icon: const Icon(
+                                        Icons.open_in_new,
+                                        size: 18,
+                                      ),
+                                      label: Text(
+                                        strings.screenReadingOpenSettings,
+                                      ),
+                                    ),
+                                  ),
+                                  if (!screenReadingAvailable) ...[
+                                    const SizedBox(height: AppTheme.spaceSm),
+                                    Text(
+                                      strings.screenReadingBlocked,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            fontSize: 12,
+                                            height: 1.5,
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            // Shown once Android has granted access: that is the
+                            // only point at which "it reads nothing" is a
+                            // question about the reading rather than the grant.
+                            if (screenReadingAvailable)
+                              const ScreenReadingStatusCard(),
+                            // The fix for "the switch does nothing": the reason
+                            // is a permission, so the permission gets a button
+                            // *here*, not three screens away.
+                            if (!overlayEnabled)
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  AppTheme.spaceMd,
+                                  0,
+                                  AppTheme.spaceMd,
+                                  AppTheme.spaceMd,
+                                ),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () => ref
+                                        .read(overlayProvider.notifier)
+                                        .openSettings(),
+                                    icon: const Icon(
+                                      Icons.open_in_new,
+                                      size: 18,
+                                    ),
+                                    label: const Text('Grant overlay access'),
+                                  ),
                                 ),
                               ),
-                            ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(
-                              AppTheme.spaceSm,
-                              0,
-                              AppTheme.spaceSm,
-                              AppTheme.spaceSm,
-                            ),
-                            child: OutlinedButton.icon(
-                              onPressed: () => Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => const AppSelectionScreen(),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                AppTheme.spaceSm,
+                                0,
+                                AppTheme.spaceSm,
+                                AppTheme.spaceSm,
+                              ),
+                              child: OutlinedButton.icon(
+                                onPressed: () => Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => const AppSelectionScreen(),
+                                  ),
                                 ),
+                                icon: const Icon(
+                                  Icons.widgets_outlined,
+                                  size: 18,
+                                ),
+                                label: const Text('Supported apps'),
                               ),
-                              icon: const Icon(
-                                Icons.widgets_outlined,
-                                size: 18,
-                              ),
-                              label: const Text('Supported apps'),
                             ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                section('Conversation memory', const ConversationMemoryCard()),
+
+                section(
+                  strings.privacySection,
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _Promise(
+                            icon: Icons.delete_outline_rounded,
+                            title: strings.messagesNeverStored,
+                            body: strings.messagesNeverStoredBody,
+                          ),
+                          const SizedBox(height: AppTheme.spaceMd),
+                          _Promise(
+                            icon: Icons.pan_tool_alt_outlined,
+                            title: strings.nothingSentAlone,
+                            body: strings.nothingSentAloneBody,
+                          ),
+                          const SizedBox(height: AppTheme.spaceMd),
+                          Text(
+                            'Notification access lets ReplyMate see notifications '
+                            'from the apps you selected - never inside the apps. '
+                            'When you generate suggestions, the message text you '
+                            'provide is sent to an AI service to draft replies. '
+                            'Conversations are not stored, and message content '
+                            'is never logged.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 12,
+                              height: 1.55,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.spaceMd),
+                          OutlinedButton(
+                            onPressed: () => _confirmClear(context, ref),
+                            child: Text(strings.clearLocalPreferences),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-
-              section('Conversation memory', const ConversationMemoryCard()),
-
-              section(
-                strings.privacySection,
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _Promise(
-                          icon: Icons.delete_outline_rounded,
-                          title: strings.messagesNeverStored,
-                          body: strings.messagesNeverStoredBody,
-                        ),
-                        const SizedBox(height: AppTheme.spaceMd),
-                        _Promise(
-                          icon: Icons.pan_tool_alt_outlined,
-                          title: strings.nothingSentAlone,
-                          body: strings.nothingSentAloneBody,
-                        ),
-                        const SizedBox(height: AppTheme.spaceMd),
-                        Text(
-                          'Notification access lets ReplyMate see notifications '
-                          'from the apps you selected - never inside the apps. '
-                          'When you generate suggestions, the message text you '
-                          'provide is sent to an AI service to draft replies. '
-                          'Conversations are not stored, and message content '
-                          'is never logged.',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontSize: 11,
-                            height: 1.55,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: AppTheme.spaceMd),
-                        OutlinedButton(
-                          onPressed: () => _confirmClear(context, ref),
-                          child: Text(strings.clearLocalPreferences),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
-              ),
 
-              if (ref.watch(firebaseReadyProvider))
-                Padding(
-                  padding: const EdgeInsets.only(top: AppTheme.spaceLg),
-                  child: OutlinedButton.icon(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const AdminGateScreen(),
+                if (ref.watch(firebaseReadyProvider))
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppTheme.spaceLg),
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const AdminGateScreen(),
+                        ),
                       ),
+                      icon: const Icon(Icons.shield_outlined),
+                      label: const Text('Admin'),
                     ),
-                    icon: const Icon(Icons.shield_outlined),
-                    label: const Text('Admin'),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -670,14 +662,13 @@ class _Promise extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(9),
-            color: AppTheme.mint.withValues(alpha: 0.14),
-          ),
-          child: Icon(icon, size: 15, color: AppTheme.mint),
+        AppSurfaces.iconBadge(
+          context,
+          icon: icon,
+          color: theme.brightness == Brightness.dark
+              ? AppTheme.mint
+              : const Color(0xFF087F5B),
+          size: 34,
         ),
         const SizedBox(width: AppTheme.spaceSm + 2),
         Expanded(
@@ -695,7 +686,7 @@ class _Promise extends StatelessWidget {
               Text(
                 body,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  fontSize: 10.5,
+                  fontSize: 12,
                   height: 1.45,
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

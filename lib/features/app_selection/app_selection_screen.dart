@@ -49,116 +49,133 @@ class AppSelectionScreen extends ConsumerWidget {
           bottom: !embedded,
           child: candidates.when(
             data: (apps) {
-              return ListView(
-                padding: const EdgeInsets.fromLTRB(
-                  AppTheme.spaceMd,
-                  AppTheme.spaceSm,
-                  AppTheme.spaceMd,
-                  AppTheme.spaceXl,
-                ),
-                children: [
-                  ScreenHeader(
-                    title: 'Supported apps',
-                    subtitle: apps.isEmpty
-                        ? 'Nothing to choose yet'
-                        : '${selected.length} of ${apps.length} selected',
+              return AppSurfaces.centered(
+                ListView(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppTheme.spaceMd,
+                    AppTheme.spaceSm,
+                    AppTheme.spaceMd,
+                    AppTheme.spaceXl,
                   ),
-                  const SizedBox(height: AppTheme.spaceMd),
-                  if (apps.isEmpty)
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(14),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'No supported messaging app is installed on '
-                              'this device.',
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
+                  children: [
+                    ScreenHeader(
+                      title: 'Supported apps',
+                      showBack: !embedded,
+                      subtitle: apps.isEmpty
+                          ? 'Nothing to choose yet'
+                          : '${selected.length} of ${apps.length} selected',
+                    ),
+                    const SizedBox(height: AppTheme.spaceMd),
+                    if (apps.isEmpty)
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              AppSurfaces.iconBadge(
+                                context,
+                                icon: Icons.apps_outlined,
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'You can still use ReplyMate by pasting or '
-                              'selecting text.',
+                              const SizedBox(height: AppTheme.spaceMd - 4),
+                              Text(
+                                'No supported messaging app is installed on '
+                                'this device.',
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'You can still use ReplyMate by pasting or '
+                                'selecting text.',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontSize: 12.5,
+                                  height: 1.5,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else ...[
+                      Text(
+                        'APPS REPLYMATE MAY READ NOTIFICATIONS FROM',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          letterSpacing: 1.3,
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: AppTheme.spaceSm),
+                      Card(
+                        child: Column(
+                          children: [
+                            for (
+                              var index = 0;
+                              index < apps.length;
+                              index++
+                            ) ...[
+                              if (index > 0) const Divider(height: 1),
+                              CheckboxListTile(
+                                value: selected.contains(
+                                  apps[index].packageName,
+                                ),
+                                onChanged: (_) => ref
+                                    .read(selectedAppsProvider.notifier)
+                                    .toggle(apps[index].packageName),
+                                title: Text(
+                                  apps[index].label,
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  'Notifications only - never inside the app',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                controlAffinity:
+                                    ListTileControlAffinity.trailing,
+                                activeColor: AppTheme.brandBright,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppTheme.spaceMd),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.verified_user_outlined,
+                            size: 14,
+                            color: isDark
+                                ? AppTheme.brandBright
+                                : AppTheme.brand,
+                          ),
+                          const SizedBox(width: AppTheme.spaceSm),
+                          Expanded(
+                            child: Text(
+                              'An app appears here only after it has been seen '
+                              'installed on this device. Support is claimed only '
+                              'for what has been tested '
+                              '(docs/SCREEN_SPECIFICATIONS.md, screen 5).',
                               style: theme.textTheme.bodySmall?.copyWith(
-                                fontSize: 11,
+                                fontSize: 12,
                                 height: 1.5,
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else ...[
-                    Text(
-                      'APPS REPLYMATE MAY READ NOTIFICATIONS FROM',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        letterSpacing: 1.3,
-                        fontWeight: FontWeight.w700,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: AppTheme.spaceSm),
-                    Card(
-                      child: Column(
-                        children: [
-                          for (var index = 0; index < apps.length; index++) ...[
-                            if (index > 0) const Divider(height: 1),
-                            CheckboxListTile(
-                              value: selected.contains(apps[index].packageName),
-                              onChanged: (_) => ref
-                                  .read(selectedAppsProvider.notifier)
-                                  .toggle(apps[index].packageName),
-                              title: Text(
-                                apps[index].label,
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              subtitle: Text(
-                                'Notifications only - never inside the app',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  fontSize: 10.5,
-                                ),
-                              ),
-                              controlAffinity: ListTileControlAffinity.trailing,
-                              activeColor: AppTheme.brandBright,
-                            ),
-                          ],
+                          ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: AppTheme.spaceMd),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.verified_user_outlined,
-                          size: 14,
-                          color: isDark ? AppTheme.brandBright : AppTheme.brand,
-                        ),
-                        const SizedBox(width: AppTheme.spaceSm),
-                        Expanded(
-                          child: Text(
-                            'An app appears here only after it has been seen '
-                            'installed on this device. Support is claimed only '
-                            'for what has been tested '
-                            '(docs/SCREEN_SPECIFICATIONS.md, screen 5).',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontSize: 10.5,
-                              height: 1.5,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    ],
                   ],
-                ],
+                ),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),

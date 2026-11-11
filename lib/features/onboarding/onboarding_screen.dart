@@ -7,8 +7,8 @@ import '../../shared/widgets/mascot_face.dart';
 import '../home/home_screen.dart';
 
 /// FR-01: explain purpose, limitations and permissions before asking for
-/// anything. Honest claims only - the same three limitations the README
-/// makes, in plain language.
+/// anything. Honest claims only - the same limitations the README makes, in
+/// plain language, inside one calm and readable welcome flow.
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
 
@@ -53,145 +53,157 @@ class OnboardingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     return Scaffold(
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: AppTheme.backgroundGradient(theme.brightness),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppTheme.spaceLg,
-              AppTheme.spaceMd,
-              AppTheme.spaceLg,
-              AppTheme.spaceLg,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Meet the helper before being asked for anything: the honest
-                // ordering FR-01 asks for, shown as a character rather than a
-                // paragraph of policy.
-                Center(child: MascotFace(size: 76, mood: MascotMood.idle)),
-                const SizedBox(height: AppTheme.spaceSm),
-                Center(
-                  child: Text(
-                    'ReplyMate AI',
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.5,
+          child: AppSurfaces.centered(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spaceLg,
+                AppTheme.spaceMd,
+                AppTheme.spaceLg,
+                AppTheme.spaceLg,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Meet the helper before being asked for anything. The face,
+                  // not another illustration, is the brand.
+                  const Center(
+                    child: MascotFace(size: 88, mood: MascotMood.idle),
+                  ),
+                  const SizedBox(height: AppTheme.spaceMd),
+                  Center(
+                    child: AppSurfaces.pill(
+                      context,
+                      accent: true,
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.auto_awesome_rounded,
+                            size: 14,
+                            color: AppTheme.brandBright,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            'YOUR AI REPLY ASSISTANT',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.05,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: AppTheme.spaceXs),
-                Center(
-                  child: Text(
-                    'Your AI reply assistant for everyday conversations.',
+                  const SizedBox(height: AppTheme.spaceMd),
+                  Text(
+                    'ReplyMate AI',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontSize: 32,
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spaceSm),
+                  Text(
+                    'Thoughtful replies in your language,\nwith you always in control.',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      fontSize: 12.5,
+                      fontSize: 14,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                ),
-                const SizedBox(height: AppTheme.spaceLg),
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: _points.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(height: AppTheme.spaceSm),
-                    itemBuilder: (context, index) {
-                      final (icon, title, body) = _points[index];
-                      return Container(
-                        padding: const EdgeInsets.all(AppTheme.spaceMd - 2),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.045)
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(
-                            AppTheme.cardRadius,
-                          ),
-                          border: Border.all(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.08)
-                                : theme.colorScheme.outlineVariant.withValues(
-                                    alpha: 0.6,
-                                  ),
-                          ),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: AppTheme.spaceLg),
+
+                  // One grouped surface is quieter than four competing cards.
+                  // It scrolls independently so the primary action is never
+                  // pushed below the fold on a short screen.
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Card(
+                        child: Column(
                           children: [
-                            Container(
-                              width: 30,
-                              height: 30,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                color: AppTheme.brand.withValues(
-                                  alpha: isDark ? 0.22 : 0.12,
-                                ),
-                              ),
-                              child: Icon(
-                                icon,
-                                size: 16,
-                                color: AppTheme.brandBright,
-                              ),
-                            ),
-                            const SizedBox(width: AppTheme.spaceMd - 4),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    title,
-                                    style: theme.textTheme.titleSmall?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    body,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      height: 1.5,
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            for (
+                              var index = 0;
+                              index < _points.length;
+                              index++
+                            ) ...[
+                              if (index > 0) const Divider(height: 1),
+                              _OnboardingPoint(point: _points[index]),
+                            ],
                           ],
                         ),
-                      );
-                    },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spaceMd),
+                  AppSurfaces.primaryAction(
+                    context,
+                    label: 'Get started',
+                    onPressed: () => _complete(context),
+                    icon: const Icon(Icons.arrow_forward_rounded, size: 19),
+                  ),
+                  const SizedBox(height: AppTheme.spaceMd - 4),
+                  Text(
+                    'You choose what ReplyMate can access.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontSize: 12,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OnboardingPoint extends StatelessWidget {
+  const _OnboardingPoint({required this.point});
+
+  final (IconData, String, String) point;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final (icon, title, body) = point;
+    return Padding(
+      padding: const EdgeInsets.all(AppTheme.spaceMd),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppSurfaces.iconBadge(context, icon: icon),
+          const SizedBox(width: AppTheme.spaceMd - 4),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: AppTheme.spaceMd),
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
-                    gradient: AppTheme.primaryGradient,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.brand.withValues(alpha: 0.45),
-                        blurRadius: 24,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: FilledButton(
-                    onPressed: () => _complete(context),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                    ),
-                    child: const Text('Get started'),
+                const SizedBox(height: AppTheme.spaceXs),
+                Text(
+                  body,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }

@@ -4,6 +4,17 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### Premium visual polish
+
+- Refined the shared light/dark theme: clearer typography, quieter card
+  borders, larger chips, consistent list/input/dialog styling and a themed
+  navigation bar.
+- Rebuilt onboarding around the mascot, one grouped promise surface and a
+  bottom action that remains reachable on short screens.
+- Added shared responsive width, icon-badge and primary-action treatments;
+  Home, Reply, Suggestions, Apps, Settings, permissions and Admin now use the
+  same visual hierarchy without changing their behaviour.
+
 ### Floating reply bubble — implemented (device verification pending)
 - Batch 0: the composer explains an empty capture session ("No message was
   captured…") instead of showing a blank box, and Generate still runs so

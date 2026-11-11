@@ -49,7 +49,6 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen>
     final enabled = ref.watch(listenerPermissionProvider);
     final overlayEnabled = ref.watch(overlayProvider);
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     Widget bullet({
       required IconData icon,
@@ -61,15 +60,7 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 26,
-            height: 26,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              color: tint.withValues(alpha: 0.14),
-            ),
-            child: Icon(icon, size: 14, color: tint),
-          ),
+          AppSurfaces.iconBadge(context, icon: icon, color: tint, size: 34),
           const SizedBox(width: AppTheme.spaceSm + 2),
           Expanded(
             child: Column(
@@ -79,14 +70,14 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen>
                   title,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
-                    fontSize: 12.5,
+                    fontSize: 13.5,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   body,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 11,
+                    fontSize: 12,
                     height: 1.5,
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -104,121 +95,107 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen>
           gradient: AppTheme.backgroundGradient(theme.brightness),
         ),
         child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(
-              AppTheme.spaceMd,
-              AppTheme.spaceSm,
-              AppTheme.spaceMd,
-              AppTheme.spaceXl,
-            ),
-            children: [
-              ScreenHeader(
-                title: 'Notification access',
-                subtitle: enabled ? 'Granted' : 'Needed for the bubble',
-                trailing: MascotFace(
-                  size: 34,
-                  glow: false,
-                  animate: false,
-                  mood: enabled ? MascotMood.happy : MascotMood.alert,
-                ),
+          child: AppSurfaces.centered(
+            ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spaceMd,
+                AppTheme.spaceSm,
+                AppTheme.spaceMd,
+                AppTheme.spaceXl,
               ),
-              const SizedBox(height: AppTheme.spaceMd),
-
-              PermissionStatusCard(
-                enabled: enabled,
-                onManage: () => ref
-                    .read(listenerPermissionProvider.notifier)
-                    .openSettings(),
-              ),
-              const SizedBox(height: AppTheme.spaceMd),
-
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 2),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'What this access allows',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: AppTheme.spaceSm + 2),
-                      bullet(
-                        icon: Icons.check_rounded,
-                        title: 'Notifications from apps you pick',
-                        body:
-                            'ReplyMate processes only the apps you select on '
-                            'the next screen, uses the text solely to draft '
-                            'replies, and never stores conversations.',
-                        tint: AppTheme.mint,
-                      ),
-                      bullet(
-                        icon: Icons.block_rounded,
-                        title: 'No reading inside apps',
-                        body:
-                            'No screen capture, no accessibility service, no '
-                            'sending messages. You can revoke the access here '
-                            'or in Android Settings at any time.',
-                        tint: AppTheme.brandBright,
-                      ),
-                    ],
+              children: [
+                ScreenHeader(
+                  title: 'Notification access',
+                  subtitle: enabled ? 'Granted' : 'Needed for the bubble',
+                  trailing: MascotFace(
+                    size: 34,
+                    glow: false,
+                    animate: false,
+                    mood: enabled ? MascotMood.happy : MascotMood.alert,
                   ),
                 ),
-              ),
+                const SizedBox(height: AppTheme.spaceMd),
 
-              const SizedBox(height: AppTheme.spaceMd),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
-                  gradient: AppTheme.primaryGradient,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.brand.withValues(alpha: 0.40),
-                      blurRadius: 24,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
+                PermissionStatusCard(
+                  enabled: enabled,
+                  onManage: () => ref
+                      .read(listenerPermissionProvider.notifier)
+                      .openSettings(),
                 ),
-                child: FilledButton(
+                const SizedBox(height: AppTheme.spaceMd),
+
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 2),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'What this access allows',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.spaceSm + 2),
+                        bullet(
+                          icon: Icons.check_rounded,
+                          title: 'Notifications from apps you pick',
+                          body:
+                              'ReplyMate processes only the apps you select on '
+                              'the next screen, uses the text solely to draft '
+                              'replies, and never stores conversations.',
+                          tint: AppTheme.mint,
+                        ),
+                        bullet(
+                          icon: Icons.block_rounded,
+                          title: 'No reading inside apps',
+                          body:
+                              'No screen capture, no accessibility service, no '
+                              'sending messages. You can revoke the access here '
+                              'or in Android Settings at any time.',
+                          tint: AppTheme.brandBright,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: AppTheme.spaceMd),
+                AppSurfaces.primaryAction(
+                  context,
+                  label: 'Open Android Settings',
                   onPressed: () => ref
                       .read(listenerPermissionProvider.notifier)
                       .openSettings(),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                  ),
-                  child: const Text('Open Android Settings'),
+                  icon: const Icon(Icons.settings_outlined, size: 19),
                 ),
-              ),
-              const SizedBox(height: AppTheme.spaceSm),
-              OutlinedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Later - I will paste text manually'),
-              ),
+                const SizedBox(height: AppTheme.spaceSm),
+                OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Later - I will paste text manually'),
+                ),
 
-              // The optional part comes after the required one, so the manual
-              // escape hatch never scrolls out of reach behind it.
-              Padding(
-                padding: const EdgeInsets.only(top: AppTheme.spaceLg),
-                child: Text(
-                  'OPTIONAL · FLOATING REPLY BUBBLE',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    letterSpacing: 1.3,
-                    fontWeight: FontWeight.w700,
-                    color: theme.colorScheme.onSurfaceVariant,
+                // The optional part comes after the required one, so the manual
+                // escape hatch never scrolls out of reach behind it.
+                Padding(
+                  padding: const EdgeInsets.only(top: AppTheme.spaceLg),
+                  child: Text(
+                    'OPTIONAL · FLOATING REPLY BUBBLE',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      letterSpacing: 1.3,
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: AppTheme.spaceSm),
-              _OverlayAccessCard(
-                granted: overlayEnabled,
-                onOpenSettings: () =>
-                    ref.read(overlayProvider.notifier).openSettings(),
-              ),
-              if (!isDark) const SizedBox(height: AppTheme.spaceSm),
-            ],
+                const SizedBox(height: AppTheme.spaceSm),
+                _OverlayAccessCard(
+                  granted: overlayEnabled,
+                  onOpenSettings: () =>
+                      ref.read(overlayProvider.notifier).openSettings(),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -254,13 +231,15 @@ class _OverlayAccessCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
-                  granted
+                AppSurfaces.iconBadge(
+                  context,
+                  icon: granted
                       ? Icons.check_circle_rounded
                       : Icons.bubble_chart_outlined,
-                  color: scheme.onSurfaceVariant,
+                  color: granted ? AppTheme.mint : scheme.onSurfaceVariant,
+                  size: 36,
                 ),
-                const SizedBox(width: AppTheme.spaceSm),
+                const SizedBox(width: AppTheme.spaceMd - 4),
                 Expanded(
                   child: Text(
                     granted

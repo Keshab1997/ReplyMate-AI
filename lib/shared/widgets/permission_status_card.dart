@@ -19,24 +19,30 @@ class PermissionStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final Color tint;
+    final Color foreground;
     final IconData icon;
     final String title;
     final String subtitle;
     if (checking) {
-      tint = scheme.surfaceContainerHighest;
+      tint = scheme.surfaceContainerHighest.withValues(alpha: 0.65);
+      foreground = scheme.onSurfaceVariant;
       icon = Icons.hourglass_top_rounded;
       title = 'Checking notification access';
       subtitle = 'Reading the current state from Android.';
     } else if (enabled) {
-      tint = scheme.primaryContainer.withValues(alpha: 0.35);
+      tint = AppTheme.mint.withValues(alpha: isDark ? 0.10 : 0.08);
+      foreground = isDark ? AppTheme.mint : const Color(0xFF087F5B);
       icon = Icons.check_circle_rounded;
       title = 'Notification access enabled';
       subtitle = 'ReplyMate sees notifications from your selected apps only.';
     } else {
-      tint = scheme.errorContainer.withValues(alpha: 0.35);
-      icon = Icons.error_outline_rounded;
+      tint = AppTheme.amber.withValues(alpha: isDark ? 0.10 : 0.09);
+      foreground = isDark ? AppTheme.amber : const Color(0xFF9A5B00);
+      icon = Icons.notifications_off_outlined;
       title = 'Notification access not granted';
       subtitle =
           'Without it, paste or select text manually - replies still work.';
@@ -45,27 +51,48 @@ class PermissionStatusCard extends StatelessWidget {
       color: tint,
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.spaceMd),
-        child: Row(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: scheme.onSurfaceVariant),
-            const SizedBox(width: AppTheme.spaceMd - 4),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppSurfaces.iconBadge(context, icon: icon, color: foreground),
+                const SizedBox(width: AppTheme.spaceMd - 4),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: AppTheme.spaceXs),
+                      Text(
+                        subtitle,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: AppTheme.spaceXs),
-                  Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
-                ],
-              ),
+                ),
+              ],
             ),
             if (onManage != null)
-              TextButton(onPressed: onManage, child: const Text('Manage')),
+              Padding(
+                padding: const EdgeInsets.only(top: AppTheme.spaceSm),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: onManage,
+                    icon: const Icon(Icons.tune_rounded, size: 17),
+                    label: const Text('Manage'),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
