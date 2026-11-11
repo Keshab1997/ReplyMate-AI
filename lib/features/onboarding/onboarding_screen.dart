@@ -29,8 +29,8 @@ class OnboardingScreen extends StatelessWidget {
     (
       Icons.translate_rounded,
       'Bengali, Hindi and English',
-      'Pick the language and tone for every reply: friendly, casual, '
-          'professional, polite, funny, or short and direct.',
+      'Pick the language and tone for every reply - friendly, casual, '
+          'professional, polite, funny, short and direct, Premika or Premik.',
     ),
     (
       Icons.lock_outline_rounded,

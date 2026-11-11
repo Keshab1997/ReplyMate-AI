@@ -45,8 +45,29 @@ wrapping for all three.
 ## User controls
 
 Output language, tone (friendly, casual, professional, polite, funny, short
-and direct), length, and the number of suggestions (1–3, capped by
-`AppConstants`).
+and direct, Premika, Premik), length, and the number of suggestions (1–3,
+capped by `AppConstants`).
+
+## The two partner voices
+
+`ReplyTone.premika` and `ReplyTone.premik` are the only tones that are a
+persona rather than a register: they ask the model to write as the user's
+girlfriend or boyfriend — warm, using তুমি rather than আপনি, with one or
+two love emojis at most.
+
+That makes them the one deliberate exception to the prompt rule "do not assume
+a relationship between the participants", and the exception is narrow on
+purpose:
+
+- It is opt-in — the user picks the voice; the model never decides on its own.
+- `ReplyTone.isRomantic` is true for exactly two values, and `ReplyPrompt` is
+  the only place that reads it. No other tone can write as a partner.
+- Even then, inventing shared history, pet names, memories or plans stays
+  forbidden. The closeness is in how it is said, never in facts made up.
+
+The guidance is spelled out in the prompt rather than left to the label,
+because a model told only "Premika" writes the Bengali equivalent of a
+greetings card.
 
 ## Request shape (to the provider)
 
@@ -91,3 +112,6 @@ about the proxy, rate limiting or provider failover, none of which exist yet.
 - Keep the provider behind `ReplyRepository` so a future proxy can replace the
   client without touching a screen.
 - The overlay panel must call the same repository provider — no second AI path.
+- A persona is only ever written when the user picked it. Assuming a
+  relationship the user did not ask for is the failure these rules exist to
+  prevent.

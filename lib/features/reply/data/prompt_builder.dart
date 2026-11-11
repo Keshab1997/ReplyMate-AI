@@ -1,3 +1,4 @@
+import '../../../core/constants/reply_options.dart';
 import '../domain/reply_request.dart';
 
 /// Builds the two prompts for a generation request.
@@ -9,15 +10,14 @@ import '../domain/reply_request.dart';
 class ReplyPrompt {
   ReplyPrompt._();
 
-  static String system(int count) =>
+  static String system(int count, ReplyTone tone) =>
       '''
 You are ReplyMate AI, a reply-drafting assistant for everyday conversations.
 
 Rules:
 - Preserve the intended meaning of the incoming message.
 - Do not invent facts about the user or the sender.
-- Do not assume a relationship between the participants.
-- Keep replies natural and concise.
+${_relationshipRule(tone)}${_persona(tone)}- Keep replies natural and concise.
 - Respect the requested language, tone and length exactly.
 - Do not generate harmful or deceptive content.
 - Never mention that you are an AI unless the message asks for it.
@@ -25,6 +25,44 @@ Rules:
 Return ONLY a JSON object of this exact shape, with exactly $count replies:
 {"replies": ["...", "..."]}
 ''';
+
+  /// The one rule the partner voices have to answer for.
+  ///
+  /// "Do not assume a relationship" is a rule with teeth: a reply that assumes
+  /// an intimacy the user never asked for is the kind of thing that makes a
+  /// messaging app embarrassing to hand to someone. These two tones are the
+  /// exception, and they are an exception only because the user chose them -
+  /// picking "Premika" *is* saying who to write as.
+  static String _relationshipRule(ReplyTone tone) {
+    if (tone.isRomantic) {
+      return '- The user chose the ${tone.label} voice, so write as that '
+          'partner would. Invent no shared history, no names, no plans: the '
+          'closeness is in how it is said, never in facts you make up.\n';
+    }
+    return '- Do not assume a relationship between the participants.\n';
+  }
+
+  /// What a partner voice needs said out loud.
+  ///
+  /// A label alone does not tell a model to use তুমি instead of আপনি, or to
+  /// keep the emojis to two. Left unsaid it writes the Bengali equivalent of a
+  /// greetings card, which is worse than useless - it reads as copy-pasted.
+  static String _persona(ReplyTone tone) {
+    if (!tone.isRomantic) return '';
+    final partner = tone == ReplyTone.premika
+        ? 'a girlfriend writing to the man she loves'
+        : 'a boyfriend writing to the woman he loves';
+    return '''
+Voice for this reply: you are $partner.
+- Address them as তুমি in Bengali, never আপনি; as तुम in Hindi, never आप. That
+  one pronoun is the difference between a partner and a stranger.
+- Warm, a little teasing, genuinely fond. Write it the way it would be said out
+  loud to someone, not the way it would be printed on a card.
+- One or two love emojis at the most (🥰 💕 😘). Never a row of them, and never
+  on every line.
+- No pet names you were not given, no memories or plans you were not told.
+''';
+  }
 
   static String user(ReplyRequest request) =>
       '''${_conversation(request)}Incoming message:

@@ -39,7 +39,7 @@ class KeyPoolReplyRepository implements ReplyRepository {
     try {
       final content = await _client.complete(
         key: key,
-        systemPrompt: ReplyPrompt.system(request.count),
+        systemPrompt: ReplyPrompt.system(request.count, request.tone),
         userPrompt: ReplyPrompt.user(request),
       );
       _keys.reportSuccess(key);

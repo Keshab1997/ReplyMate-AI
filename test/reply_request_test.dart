@@ -60,8 +60,8 @@ void main() {
   });
 
   group('option enums', () {
-    test('all six FR-06 tones exist', () {
-      expect(ReplyTone.values, hasLength(6));
+    test('all six FR-06 tones exist, plus the two partner voices', () {
+      expect(ReplyTone.values, hasLength(8));
       expect(
         ReplyTone.values.map((tone) => tone.label),
         containsAll(<String>[
@@ -71,6 +71,8 @@ void main() {
           'Polite',
           'Funny',
           'Short and direct',
+          'Premika',
+          'Premik',
         ]),
       );
     });
@@ -86,5 +88,14 @@ void main() {
       expect(ReplyTone.fromName('sarcastic'), ReplyTone.friendly);
       expect(ReplyLength.fromName(null), ReplyLength.short);
     });
+  });
+
+  test('only the two partner voices may write as a partner', () {
+    // The gate is the whole safety of this feature: a register that quietly
+    // became a persona would be the failure the prompt rules were written
+    // for.
+    final romantic = ReplyTone.values.where((tone) => tone.isRomantic);
+
+    expect(romantic.map((tone) => tone.name), <String>['premika', 'premik']);
   });
 }
