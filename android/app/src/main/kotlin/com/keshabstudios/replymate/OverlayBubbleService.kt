@@ -25,7 +25,8 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.WindowManager
-import android.view.animation.LinearInterpolator
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -59,9 +60,14 @@ class OverlayBubbleService : Service() {
     private var badgeView: TextView? = null
     private var iconView: ImageView? = null
     private var gripView: LinearLayout? = null
+    private var rimView: View? = null
+    private var highlightView: View? = null
 
-    /** Drives the idle bob; null while tucked, dragging or behind the panel. */
+    /** Drives idle and edge-settling motion; cancelled for direct manipulation. */
     private var bobAnimator: ValueAnimator? = null
+    private var settleAnimator: ValueAnimator? = null
+    private var lastBadgeCount = 0
+    private var showMoodAfterExpand = false
 
     /** True while the reply panel is on screen. The bubble steps aside for it. */
     private var panelOpen = false
@@ -162,11 +168,13 @@ class OverlayBubbleService : Service() {
                 // A message the user has not seen is worth interrupting for,
                 // even if they had tucked the bubble away.
                 if (collapsed) {
+                    showMoodAfterExpand = true
                     expand()
                 } else {
                     pulseOnce()
+                    showMessageMood()
                 }
-                updateBadge()
+                updateBadge(animate = true)
             }
             return
         }
@@ -193,6 +201,7 @@ class OverlayBubbleService : Service() {
     override fun onDestroy() {
         handler.removeCallbacks(autoHide)
         stopIdleAnimation()
+        settleAnimator?.cancel()
         unregisterScreenReceiver()
         unregisterPanelReceiver()
         removeBubble()
@@ -219,7 +228,7 @@ class OverlayBubbleService : Service() {
             setStroke(dp(2), Color.WHITE)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            root.elevation = dp(6).toFloat()
+            root.elevation = dp(10).toFloat()
         }
 
         // The 3D helper face (design/bubble_preview.html). It is drawn by the
@@ -240,22 +249,54 @@ class OverlayBubbleService : Service() {
         val badge = TextView(this)
         badge.setTextColor(Color.WHITE)
         badge.textSize = 11f
+        badge.typeface = android.graphics.Typeface.DEFAULT_BOLD
         badge.gravity = Gravity.CENTER
         badge.background = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(badgeColor())
-            setStroke(dp(1), Color.WHITE)
+            setStroke(dp(2), Color.WHITE)
         }
         badge.visibility = View.GONE
-        val badgeSize = dp(20)
+        val badgeSize = dp(22)
         root.addView(
             badge,
             FrameLayout.LayoutParams(badgeSize, badgeSize).apply {
                 gravity = Gravity.TOP or Gravity.END
+                topMargin = dp(1)
+                rightMargin = dp(1)
             },
         )
         badgeView = badge
         iconView = icon
+
+        // A separate rim stays crisp above the artwork instead of being painted
+        // underneath a centre-cropped bitmap. The small highlight gives the
+        // bubble a tactile glass edge without putting any content on it.
+        val rim = View(this)
+        rim.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(Color.TRANSPARENT)
+            setStroke(dp(1), Color.argb(205, 240, 248, 255))
+        }
+        rim.isClickable = false
+        root.addView(rim, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT,
+        ))
+        rimView = rim
+        val highlight = View(this)
+        highlight.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(Color.argb(48, 255, 255, 255))
+        }
+        highlight.rotation = -28f
+        highlight.isClickable = false
+        root.addView(highlight, FrameLayout.LayoutParams(dp(20), dp(7)).apply {
+            gravity = Gravity.TOP or Gravity.START
+            leftMargin = dp(10)
+            topMargin = dp(5)
+        })
+        highlightView = highlight
 
         // Tucked state: the face is gone and three dots say "pull me back".
         val grip = LinearLayout(this)
@@ -294,12 +335,16 @@ class OverlayBubbleService : Service() {
     private fun startIdleAnimation() {
         stopIdleAnimation()
         val icon = iconView ?: return
+        if (!motionEnabled() || collapsed || panelOpen) {
+            icon.setImageResource(R.drawable.overlay_bubble_mascot)
+            return
+        }
         val amplitude = dp(2).toFloat()
         val animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 1_500L
+            duration = 1_800L
             repeatCount = ValueAnimator.INFINITE
             repeatMode = ValueAnimator.REVERSE
-            interpolator = LinearInterpolator()
+            interpolator = DecelerateInterpolator()
             addUpdateListener { animation ->
                 icon.translationY =
                     (animation.animatedValue as Float) * amplitude - amplitude / 2f
@@ -314,35 +359,72 @@ class OverlayBubbleService : Service() {
         bobAnimator?.cancel()
         bobAnimator = null
         handler.removeCallbacks(blinkRunnable)
+        handler.removeCallbacks(moodRunnable)
         iconView?.let {
             it.translationY = 0f
             it.scaleY = 1f
+            it.setImageResource(R.drawable.overlay_bubble_mascot)
         }
     }
 
-    /**
-     * A blink is a 90ms squash of the face. Irregular timing keeps it from
-     * reading as a metronome.
-     */
+    /** Swap only the eyes/face artwork: never squash the whole mascot. */
     private val blinkRunnable = object : Runnable {
         override fun run() {
             val icon = iconView
-            if (icon != null && !collapsed && !panelOpen) {
-                icon.animate()
-                    .scaleY(0.12f)
-                    .setDuration(90L)
-                    .withEndAction {
-                        icon.animate().scaleY(1f).setDuration(120L).start()
+            if (icon != null && !collapsed && !panelOpen && motionEnabled()) {
+                icon.setImageResource(R.drawable.overlay_bubble_mascot_blink)
+                handler.postDelayed({
+                    if (iconView === icon && !collapsed && !panelOpen) {
+                        icon.setImageResource(R.drawable.overlay_bubble_mascot)
                     }
-                    .start()
+                }, 150L)
             }
             scheduleBlink()
         }
     }
 
+    private val moodRunnable = Runnable {
+        if (!collapsed && !panelOpen) {
+            iconView?.setImageResource(R.drawable.overlay_bubble_mascot)
+        }
+    }
+
     private fun scheduleBlink() {
         handler.removeCallbacks(blinkRunnable)
-        handler.postDelayed(blinkRunnable, 3_500L + (Math.random() * 3_000L).toLong())
+        if (motionEnabled()) {
+            handler.postDelayed(
+                blinkRunnable,
+                3_500L + (Math.random() * 3_000L).toLong(),
+            )
+        }
+    }
+
+    /** New-message delight, or an honest alert face for incomplete context. */
+    private fun showMessageMood() {
+        val icon = iconView ?: return
+        handler.removeCallbacks(moodRunnable)
+        val pending = OverlayBubbleController.peek()
+        val needsAttention = pending?.let {
+            it["mayBeRedacted"] == true || it["isTruncated"] == true ||
+                it["isGroupSummary"] == true
+        } == true
+        icon.setImageResource(
+            if (needsAttention) R.drawable.overlay_bubble_mascot_alert
+            else R.drawable.overlay_bubble_mascot_happy,
+        )
+        handler.postDelayed(moodRunnable, if (needsAttention) 1_600L else 900L)
+    }
+
+    private fun motionEnabled(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            ValueAnimator.areAnimatorsEnabled()
+        } else {
+            Settings.Global.getFloat(
+                contentResolver,
+                Settings.Global.ANIMATOR_DURATION_SCALE,
+                1f,
+            ) != 0f
+        }
     }
 
     /** New message: one soft pop plus a tap of haptic feedback. */
@@ -350,8 +432,9 @@ class OverlayBubbleService : Service() {
         val view = bubbleView ?: return
         if (collapsed || panelOpen) return
         view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+        if (!motionEnabled()) return
         view.animate()
-            .scaleX(1.1f)
+            .scaleX(1.08f)
             .scaleY(1.1f)
             .setDuration(160L)
             .withEndAction {
@@ -360,14 +443,22 @@ class OverlayBubbleService : Service() {
             .start()
     }
 
-    private fun updateBadge() {
+    private fun updateBadge(animate: Boolean = false) {
         val badge = badgeView ?: return
-        if (messagesWhileShowing > 1) {
-            badge.text = if (messagesWhileShowing > 9) "9+" else messagesWhileShowing.toString()
-            badge.visibility = View.VISIBLE
-        } else {
-            badge.visibility = View.GONE
+        val count = messagesWhileShowing
+        badge.text = if (count > 9) "9+" else count.toString()
+        badge.visibility = if (count > 1) View.VISIBLE else View.GONE
+        if (animate && count > 1 && count != lastBadgeCount && motionEnabled()) {
+            badge.scaleX = 0.65f
+            badge.scaleY = 0.65f
+            badge.animate()
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(280L)
+                .setInterpolator(OvershootInterpolator(1.4f))
+                .start()
         }
+        lastBadgeCount = count
     }
 
     private fun scheduleAutoHide() {
@@ -425,8 +516,9 @@ class OverlayBubbleService : Service() {
         val root = view as? FrameLayout ?: return
         val tabWidth = resources.getDimensionPixelSize(R.dimen.overlay_bubble_collapsed_width)
         root.background = GradientDrawable().apply {
-            setColor(bubbleColor())
-            setStroke(dp(2), Color.WHITE)
+            orientation = GradientDrawable.Orientation.TL_BR
+            colors = intArrayOf(bubbleColor(), Color.rgb(17, 79, 208))
+            setStroke(dp(1), Color.argb(190, 235, 246, 255))
             if (collapsed) {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = tabWidth / 2f
@@ -435,6 +527,8 @@ class OverlayBubbleService : Service() {
             }
         }
         iconView?.visibility = if (collapsed) View.GONE else View.VISIBLE
+        rimView?.visibility = if (collapsed) View.GONE else View.VISIBLE
+        highlightView?.visibility = if (collapsed) View.GONE else View.VISIBLE
         gripView?.visibility = if (collapsed) View.VISIBLE else View.GONE
         if (collapsed) {
             // The count would be clipped to nothing on a 22dp tab, and the
@@ -459,16 +553,14 @@ class OverlayBubbleService : Service() {
         val metrics = resources.displayMetrics
         collapsed = true
         stopIdleAnimation()
-        params.width = tabWidth
-        params.height = size
-        params.x = if (toRight) metrics.widthPixels - tabWidth else 0
         applyBubbleAppearance(view, collapsed = true)
-        try {
-            windowManager?.updateViewLayout(view, params)
-        } catch (error: Exception) {
-            // The window went away; nothing to tuck.
-            collapsed = false
-        }
+        animateWindowLayout(
+            view,
+            params,
+            targetX = if (toRight) metrics.widthPixels - tabWidth else 0,
+            targetWidth = tabWidth,
+            targetHeight = size,
+        )
     }
 
     /** Brings a tucked bubble back to full size on the edge it was hiding on. */
@@ -479,18 +571,79 @@ class OverlayBubbleService : Service() {
         val metrics = resources.displayMetrics
         val onRight = params.x > metrics.widthPixels / 2
         collapsed = false
-        params.width = size
-        params.height = size
-        params.x = if (onRight) metrics.widthPixels - size else 0
         applyBubbleAppearance(view, collapsed = false)
-        try {
-            windowManager?.updateViewLayout(view, params)
-        } catch (error: Exception) {
-            // Ignore: the view is gone and show() will rebuild it.
+        iconView?.alpha = 0f
+        iconView?.animate()?.alpha(1f)?.setDuration(if (motionEnabled()) 180L else 0L)?.start()
+        animateWindowLayout(
+            view,
+            params,
+            targetX = if (onRight) metrics.widthPixels - size else 0,
+            targetWidth = size,
+            targetHeight = size,
+        ) {
+            updateBadge()
+            startIdleAnimation()
+            if (showMoodAfterExpand) {
+                showMoodAfterExpand = false
+                showMessageMood()
+            }
+            rememberPosition(params)
         }
-        updateBadge()
-        startIdleAnimation()
-        rememberPosition(params)
+    }
+
+    /** A small, damped spring settles the real overlay window, not a proxy. */
+    private fun animateWindowLayout(
+        view: View,
+        params: WindowManager.LayoutParams,
+        targetX: Int,
+        targetWidth: Int,
+        targetHeight: Int,
+        onEnd: () -> Unit = {},
+    ) {
+        settleAnimator?.cancel()
+        if (!motionEnabled()) {
+            params.x = targetX
+            params.width = targetWidth
+            params.height = targetHeight
+            try {
+                windowManager?.updateViewLayout(view, params)
+            } catch (error: Exception) {
+                collapsed = false
+            }
+            onEnd()
+            return
+        }
+        val fromX = params.x
+        val fromWidth = params.width
+        val fromHeight = params.height
+        settleAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 340L
+            interpolator = OvershootInterpolator(0.7f)
+            addUpdateListener { animation ->
+                val fraction = animation.animatedValue as Float
+                params.x = (fromX + (targetX - fromX) * fraction).toInt()
+                params.width = (fromWidth + (targetWidth - fromWidth) * fraction).toInt()
+                params.height = (fromHeight + (targetHeight - fromHeight) * fraction).toInt()
+                try {
+                    windowManager?.updateViewLayout(view, params)
+                } catch (error: Exception) {
+                    cancel()
+                }
+            }
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                private var cancelled = false
+
+                override fun onAnimationCancel(animation: android.animation.Animator) {
+                    cancelled = true
+                }
+
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    settleAnimator = null
+                    if (!cancelled) onEnd()
+                }
+            })
+            start()
+        }
     }
 
     /**
@@ -506,6 +659,7 @@ class OverlayBubbleService : Service() {
                 collapse(toRight = true)
             else -> {
                 rememberPosition(params)
+                if (!collapsed) startIdleAnimation()
                 // A tab dragged into the middle of the screen would just look
                 // broken, so letting go of it restores the full bubble.
                 if (collapsed) expand()
@@ -581,21 +735,38 @@ class OverlayBubbleService : Service() {
 
         val card = LinearLayout(this)
         card.orientation = LinearLayout.VERTICAL
+        card.setPadding(0, dp(6), 0, dp(6))
         card.background = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(14).toFloat()
+            cornerRadius = dp(18).toFloat()
             setColor(menuBackgroundColor())
+            setStroke(dp(1), Color.argb(32, 255, 255, 255))
         }
         card.elevation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            dp(10).toFloat()
+            dp(14).toFloat()
         } else {
             0f
         }
-        card.addView(menuRow(R.string.overlay_bubble_menu_reply) { openPanel() })
-        card.addView(menuRow(R.string.overlay_bubble_menu_hide) {
-            collapse(toRight = anchor.x > resources.displayMetrics.widthPixels / 2)
-        })
-        card.addView(menuRow(R.string.overlay_bubble_menu_dismiss) { dismissBubble() })
+        val actions = listOf(
+            Triple(R.string.overlay_bubble_menu_reply, R.drawable.overlay_ic_reply) { openPanel() },
+            Triple(R.string.overlay_bubble_menu_hide, R.drawable.overlay_ic_hide) {
+                collapse(toRight = anchor.x > resources.displayMetrics.widthPixels / 2)
+            },
+            Triple(R.string.overlay_bubble_menu_dismiss, R.drawable.overlay_ic_dismiss) {
+                dismissBubble()
+            },
+        )
+        actions.forEachIndexed { index, item ->
+            if (index > 0) {
+                val divider = View(this)
+                divider.setBackgroundColor(Color.argb(20, 255, 255, 255))
+                card.addView(divider, LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp(1),
+                ).apply { leftMargin = dp(48); rightMargin = dp(12) })
+            }
+            card.addView(menuRow(item.first, item.second, item.third))
+        }
 
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -603,27 +774,43 @@ class OverlayBubbleService : Service() {
             @Suppress("DEPRECATION")
             WindowManager.LayoutParams.TYPE_PHONE
         }
-        val width = dp(168)
-        val height = dp(3 * 44)
+        val width = dp(204)
+        val estimatedHeight = dp(3 * 48 + 14)
         val metrics = resources.displayMetrics
         val params = WindowManager.LayoutParams(
             width,
-            height,
+            WindowManager.LayoutParams.WRAP_CONTENT,
             type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = if (anchor.x + anchor.width + width + dp(8) <= metrics.widthPixels) {
-                anchor.x + anchor.width + dp(8)
+            x = if (anchor.x + anchor.width + width + dp(10) <= metrics.widthPixels) {
+                anchor.x + anchor.width + dp(10)
             } else {
-                (anchor.x - width - dp(8)).coerceAtLeast(0)
+                (anchor.x - width - dp(10)).coerceAtLeast(dp(8))
             }
-            y = anchor.y.coerceIn(dp(8), maxOf(dp(8), metrics.heightPixels - height - dp(8)))
+            y = anchor.y.coerceIn(
+                dp(8),
+                maxOf(dp(8), metrics.heightPixels - estimatedHeight - dp(8)),
+            )
         }
         try {
             manager.addView(card, params)
             menuView = card
+            if (motionEnabled()) {
+                card.alpha = 0f
+                card.scaleX = 0.96f
+                card.scaleY = 0.96f
+                card.pivotX = if (params.x > anchor.x) 0f else width.toFloat()
+                card.animate()
+                    .alpha(1f)
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(180L)
+                    .setInterpolator(DecelerateInterpolator())
+                    .start()
+            }
             menuTimeout?.let { handler.removeCallbacks(it) }
             val timeout = Runnable { hideMenu() }
             menuTimeout = timeout
@@ -634,18 +821,21 @@ class OverlayBubbleService : Service() {
         }
     }
 
-    private fun menuRow(labelRes: Int, action: () -> Unit): View {
+    private fun menuRow(labelRes: Int, iconRes: Int, action: () -> Unit): View {
         val row = TextView(this)
         row.text = getString(labelRes)
-        row.setTextColor(Color.WHITE)
+        row.setTextColor(Color.rgb(238, 244, 255))
         row.textSize = 14f
         row.gravity = Gravity.CENTER_VERTICAL
-        row.setPadding(dp(16), 0, dp(16), 0)
+        row.setPadding(dp(14), 0, dp(14), 0)
+        row.compoundDrawablePadding = dp(12)
+        row.setCompoundDrawablesRelativeWithIntrinsicBounds(iconRes, 0, 0, 0)
         row.layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
-            dp(44),
+            dp(48),
         )
         row.setOnClickListener {
+            row.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
             hideMenu()
             action()
         }
@@ -701,6 +891,10 @@ class OverlayBubbleService : Service() {
                     startY = params.y
                     dragging = false
                     longPressFired = false
+                    settleAnimator?.cancel()
+                    if (motionEnabled()) {
+                        view.animate().scaleX(0.96f).scaleY(0.96f).setDuration(90L).start()
+                    }
                     scheduleLongPress { longPressFired = true; showMenu() }
                     return true
                 }
@@ -711,6 +905,14 @@ class OverlayBubbleService : Service() {
                         dragging = true
                         cancelLongPress()
                         hideMenu()
+                        stopIdleAnimation()
+                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                        if (motionEnabled()) {
+                            view.animate().scaleX(1.06f).scaleY(1.06f).setDuration(110L).start()
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                                view.elevation = dp(14).toFloat()
+                            }
+                        }
                     }
                     if (dragging) {
                         params.x = startX + dx.toInt()
@@ -725,6 +927,7 @@ class OverlayBubbleService : Service() {
                 }
                 MotionEvent.ACTION_UP -> {
                     cancelLongPress()
+                    releaseBubble(view)
                     if (longPressFired) {
                         // The press already did its work; this is its release.
                         longPressFired = false
@@ -745,10 +948,29 @@ class OverlayBubbleService : Service() {
                 }
                 MotionEvent.ACTION_CANCEL -> {
                     cancelLongPress()
+                    releaseBubble(view)
+                    if (!collapsed && !panelOpen) startIdleAnimation()
                     return true
                 }
             }
             return false
+        }
+    }
+
+    private fun releaseBubble(view: View) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            view.elevation = dp(10).toFloat()
+        }
+        if (motionEnabled()) {
+            view.animate()
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(260L)
+                .setInterpolator(OvershootInterpolator(1.1f))
+                .start()
+        } else {
+            view.scaleX = 1f
+            view.scaleY = 1f
         }
     }
 
@@ -856,6 +1078,12 @@ class OverlayBubbleService : Service() {
         badgeView = null
         iconView = null
         gripView = null
+        rimView = null
+        highlightView = null
+        settleAnimator?.cancel()
+        settleAnimator = null
+        lastBadgeCount = 0
+        showMoodAfterExpand = false
         collapsed = false
         stopIdleAnimation()
         shownKey = null

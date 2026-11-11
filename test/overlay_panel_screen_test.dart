@@ -76,6 +76,9 @@ void main() {
     OverlayContext context, {
     Map<String, Object> prefs = const <String, Object>{},
     List<Override> overrides = const <Override>[],
+    bool highContrast = false,
+    bool disableAnimations = false,
+    EdgeInsets viewInsets = EdgeInsets.zero,
   }) async {
     // Set per test, not once: the style row reads these.
     SharedPreferences.setMockInitialValues(prefs);
@@ -85,7 +88,17 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: overrides,
-        child: MaterialApp(home: OverlayPanelScreen(initialContext: context)),
+        child: MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              highContrast: highContrast,
+              disableAnimations: disableAnimations,
+              viewInsets: viewInsets,
+            ),
+            child: child!,
+          ),
+          home: OverlayPanelScreen(initialContext: context),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -94,6 +107,71 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
     await tester.pumpAndSettle();
   }
+
+  testWidgets('the reply surface is a centered glass card, not a sheet', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await pumpPanel(tester, _context());
+
+    final card = find.byKey(const Key('overlayGlassCard'));
+    expect(card, findsOneWidget);
+    expect(find.byType(BackdropFilter), findsOneWidget);
+    expect(find.byType(Card), findsNothing);
+    expect(tester.getCenter(card), const Offset(540, 1200));
+    expect(tester.getSize(card).width, lessThanOrEqualTo(460));
+    expect(
+      tester.getSemantics(find.byKey(const Key('overlayPanelSemantics'))),
+      matchesSemantics(label: 'ReplyMate floating reply panel'),
+    );
+    semantics.dispose();
+  });
+
+  testWidgets('the glass card stays above the keyboard', (tester) async {
+    await pumpPanel(
+      tester,
+      _context(),
+      viewInsets: const EdgeInsets.only(bottom: 600),
+    );
+
+    final rect = tester.getRect(find.byKey(const Key('overlayGlassCard')));
+    expect(rect.bottom, lessThanOrEqualTo(1800));
+    expect(find.byTooltip('Settings'), findsOneWidget);
+    expect(find.byTooltip('Close'), findsOneWidget);
+  });
+
+  testWidgets('high contrast replaces blur with a solid surface', (
+    tester,
+  ) async {
+    await pumpPanel(tester, _context(), highContrast: true);
+
+    expect(find.byKey(const Key('overlaySolidBackdrop')), findsOneWidget);
+    expect(find.byKey(const Key('overlayBlurredBackdrop')), findsNothing);
+    expect(find.text('Generate a reply'), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const Key('overlayGlassCard'))).width,
+      lessThanOrEqualTo(460),
+    );
+  });
+
+  testWidgets('reduced motion skips the floating entrance animation', (
+    tester,
+  ) async {
+    await pumpPanel(tester, _context(), disableAnimations: true);
+
+    final entrance = tester.widget<TweenAnimationBuilder<double>>(
+      find.byType(TweenAnimationBuilder<double>),
+    );
+    final keyboard = tester.widget<AnimatedPadding>(
+      find.byType(AnimatedPadding),
+    );
+    expect(entrance.duration, Duration.zero);
+    expect(keyboard.duration, Duration.zero);
+    expect(
+      tester.getCenter(find.byKey(const Key('overlayGlassCard'))),
+      const Offset(540, 1200),
+    );
+  });
 
   testWidgets('a stubbed context renders the message and its app', (
     tester,

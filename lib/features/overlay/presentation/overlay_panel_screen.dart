@@ -1,13 +1,14 @@
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/app_theme.dart';
-import '../../../shared/widgets/mascot_face.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../../../shared/widgets/brand_icon.dart';
 import '../../../shared/widgets/section_label.dart';
 import '../../memory/providers/conversation_memory_provider.dart';
 import '../../notifications/providers/notification_providers.dart';
@@ -249,39 +250,65 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     final consumed = ref.watch(overlayContextProvider);
     final overlay = widget.initialContext ?? consumed.value;
     final loading = widget.initialContext == null && consumed.isLoading;
+    final media = MediaQuery.of(context);
+    final reduceMotion = media.disableAnimations;
 
     return Scaffold(
-      // Translucent: the messaging app stays visible behind the panel, so the
-      // user never loses the conversation they are answering.
+      // The activity is translucent. The card, rather than the scaffold,
+      // supplies contrast so the conversation remains faintly visible.
       backgroundColor: Colors.transparent,
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // Tapping outside the panel dismisses it, like any sheet.
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: () => _close(),
-              child: const SizedBox.expand(),
+              onTap: _close,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.48),
+                      Colors.black.withValues(alpha: 0.64),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(AppTheme.spaceSm),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.sizeOf(context).height * 0.82,
-                  ),
-                  child: Card(
-                    clipBehavior: Clip.antiAlias,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(AppTheme.cardRadius),
-                        bottom: Radius.circular(AppTheme.cardRadius),
+          SafeArea(
+            minimum: const EdgeInsets.all(AppTheme.spaceMd),
+            child: AnimatedPadding(
+              duration: reduceMotion
+                  ? Duration.zero
+                  : const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
+              child: Center(
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: 1),
+                  duration: reduceMotion
+                      ? Duration.zero
+                      : const Duration(milliseconds: 260),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, value, child) => Opacity(
+                    opacity: value,
+                    child: Transform.translate(
+                      offset: Offset(0, 14 * (1 - value)),
+                      child: Transform.scale(
+                        scale: 0.975 + (0.025 * value),
+                        child: child,
                       ),
                     ),
-                    child: _buildBody(overlay, loading),
+                  ),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: 460,
+                      maxHeight: 760,
+                    ),
+                    child: _GlassCard(child: _buildBody(overlay, loading)),
                   ),
                 ),
               ),
@@ -294,71 +321,164 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
 
   Widget _buildBody(OverlayContext? overlay, bool loading) {
     if (loading) {
-      return const Padding(
-        padding: EdgeInsets.all(AppTheme.spaceLg),
-        child: Center(child: CircularProgressIndicator()),
+      return _buildPanelShell(
+        child: const Padding(
+          padding: EdgeInsets.symmetric(vertical: AppTheme.spaceXl),
+          child: Center(child: CircularProgressIndicator()),
+        ),
       );
     }
     if (overlay == null) {
-      return _buildNothing();
+      return _buildPanelShell(child: _buildNothing());
     }
-    return _buildPanel(overlay);
+    return _buildPanelShell(overlay: overlay, child: _buildPanel(overlay));
   }
 
-  /// The honest dead end: the pending message was consumed by another launch
-  /// or lost with the process. Saying so beats an empty panel that looks
-  /// broken (docs/FLOATING_OVERLAY.md §11).
-  Widget _buildNothing() {
-    return Padding(
-      padding: const EdgeInsets.all(AppTheme.spaceMd),
+  Widget _buildPanelShell({OverlayContext? overlay, required Widget child}) {
+    return Semantics(
+      key: const Key('overlayPanelSemantics'),
+      container: true,
+      explicitChildNodes: true,
+      label: 'ReplyMate floating reply panel',
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _Grabber(),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _strings.nothingToReplyTo,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-              IconButton(
-                tooltip: _strings.settings,
-                icon: const Icon(Icons.tune),
-                onPressed: _openSettings,
-              ),
-              IconButton(
-                tooltip: _strings.close,
-                icon: const Icon(Icons.close),
-                onPressed: () => _close(),
-              ),
-            ],
+          _buildHeader(overlay),
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: Theme.of(context).colorScheme.outlineVariant
+                .withValues(alpha: 0.55),
           ),
-          const SizedBox(height: AppTheme.spaceSm),
-          Text(
-            _strings.messageGoneBody,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: AppTheme.spaceMd),
-          OutlinedButton(
-            onPressed: () => _close(),
-            child: Text(_strings.close),
+          Flexible(
+            child: overlay == null
+                ? SingleChildScrollView(child: child)
+                : child,
           ),
         ],
       ),
     );
   }
 
-  /// The message: quoted and copyable by default, editable and pasteable on
-  /// demand. Generation always uses what is in this box, so a pasted message
-  /// and a captured one take the same path - which is what makes the panel
-  /// useful even when the notification carried nothing.
-  /// A row of chat chips, shown only when more than one conversation is
-  /// waiting. WhatsApp can ping you three times while ReplyMate is on screen;
-  /// before this, the badge said 3 but the panel could only ever answer the
-  /// last one.
+  Widget _buildHeader(OverlayContext? overlay) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final active = _active ?? overlay;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 14, 8, 14),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              gradient: AppTheme.primaryGradient,
+              borderRadius: BorderRadius.circular(13),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.brand.withValues(alpha: 0.24),
+                  blurRadius: 16,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: active == null
+                ? const BrandIcon(
+                    type: BrandIconType.reply,
+                    color: Colors.white,
+                    size: 22,
+                  )
+                : Center(
+                    child: Text(
+                      active.displayTitle.characters.first.toUpperCase(),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  active?.displayTitle ?? 'ReplyMate',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium,
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  active == null
+                      ? 'Your reply copilot'
+                      : 'via ${active.appLabel}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: _strings.settings,
+            onPressed: _openSettings,
+            icon: const Icon(Icons.tune_rounded, size: 21),
+          ),
+          IconButton(
+            tooltip: _strings.close,
+            onPressed: _close,
+            icon: const Icon(Icons.close_rounded, size: 22),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The honest dead end: the pending message was consumed by another launch
+  /// or lost with the process. Saying so beats an empty panel that looks
+  /// broken (docs/FLOATING_OVERLAY.md §11).
+  Widget _buildNothing() {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.mark_chat_unread_outlined,
+                size: 20,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: AppTheme.spaceSm),
+              Expanded(
+                child: Text(
+                  _strings.nothingToReplyTo,
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppTheme.spaceSm),
+          Text(_strings.messageGoneBody, style: theme.textTheme.bodyMedium),
+          const SizedBox(height: 20),
+          OutlinedButton.icon(
+            onPressed: _close,
+            icon: const Icon(Icons.close_rounded, size: 18),
+            label: Text(_strings.close),
+          ),
+        ],
+      ),
+    );
+  }
+
   List<Widget> _buildSwitcher(OverlayContext overlay) {
     final others =
         ref.watch(pendingOverlayContextsProvider).value ??
@@ -429,8 +549,11 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(AppTheme.spaceMd),
           decoration: BoxDecoration(
-            color: scheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(AppTheme.cardRadius - 6),
+            color: scheme.surfaceContainerHighest.withValues(alpha: 0.62),
+            borderRadius: BorderRadius.circular(AppTheme.tileRadius),
+            border: Border.all(
+              color: scheme.outlineVariant.withValues(alpha: 0.58),
+            ),
           ),
           child: ConstrainedBox(
             constraints: BoxConstraints(
@@ -464,19 +587,19 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
           children: [
             TextButton.icon(
               onPressed: empty ? null : _copyMessage,
-              icon: const Icon(Icons.copy_all_outlined, size: 16),
+              icon: const Icon(Icons.copy_rounded, size: 17),
               label: const Text('Copy'),
             ),
             TextButton.icon(
               onPressed: _pasteMessage,
-              icon: const Icon(Icons.content_paste_go, size: 16),
+              icon: const Icon(Icons.content_paste_rounded, size: 17),
               label: Text(_strings.paste),
             ),
             TextButton.icon(
               onPressed: () =>
                   setState(() => _editingMessage = !_editingMessage),
               icon: Icon(
-                _editingMessage ? Icons.check : Icons.edit_outlined,
+                _editingMessage ? Icons.check_rounded : Icons.edit_outlined,
                 size: 16,
               ),
               label: Text(_editingMessage ? 'Done' : 'Edit'),
@@ -504,55 +627,6 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
         AppTheme.spaceMd,
       ),
       children: [
-        const _Grabber(),
-        Row(
-          children: [
-            // The same face as the bubble the user just tapped: thinking while
-            // the request is in flight, happy once there are replies.
-            MascotFace(
-              size: 34,
-              glow: false,
-              animate: false,
-              mood: _generating
-                  ? MascotMood.thinking
-                  : (_controllers.isNotEmpty
-                        ? MascotMood.happy
-                        : MascotMood.idle),
-            ),
-            const SizedBox(width: AppTheme.spaceSm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    overlay.displayTitle,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    'via ${overlay.appLabel}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            IconButton(
-              tooltip: 'Settings',
-              icon: const Icon(Icons.tune),
-              onPressed: _openSettings,
-            ),
-            IconButton(
-              tooltip: 'Close',
-              icon: const Icon(Icons.close),
-              onPressed: () => _close(),
-            ),
-          ],
-        ),
         ..._buildSwitcher(overlay),
         const SizedBox(height: AppTheme.spaceMd),
         _buildMessageBlock(overlay),
@@ -658,7 +732,11 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Icon(Icons.auto_awesome),
+              : const BrandIcon(
+                  type: BrandIconType.reply,
+                  color: Colors.white,
+                  size: 20,
+                ),
           label: Text(
             _generating
                 ? _strings.generating
@@ -688,24 +766,64 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
   }
 }
 
-/// The little bar that says "this is a sheet you can flick away".
-class _Grabber extends StatelessWidget {
-  const _Grabber();
+/// A floating surface with a real backdrop blur and enough tint to keep text
+/// readable over a busy chat. High-contrast users get an effectively solid
+/// card instead of glass; reduced-motion users skip only the entrance motion.
+class _GlassCard extends StatelessWidget {
+  const _GlassCard({required this.child});
+
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.only(
-          top: AppTheme.spaceSm,
-          bottom: AppTheme.spaceSm,
-        ),
-        child: Container(
-          width: 36,
-          height: 4,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.outlineVariant,
-            borderRadius: BorderRadius.circular(2),
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final dark = theme.brightness == Brightness.dark;
+    final media = MediaQuery.of(context);
+    final solid = media.highContrast;
+    final radius = BorderRadius.circular(24);
+    final surface = dark ? AppTheme.inkSurface : Colors.white;
+
+    return Container(
+      key: const Key('overlayGlassCard'),
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: dark ? 0.38 : 0.22),
+            blurRadius: 42,
+            offset: const Offset(0, 18),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: BackdropFilter(
+          key: Key(solid ? 'overlaySolidBackdrop' : 'overlayBlurredBackdrop'),
+          filter: ImageFilter.blur(
+            sigmaX: solid ? 0 : 20,
+            sigmaY: solid ? 0 : 20,
+          ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: radius,
+              border: Border.all(
+                color: solid
+                    ? scheme.outline
+                    : (dark
+                          ? Colors.white.withValues(alpha: 0.18)
+                          : Colors.white.withValues(alpha: 0.82)),
+              ),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  surface.withValues(alpha: solid ? 1 : (dark ? 0.94 : 0.95)),
+                  surface.withValues(alpha: solid ? 1 : (dark ? 0.90 : 0.92)),
+                ],
+              ),
+            ),
+            child: child,
           ),
         ),
       ),

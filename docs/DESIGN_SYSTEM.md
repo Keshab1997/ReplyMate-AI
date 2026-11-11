@@ -26,10 +26,10 @@ the same circular crop and transparent outer pixels.
 
 `thinking` additionally shows three breathing dots under the face: the app's
 only "the helper is working" cue, and deliberately wordless — it says
-*something is happening* without guessing how long it will take. It is used in
-two places: the composer header switches `listening` -> `thinking` while a
-request is in flight, and the bubble panel's avatar does the same, then turns
-`happy` when replies arrive.
+*something is happening* without guessing how long it will take. The composer
+header switches `listening` -> `thinking` while a request is in flight. The
+floating panel keeps its sender/app header fixed and shows progress only on
+its Generate button.
 
 The **bubble itself** has no thinking state on purpose: the bubble steps aside
 while the panel is open, and the panel is the only place a request can be
@@ -48,6 +48,12 @@ be happening.
 - Every animation respects the platform's "remove animations" setting through
   Flutter's normal implicit-animation behaviour; nothing animates a value the
   user is trying to read.
+- Native bubble motion also checks Android's animator setting. Dragging stops
+  the idle bob, gives a small scale/elevation response and settles with a
+  damped spring; collapse and expansion animate the real window dimensions.
+- The native blink swaps to matched closed-eye artwork. New messages briefly
+  use happy artwork, while truncated/redacted/group-summary context uses the
+  alert frame—never sender or message text.
 
 ## 3. Typography and icons
 
@@ -132,7 +138,23 @@ affordance instead of four hand-copied chips.
 Nothing is left on the old system. From here a new screen starts from
 `ScreenHeader` + `AppTheme` tokens + `MascotFace` when the helper is relevant.
 
-## 8. Accessibility rules
+## 8. Floating glass panel
+
+The overlay is a **centered floating card**, not a bottom sheet. It is at most
+`460 dp` wide and `760 dp` high, with `24 dp` corners, a subtle rim and a deep
+soft shadow. A `20 dp` backdrop blur sits beneath a 90–95% surface tint: the
+chat remains perceptible without competing with the message or controls. A
+48–64% black scrim closes on an outside tap.
+
+The sender/app header stays fixed while chat chips, message/style controls,
+errors and suggestions scroll. The card shrinks for short empty/loading states
+and moves above the keyboard rather than letting the text field disappear.
+High contrast removes the blur and uses a solid, outlined surface; reduced
+motion skips the entrance translation/scale. Native visuals still require
+real-device confirmation because widget captures cannot render the Android
+bubble over another application.
+
+## 9. Accessibility rules
 
 - **Reduce motion is honoured, not decorated.** `MascotFace` stops its
   controllers when `MediaQuery.disableAnimations` is true, so no frames are
@@ -149,7 +171,7 @@ Nothing is left on the old system. From here a new screen starts from
   `maxLines: 1` on a label the user needs: the quick-start grid became two
   `IntrinsicHeight` rows so a 2x font grows the card instead of clipping it.
 
-## 9. Interface language
+## 10. Interface language
 
 `lib/core/l10n/app_strings.dart` holds the interface strings in
 `EnglishStrings`, `BengaliStrings` and `HindiStrings` behind

@@ -234,22 +234,37 @@ without waiting for the next notification. The 10-minute timer keeps running
 while the panel is open: if the panel never reports back (process death), the
 bubble still cleans itself up instead of lingering invisibly.
 
+The panel is a centered floating glass card rather than a bottom sheet. Its
+460 dp maximum width, 760 dp maximum height and safe-area margins keep it on
+screen; content scrolls and keyboard insets move the whole card into the
+remaining space. Backdrop blur is paired with a 90–95% opaque surface tint and
+a subtle border so a busy chat cannot make the reply text unreadable. High
+contrast uses a solid surface and reduced motion removes the entrance motion.
+Outside taps still close the panel, and the sender/app header, Settings and
+Close controls remain visible while the content scrolls.
+
 ### 5.4 Resting state, motion and the edge tab
 
 The bubble is a 3D helper face (`design/bubble_mascot_bubble.png`, preview in
-`design/bubble_preview.html`) on a glass-blue disc. Motion is three ordinary
-property animations - no frame assets, no animated-drawable pipeline, no Lottie:
+`design/bubble_preview.html`) on a glass-blue disc with a separate crisp rim,
+soft highlight and elevation shadow. Motion uses ordinary view/window
+animations plus matched artwork frames—no Lottie or animated-drawable pipeline:
 
-- **idle**: a 1500 ms vertical bob (±1 dp) and an irregular blink (a 90 ms
-  squash of the face every 3.5-6.5 s);
-- **arrival**: one 160 ms pop to 1.1x plus `VIRTUAL_KEY` haptic feedback when a
-  new message lands while the bubble is up. This is the only cue that a message
-  arrived, and it carries no text;
-- **tuck**: see below.
+- **idle**: an 1800 ms vertical bob and an irregular 150 ms closed-eye artwork
+  swap every 3.5–6.5 s; the whole face is never squashed;
+- **arrival**: one soft pop plus `VIRTUAL_KEY` haptic feedback, an animated
+  count badge and a short happy face. Incomplete/redacted/group-summary context
+  uses the alert frame instead. Neither mood exposes text;
+- **drag**: idle motion stops, the bubble lifts/scales slightly and gives a
+  clock-tick haptic; release settles with a damped spring;
+- **tuck**: the actual window width and edge position animate between the 56 dp
+  bubble and 22 dp tab. Android's animator setting disables bob, blink, spring,
+  badge and entrance motion.
 
 A **long press** (450 ms, cancelled the moment the finger moves) opens a small
-three-row menu beside the bubble: *Draft a reply*, *Hide at the edge*,
-*Dismiss until the next message*. Dragging and waiting for a notification both
+three-row icon menu beside the bubble: *Draft a reply*, *Hide at the edge*,
+*Dismiss until the next message*. Rows are 48 dp high with quiet dividers,
+18 dp card corners, entrance motion and selection haptics. Dragging and waiting for a notification both
 hide the bubble, but neither is discoverable - the long press is the gesture
 people try on anything round. The menu closes on a second tap, on any drag, on
 a tap on one of its rows, or by itself after 6 seconds; a refused menu window is

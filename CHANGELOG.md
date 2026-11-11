@@ -4,6 +4,19 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### Floating bubble and glass panel polish
+
+- Replaced the bottom-aligned overlay sheet with a centered, keyboard-safe
+  glass card: controlled blur, high-opacity tint, subtle border, soft shadow,
+  fixed sender/app header and scrolling controls/suggestions.
+- Added native bubble rim/highlight, matched blink/happy/alert artwork,
+  animated count badge, tactile drag feedback, spring-like edge settling and
+  reduced-motion fallbacks. The bubble still exposes no sender/message text or
+  generation state.
+- Refined the long-press menu with rounded line icons, 48 dp rows, dividers,
+  entrance motion and selection haptics; updated the self-contained design
+  reference to match the shipped interaction model.
+
 ### Visual identity, motion and accessibility refinement
 
 - Bundled Inter, Noto Sans Bengali and Noto Sans Devanagari with their OFL
