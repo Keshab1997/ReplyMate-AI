@@ -589,10 +589,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                 ),
               ),
 
-              section(
-                'Conversation memory',
-                const ConversationMemoryCard(),
-              ),
+              section('Conversation memory', const ConversationMemoryCard()),
 
               section(
                 strings.privacySection,

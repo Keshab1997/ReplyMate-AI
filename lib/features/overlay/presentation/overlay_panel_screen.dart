@@ -113,7 +113,8 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
       tone: preferences.tone,
       length: preferences.length,
       count: preferences.suggestionCount,
-      priorMessages: memory?.contextLines() ?? overlay.notification.priorMessages,
+      priorMessages:
+          memory?.contextLines() ?? overlay.notification.priorMessages,
       styleExamples: memory?.styleExamples() ?? const <String>[],
     );
     final problems = request.validate();

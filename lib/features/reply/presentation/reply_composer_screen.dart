@@ -117,9 +117,8 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
       tone: _tone,
       length: _length,
       count: _count,
-      priorMessages: memory?.contextLines() ??
-          capture?.priorMessages ??
-          const <String>[],
+      priorMessages:
+          memory?.contextLines() ?? capture?.priorMessages ?? const <String>[],
       styleExamples: memory?.styleExamples() ?? const <String>[],
     );
     final problems = request.validate();

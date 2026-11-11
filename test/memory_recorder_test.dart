@@ -101,7 +101,9 @@ void main() {
       // The wire carries no per-line author, so storing priorMessages would
       // label the user's own words as the sender's. One capture, one line.
       final line = recorder.lineForCapture(
-        capture(priorMessages: ['amar kotha', 'tomar kotha', 'kal dekha hobe?']),
+        capture(
+          priorMessages: ['amar kotha', 'tomar kotha', 'kal dekha hobe?'],
+        ),
         allowedPackages: allowlist,
         now: now,
       );

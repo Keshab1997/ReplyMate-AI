@@ -133,10 +133,7 @@ class ConversationMemoryStore {
   /// This contact's window, already capped and expired-out. Never throws and
   /// never returns null: an unreadable store is an empty memory, which is a
   /// state the rest of the app already knows how to be honest about.
-  Future<ConversationMemory> read(
-    ConversationKey key, {
-    DateTime? now,
-  }) async {
+  Future<ConversationMemory> read(ConversationKey key, {DateTime? now}) async {
     final at = now ?? DateTime.now();
     try {
       final all = await _backend.loadAll();

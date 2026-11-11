@@ -82,10 +82,7 @@ void main() {
       expect(memory.lines.length, tiny.maxLinesPerContact);
       // 'one' and 'two' went; the newest is still there. A full store that
       // dropped the newest would be a store that stopped answering.
-      expect(
-        memory.lines.map((line) => line.text),
-        ['three', 'four', 'five'],
-      );
+      expect(memory.lines.map((line) => line.text), ['three', 'four', 'five']);
     });
 
     test('a re-posted notification is one message, not two', () {
@@ -140,31 +137,37 @@ void main() {
       expect(memory.lines, hasLength(1));
     });
 
-    test('a line with no usable timestamp is treated as ancient, not as now', () {
-      // Reading a missing timestamp as "now" would silently promote junk into
-      // the freshest context - the opposite of honest.
-      final memory = ConversationMemory.fromStored(
-        key: key,
-        now: now,
-        policy: tiny,
-        lines: [
-          MemoryLine(
-            text: 'no clock',
-            author: MemoryAuthor.them,
-            at: DateTime.fromMillisecondsSinceEpoch(0),
-          ),
-        ],
-      );
+    test(
+      'a line with no usable timestamp is treated as ancient, not as now',
+      () {
+        // Reading a missing timestamp as "now" would silently promote junk into
+        // the freshest context - the opposite of honest.
+        final memory = ConversationMemory.fromStored(
+          key: key,
+          now: now,
+          policy: tiny,
+          lines: [
+            MemoryLine(
+              text: 'no clock',
+              author: MemoryAuthor.them,
+              at: DateTime.fromMillisecondsSinceEpoch(0),
+            ),
+          ],
+        );
 
-      expect(memory.isEmpty, isTrue);
-    });
+        expect(memory.isEmpty, isTrue);
+      },
+    );
   });
 
   group('line length', () {
     test('truncates a pasted essay and marks it', () {
       // Its own policy: the length limit deserves a fixture where the limit is
       // the only thing in play, not a side effect of the shared one.
-      const shortLines = MemoryPolicy(maxLineLength: 20, maxAge: Duration(days: 2));
+      const shortLines = MemoryPolicy(
+        maxLineLength: 20,
+        maxAge: Duration(days: 2),
+      );
       final memory = ConversationMemory.fromStored(
         key: key,
         now: now,
@@ -347,10 +350,18 @@ void main() {
         {
           'key': key.id,
           'lines': [
-            {'text': 'good line here', 'author': 'them', 'at': now.toIso8601String()},
+            {
+              'text': 'good line here',
+              'author': 'them',
+              'at': now.toIso8601String(),
+            },
             {'text': '', 'author': 'them'},
             {'nonsense': true},
-            {'text': 'another good one', 'author': 'me', 'at': now.toIso8601String()},
+            {
+              'text': 'another good one',
+              'author': 'me',
+              'at': now.toIso8601String(),
+            },
           ],
         },
         key: key,

@@ -59,7 +59,9 @@ class _ConversationMemoryCardState
     await _refresh();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Forgot the conversation with ${key.contactName}.')),
+      SnackBar(
+        content: Text('Forgot the conversation with ${key.contactName}.'),
+      ),
     );
   }
 

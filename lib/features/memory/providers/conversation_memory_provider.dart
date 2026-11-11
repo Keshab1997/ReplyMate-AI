@@ -169,5 +169,7 @@ class ConversationMemoryController {
   Future<void> forgetAll() => _store.forgetAll();
 }
 
-final Provider<ConversationMemoryController> conversationMemoryControllerProvider =
-    Provider<ConversationMemoryController>(ConversationMemoryController.new);
+final Provider<ConversationMemoryController>
+conversationMemoryControllerProvider = Provider<ConversationMemoryController>(
+  ConversationMemoryController.new,
+);

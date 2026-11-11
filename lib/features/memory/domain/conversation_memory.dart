@@ -211,7 +211,8 @@ class ConversationMemory {
     final limit = max == null ? lines.length : math.min(max, lines.length);
     final start = math.max(0, lines.length - limit);
     return <String>[
-      for (final line in lines.sublist(start)) '${line.promptLabel}: ${line.text}',
+      for (final line in lines.sublist(start))
+        '${line.promptLabel}: ${line.text}',
     ];
   }
 

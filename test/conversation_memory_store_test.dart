@@ -129,7 +129,10 @@ void main() {
         now: now,
       );
 
-      await store.save(ConversationMemory.empty(key: key, policy: tight), now: now);
+      await store.save(
+        ConversationMemory.empty(key: key, policy: tight),
+        now: now,
+      );
 
       // "everything aged out" and "the user deleted this contact" end in the
       // same place: nothing on disk.
@@ -164,37 +167,40 @@ void main() {
       expect(backend.records.keys, [keyOf('Karim').id]);
     });
 
-    test('forgetAll empties the store, which is what the switch promises', () async {
-      await store.save(_window('Rahim', now, tight), now: now);
-      await store.save(_window('Karim', now, tight), now: now);
+    test(
+      'forgetAll empties the store, which is what the switch promises',
+      () async {
+        await store.save(_window('Rahim', now, tight), now: now);
+        await store.save(_window('Karim', now, tight), now: now);
 
-      await store.forgetAll();
+        await store.forgetAll();
 
-      expect(backend.records, isEmpty);
-      expect(backend.clears, 1);
-      // Gone, not frozen (§3 wall 1): "off" must not mean "still on disk".
-    });
+        expect(backend.records, isEmpty);
+        expect(backend.clears, 1);
+        // Gone, not frozen (§3 wall 1): "off" must not mean "still on disk".
+      },
+    );
   });
 
   group('the contact cap', () {
-    test('evicts the least recently active and keeps the one just written', () async {
-      await store.save(
-        _window('Old', now, tight, minutesAgo: 120),
-        now: now,
-      );
-      await store.save(
-        _window('Older', now, tight, minutesAgo: 240),
-        now: now,
-      );
+    test(
+      'evicts the least recently active and keeps the one just written',
+      () async {
+        await store.save(_window('Old', now, tight, minutesAgo: 120), now: now);
+        await store.save(
+          _window('Older', now, tight, minutesAgo: 240),
+          now: now,
+        );
 
-      // Third contact pushes past maxContacts: 2.
-      await store.save(_window('New', now, tight), now: now);
+        // Third contact pushes past maxContacts: 2.
+        await store.save(_window('New', now, tight), now: now);
 
-      expect(backend.records.length, tight.maxContacts);
-      expect(backend.records.containsKey(keyOf('New').id), isTrue);
-      // 'Older' was the coldest, so it goes.
-      expect(backend.records.containsKey(keyOf('Older').id), isFalse);
-    });
+        expect(backend.records.length, tight.maxContacts);
+        expect(backend.records.containsKey(keyOf('New').id), isTrue);
+        // 'Older' was the coldest, so it goes.
+        expect(backend.records.containsKey(keyOf('Older').id), isFalse);
+      },
+    );
 
     test('listing contacts puts the newest activity first', () async {
       await store.save(_window('Quiet', now, tight, minutesAgo: 90), now: now);
