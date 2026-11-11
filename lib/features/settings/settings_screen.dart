@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/theme/app_icons.dart';
 import '../../app/theme/app_theme.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/reply_options.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/firebase/firebase_providers.dart';
+import '../../shared/widgets/brand_icon.dart';
 import '../../shared/widgets/choice_chips.dart';
 import '../../shared/widgets/mascot_face.dart';
 import '../admin/admin_gate_screen.dart';
@@ -283,8 +285,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                         ),
                         Icon(
                           bubbleEnabled
-                              ? Icons.bubble_chart_rounded
-                              : Icons.bubble_chart_outlined,
+                              ? AppIcons.bubble
+                              : AppIcons.bubbleOutlined,
                           size: 20,
                           color: bubbleEnabled
                               ? AppTheme.mint
@@ -350,6 +352,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                             options: ReplyLanguage.values,
                             selected: preferences.language,
                             labelOf: (language) => language.label,
+                            iconOf: (_) => AppIcons.language,
                             onSelected: (language) => ref
                                 .read(preferencesProvider.notifier)
                                 .setLanguage(language),
@@ -366,6 +369,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                             options: ReplyTone.values,
                             selected: preferences.tone,
                             labelOf: (tone) => tone.label,
+                            iconOf: (_) => AppIcons.tone,
                             onSelected: (tone) => ref
                                 .read(preferencesProvider.notifier)
                                 .setTone(tone),
@@ -382,6 +386,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                             options: ReplyLength.values,
                             selected: preferences.length,
                             labelOf: (length) => length.label,
+                            iconOf: (_) => AppIcons.length,
                             onSelected: (length) => ref
                                 .read(preferencesProvider.notifier)
                                 .setLength(length),
@@ -404,6 +409,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                             ),
                             selected: preferences.suggestionCount,
                             labelOf: (count) => '$count',
+                            iconOf: (_) => AppIcons.count,
                             onSelected: (count) => ref
                                 .read(preferencesProvider.notifier)
                                 .setSuggestionCount(count),
@@ -441,6 +447,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                           children: [
                             SwitchListTile(
                               value: bubbleEnabled,
+                              secondary: AppSurfaces.iconBadge(
+                                context,
+                                icon: AppIcons.bubble,
+                                size: 36,
+                              ),
                               // Off - and unswitchable - until Android actually
                               // lets us draw over other apps. A switch that
                               // promises something the OS refuses would be the
@@ -468,6 +479,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                             // once here, in words, before it is ever switched on.
                             SwitchListTile(
                               value: screenReading && screenReadingAvailable,
+                              secondary: AppSurfaces.iconBadge(
+                                context,
+                                size: 36,
+                                child: BrandIcon(
+                                  type: BrandIconType.screenReading,
+                                  color: theme.colorScheme.primary,
+                                  size: 18,
+                                ),
+                              ),
                               onChanged: screenReadingAvailable
                                   ? (value) =>
                                         _setScreenReading(context, ref, value)

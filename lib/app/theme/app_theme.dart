@@ -6,6 +6,14 @@ import 'package:flutter/material.dart';
 class AppTheme {
   AppTheme._();
 
+  // -------------------------------------------------------------- typography
+
+  static const String fontFamily = 'Inter';
+  static const List<String> fontFamilyFallback = <String>[
+    'NotoSansBengali',
+    'NotoSansDevanagari',
+  ];
+
   // ---------------------------------------------------------------- colour
 
   /// The brand blue: the same blue family as the 3D bubble artwork.
@@ -87,6 +95,8 @@ class AppTheme {
     final base = ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
+      fontFamily: fontFamily,
+      fontFamilyFallback: fontFamilyFallback,
       scaffoldBackgroundColor: isDark ? ink : const Color(0xFFF7F9FF),
     );
 
@@ -132,6 +142,8 @@ class AppTheme {
         scrolledUnderElevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
+          fontFamily: fontFamily,
+          fontFamilyFallback: fontFamilyFallback,
           color: scheme.onSurface,
           fontSize: 22,
           fontWeight: FontWeight.w800,
@@ -189,7 +201,7 @@ class AppTheme {
           ),
         ),
         color: isDark
-            ? Colors.white.withValues(alpha: 0.045)
+            ? Colors.white.withValues(alpha: 0.06)
             : Colors.white.withValues(alpha: 0.94),
       ),
       chipTheme: ChipThemeData(
@@ -315,10 +327,15 @@ class AppSurfaces {
   /// The icon container used by feature rows and section headers.
   static Widget iconBadge(
     BuildContext context, {
-    required IconData icon,
+    IconData? icon,
+    Widget? child,
     Color? color,
     double size = 40,
   }) {
+    assert(
+      (icon == null) != (child == null),
+      'Provide exactly one of icon or child.',
+    );
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final foreground =
         color ?? (isDark ? AppTheme.brandBright : AppTheme.brand);
@@ -330,7 +347,7 @@ class AppSurfaces {
         color: foreground.withValues(alpha: isDark ? 0.16 : 0.10),
         border: Border.all(color: foreground.withValues(alpha: 0.10)),
       ),
-      child: Icon(icon, size: size * 0.48, color: foreground),
+      child: child ?? Icon(icon, size: size * 0.48, color: foreground),
     );
   }
 

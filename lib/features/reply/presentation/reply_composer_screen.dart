@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/theme/app_icons.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/reply_options.dart';
@@ -352,6 +353,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                             options: ReplyLanguage.values,
                             selected: _language,
                             labelOf: (language) => language.label,
+                            iconOf: (_) => AppIcons.language,
                             onSelected: (language) =>
                                 setState(() => _language = language),
                           ),
@@ -361,6 +363,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                             options: ReplyTone.values,
                             selected: _tone,
                             labelOf: (tone) => tone.label,
+                            iconOf: (_) => AppIcons.tone,
                             onSelected: (tone) => setState(() => _tone = tone),
                           ),
                           const SizedBox(height: AppTheme.spaceMd),
@@ -369,6 +372,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                             options: ReplyLength.values,
                             selected: _length,
                             labelOf: (length) => length.label,
+                            iconOf: (_) => AppIcons.length,
                             onSelected: (length) =>
                                 setState(() => _length = length),
                           ),
@@ -384,6 +388,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                             ),
                             selected: _count,
                             labelOf: (count) => '$count',
+                            iconOf: (_) => AppIcons.count,
                             onSelected: (count) {
                               setState(() => _count = count);
                               ref
@@ -443,11 +448,15 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                               color: theme.colorScheme.primary,
                             ),
                           )
-                        : const Icon(Icons.auto_awesome, size: 19),
+                        : const Icon(AppIcons.generate, size: 19),
                     label: _generating
                         ? _strings.generating
                         : _strings.generateSuggestions,
                   ),
+                  if (_generating) ...[
+                    const SizedBox(height: AppTheme.spaceMd),
+                    const _SuggestionsSkeleton(),
+                  ],
                   const SizedBox(height: AppTheme.spaceSm),
                   Center(
                     child: Text(
@@ -462,6 +471,53 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A lightweight preview of the suggestion layout while the request runs.
+/// It animates in once, rather than keeping an indefinite shimmer alive.
+class _SuggestionsSkeleton extends StatelessWidget {
+  const _SuggestionsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final base = theme.colorScheme.surfaceContainerHighest.withValues(
+      alpha: theme.brightness == Brightness.dark ? 0.55 : 0.8,
+    );
+    Widget line(double widthFactor, double height) => FractionallySizedBox(
+      widthFactor: widthFactor,
+      child: Container(
+        height: height,
+        decoration: BoxDecoration(
+          color: base,
+          borderRadius: BorderRadius.circular(height / 2),
+        ),
+      ),
+    );
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 350),
+      builder: (context, opacity, child) =>
+          Opacity(opacity: opacity, child: child),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.spaceMd),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              line(0.32, 12),
+              const SizedBox(height: AppTheme.spaceMd - 4),
+              line(0.94, 14),
+              const SizedBox(height: AppTheme.spaceSm),
+              line(0.78, 14),
+              const SizedBox(height: AppTheme.spaceSm),
+              line(0.48, 14),
+            ],
           ),
         ),
       ),

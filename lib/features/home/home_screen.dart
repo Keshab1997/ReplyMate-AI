@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/app_tab.dart';
+import '../../app/theme/app_icons.dart';
 import '../../app/theme/app_theme.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/platform/notifications_bridge.dart';
@@ -70,7 +71,7 @@ class HomeScreen extends ConsumerWidget {
                     IconButton.filledTonal(
                       tooltip: strings.settings,
                       onPressed: () => _push(context, const SettingsScreen()),
-                      icon: const Icon(Icons.settings_outlined, size: 20),
+                      icon: const Icon(AppIcons.settingsOutlined, size: 20),
                       style: IconButton.styleFrom(
                         backgroundColor: isDark
                             ? Colors.white.withValues(alpha: 0.07)
@@ -86,69 +87,11 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppTheme.spaceMd),
 
-                // The helper is the product's face. A single tinted hero gives
-                // it presence without turning the top of Home into decoration.
-                Card(
-                  color: AppTheme.brand.withValues(
-                    alpha: isDark ? 0.13 : 0.065,
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppTheme.spaceLg - 4),
-                    child: Column(
-                      children: [
-                        AppSurfaces.pill(
-                          context,
-                          accent: true,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _StatusDot(
-                                ok: permissionEnabled,
-                                label: permissionEnabled ? 'live' : 'off',
-                              ),
-                              const SizedBox(width: 7),
-                              Text(
-                                permissionEnabled
-                                    ? 'READY TO HELP'
-                                    : 'SETUP NEEDED',
-                                style: const TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.8,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: AppTheme.spaceMd),
-                        MascotFace(
-                          size: 88,
-                          mood: permissionEnabled
-                              ? MascotMood.idle
-                              : MascotMood.alert,
-                        ),
-                        const SizedBox(height: AppTheme.spaceMd - 4),
-                        Text(
-                          permissionEnabled
-                              ? strings.readyTitle
-                              : strings.almostThereTitle,
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.headlineSmall,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          permissionEnabled
-                              ? strings.readySubtitle
-                              : strings.almostThereSubtitle,
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontSize: 13,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                // A compact hero keeps the helper visible without pushing
+                // status and the primary action below the fold.
+                _HomeHero(
+                  permissionEnabled: permissionEnabled,
+                  strings: strings,
                 ),
                 const SizedBox(height: AppTheme.spaceMd),
 
@@ -252,7 +195,7 @@ class HomeScreen extends ConsumerWidget {
                         Row(
                           children: [
                             Icon(
-                              Icons.tune_rounded,
+                              AppIcons.manage,
                               size: 17,
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
@@ -280,26 +223,47 @@ class HomeScreen extends ConsumerWidget {
                             AppSurfaces.pill(
                               context,
                               accent: true,
-                              child: Text(
-                                preferences.language.label,
-                                style: const TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(AppIcons.language, size: 14),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    preferences.language.label,
+                                    style: const TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             AppSurfaces.pill(
                               context,
-                              child: Text(
-                                preferences.tone.label,
-                                style: const TextStyle(fontSize: 11.5),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(AppIcons.tone, size: 14),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    preferences.tone.label,
+                                    style: const TextStyle(fontSize: 12.5),
+                                  ),
+                                ],
                               ),
                             ),
                             AppSurfaces.pill(
                               context,
-                              child: Text(
-                                preferences.length.label,
-                                style: const TextStyle(fontSize: 11.5),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(AppIcons.length, size: 14),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    preferences.length.label,
+                                    style: const TextStyle(fontSize: 12.5),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -317,11 +281,82 @@ class HomeScreen extends ConsumerWidget {
                   label: strings.generateAReply,
                   onPressed: () =>
                       ref.read(appTabProvider.notifier).select(AppTab.reply),
-                  icon: const Icon(Icons.auto_awesome, size: 19),
+                  icon: const Icon(AppIcons.generate, size: 19),
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeHero extends StatelessWidget {
+  const _HomeHero({required this.permissionEnabled, required this.strings});
+
+  final bool permissionEnabled;
+  final AppStrings strings;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    return Card(
+      color: AppTheme.brand.withValues(alpha: isDark ? 0.13 : 0.065),
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.spaceMd),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final stacked =
+                constraints.maxWidth < 340 ||
+                MediaQuery.textScalerOf(context).scale(1) > 1.25;
+            final mascot = MascotFace(
+              size: 72,
+              mood: permissionEnabled ? MascotMood.idle : MascotMood.alert,
+            );
+            final copy = Column(
+              crossAxisAlignment: stacked
+                  ? CrossAxisAlignment.center
+                  : CrossAxisAlignment.start,
+              children: [
+                Text(
+                  permissionEnabled
+                      ? strings.readyTitle
+                      : strings.almostThereTitle,
+                  textAlign: stacked ? TextAlign.center : TextAlign.start,
+                  style: theme.textTheme.titleLarge,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  permissionEnabled
+                      ? strings.readySubtitle
+                      : strings.almostThereSubtitle,
+                  textAlign: stacked ? TextAlign.center : TextAlign.start,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontSize: 13,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            );
+            if (stacked) {
+              return Column(
+                children: [
+                  mascot,
+                  const SizedBox(height: AppTheme.spaceMd - 4),
+                  copy,
+                ],
+              );
+            }
+            return Row(
+              children: [
+                mascot,
+                const SizedBox(width: AppTheme.spaceMd),
+                Expanded(child: copy),
+              ],
+            );
+          },
         ),
       ),
     );

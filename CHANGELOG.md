@@ -4,6 +4,21 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### Visual identity, motion and accessibility refinement
+
+- Bundled Inter, Noto Sans Bengali and Noto Sans Devanagari with their OFL
+  licences, so English, Bengali and Hindi render consistently offline.
+- Added a shared rounded `AppIcons` vocabulary and custom `BrandIcon` line art
+  for reply, notification, language, privacy, screen reading and memory.
+- Added matched blink, happy and alert mascot artwork. Blinking now crossfades
+  to closed eyes instead of squashing the whole robot.
+- Compacted onboarding and Home without shrinking copy; added icon-aware reply
+  controls, a finite generation skeleton and wrap-safe 48 dp suggestion
+  actions.
+- Added light/dark mascot launch screens and an Android 13 monochrome themed
+  launcher icon; padded chip and header touch targets and strengthened dark
+  card separation.
+
 ### Premium visual polish
 
 - Refined the shared light/dark theme: clearer typography, quieter card

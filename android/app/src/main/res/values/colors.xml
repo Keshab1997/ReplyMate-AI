@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="launch_background">#F0F5FF</color>
     <!-- Bubble + fallback accent. Kept as a plain colour resource rather than a
          theme attribute: the bubble service has no appcompat theme. -->
     <color name="overlay_bubble_background">#FF1B6EF3</color>

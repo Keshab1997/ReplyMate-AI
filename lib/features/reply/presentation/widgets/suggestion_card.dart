@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/l10n/app_strings.dart';
 
+import '../../../../app/theme/app_icons.dart';
 import '../../../../app/theme/app_theme.dart';
 
 /// One generated reply: editable text, and copy/share to hand it over.
@@ -61,9 +62,9 @@ class _SuggestionCardState extends State<SuggestionCard> {
             boxShadow: widget.best
                 ? [
                     BoxShadow(
-                      color: AppTheme.brand.withValues(alpha: 0.22),
-                      blurRadius: 24,
-                      offset: const Offset(0, 10),
+                      color: AppTheme.brand.withValues(alpha: 0.14),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
                     ),
                   ]
                 : null,
@@ -104,20 +105,22 @@ class _SuggestionCardState extends State<SuggestionCard> {
                   ),
                 ),
               const SizedBox(height: AppTheme.spaceSm),
-              Row(
+              Wrap(
+                spacing: AppTheme.spaceXs,
+                runSpacing: AppTheme.spaceXs,
                 children: [
                   _Action(
-                    icon: Icons.copy_all_outlined,
+                    icon: AppIcons.copy,
                     label: 'Copy',
                     onPressed: () => widget.onCopy(widget.controller.text),
                   ),
                   _Action(
-                    icon: _editing ? Icons.check : Icons.edit_outlined,
+                    icon: _editing ? AppIcons.done : AppIcons.editOutlined,
                     label: _editing ? 'Done' : 'Edit',
                     onPressed: () => setState(() => _editing = !_editing),
                   ),
                   _Action(
-                    icon: Icons.share_outlined,
+                    icon: AppIcons.share,
                     label: widget.strings.share,
                     onPressed: () => widget.onShare(widget.controller.text),
                   ),
@@ -134,12 +137,12 @@ class _SuggestionCardState extends State<SuggestionCard> {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                 color: AppTheme.mint,
-                borderRadius: BorderRadius.circular(7),
+                borderRadius: BorderRadius.circular(9),
               ),
               child: Text(
                 widget.strings.bestFit,
                 style: TextStyle(
-                  fontSize: 9,
+                  fontSize: 10.5,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.5,
                   color: Color(0xFF062B1E),
@@ -171,14 +174,17 @@ class _Action extends StatelessWidget {
     final colour = theme.colorScheme.onSurfaceVariant;
     return TextButton.icon(
       onPressed: onPressed,
-      icon: Icon(icon, size: 15, color: colour),
+      icon: Icon(icon, size: 17, color: colour),
       label: Text(label),
       style: TextButton.styleFrom(
         foregroundColor: colour,
-        minimumSize: const Size(0, 36),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        textStyle: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+        backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.38,
+        ),
+        minimumSize: const Size(0, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

@@ -36,6 +36,24 @@ void main() {
     }
   });
 
+  testWidgets('happy and alert moods use their own artwork', (tester) async {
+    for (final (mood, asset) in [
+      (MascotMood.happy, 'assets/mascot/mascot_face_happy.png'),
+      (MascotMood.alert, 'assets/mascot/mascot_face_alert.png'),
+    ]) {
+      await pump(tester, mood);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Image &&
+              widget.image is AssetImage &&
+              (widget.image as AssetImage).assetName == asset,
+        ),
+        findsOneWidget,
+      );
+    }
+  });
+
   testWidgets('the animated face settles instead of ticking forever', (
     tester,
   ) async {

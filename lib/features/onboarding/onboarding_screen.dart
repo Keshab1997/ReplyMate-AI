@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../app/theme/app_icons.dart';
 import '../../app/theme/app_theme.dart';
 import '../../core/constants/app_constants.dart';
+import '../../shared/widgets/brand_icon.dart';
 import '../../shared/widgets/mascot_face.dart';
 import '../home/home_screen.dart';
 
@@ -12,28 +14,28 @@ import '../home/home_screen.dart';
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
 
-  static const List<(IconData, String, String)> _points = [
+  static const List<(BrandIconType, String, String)> _points = [
     (
-      Icons.smart_toy_outlined,
+      BrandIconType.reply,
       'Replies you approve, always',
       'ReplyMate suggests replies. You review, edit and send - the app never '
           'sends a message on its own.',
     ),
     (
-      Icons.notifications_outlined,
+      BrandIconType.notification,
       'Works from notifications',
       'With your permission it reads notifications from apps you select. '
           'Some apps hide or shorten notification text; when that happens '
           'ReplyMate says so instead of guessing.',
     ),
     (
-      Icons.translate_rounded,
+      BrandIconType.language,
       'Bengali, Hindi and English',
       'Pick the language and tone for every reply - friendly, casual, '
           'professional, polite, funny, short and direct, Premika or Premik.',
     ),
     (
-      Icons.lock_outline_rounded,
+      BrandIconType.privacy,
       'Privacy first',
       'Message text is sent to an AI service only when you ask for '
           'suggestions. Nothing is stored as conversation history.',
@@ -53,6 +55,7 @@ class OnboardingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final compact = MediaQuery.sizeOf(context).height < 900;
     return Scaffold(
       body: DecoratedBox(
         decoration: BoxDecoration(
@@ -61,21 +64,26 @@ class OnboardingScreen extends StatelessWidget {
         child: SafeArea(
           child: AppSurfaces.centered(
             Padding(
-              padding: const EdgeInsets.fromLTRB(
+              padding: EdgeInsets.fromLTRB(
                 AppTheme.spaceLg,
-                AppTheme.spaceMd,
+                compact ? AppTheme.spaceSm : AppTheme.spaceMd,
                 AppTheme.spaceLg,
-                AppTheme.spaceLg,
+                compact ? AppTheme.spaceMd : AppTheme.spaceLg,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Meet the helper before being asked for anything. The face,
                   // not another illustration, is the brand.
-                  const Center(
-                    child: MascotFace(size: 88, mood: MascotMood.idle),
+                  Center(
+                    child: MascotFace(
+                      size: compact ? 64 : 88,
+                      mood: MascotMood.idle,
+                    ),
                   ),
-                  const SizedBox(height: AppTheme.spaceMd),
+                  SizedBox(
+                    height: compact ? AppTheme.spaceSm : AppTheme.spaceMd,
+                  ),
                   Center(
                     child: AppSurfaces.pill(
                       context,
@@ -84,7 +92,7 @@ class OnboardingScreen extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.auto_awesome_rounded,
+                            AppIcons.generate,
                             size: 14,
                             color: AppTheme.brandBright,
                           ),
@@ -101,12 +109,14 @@ class OnboardingScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: AppTheme.spaceMd),
+                  SizedBox(
+                    height: compact ? AppTheme.spaceMd - 4 : AppTheme.spaceMd,
+                  ),
                   Text(
                     'ReplyMate AI',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.headlineMedium?.copyWith(
-                      fontSize: 32,
+                      fontSize: compact ? 30 : 32,
                     ),
                   ),
                   const SizedBox(height: AppTheme.spaceSm),
@@ -118,7 +128,9 @@ class OnboardingScreen extends StatelessWidget {
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(height: AppTheme.spaceLg),
+                  SizedBox(
+                    height: compact ? AppTheme.spaceMd : AppTheme.spaceLg,
+                  ),
 
                   // One grouped surface is quieter than four competing cards.
                   // It scrolls independently so the primary action is never
@@ -146,7 +158,7 @@ class OnboardingScreen extends StatelessWidget {
                     context,
                     label: 'Get started',
                     onPressed: () => _complete(context),
-                    icon: const Icon(Icons.arrow_forward_rounded, size: 19),
+                    icon: const Icon(AppIcons.forward, size: 19),
                   ),
                   const SizedBox(height: AppTheme.spaceMd - 4),
                   Text(
@@ -170,18 +182,24 @@ class OnboardingScreen extends StatelessWidget {
 class _OnboardingPoint extends StatelessWidget {
   const _OnboardingPoint({required this.point});
 
-  final (IconData, String, String) point;
+  final (BrandIconType, String, String) point;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final (icon, title, body) = point;
+    final isDark = theme.brightness == Brightness.dark;
+    final foreground = isDark ? AppTheme.brandBright : AppTheme.brand;
     return Padding(
-      padding: const EdgeInsets.all(AppTheme.spaceMd),
+      padding: const EdgeInsets.all(14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppSurfaces.iconBadge(context, icon: icon),
+          AppSurfaces.iconBadge(
+            context,
+            color: foreground,
+            child: BrandIcon(type: icon, color: foreground),
+          ),
           const SizedBox(width: AppTheme.spaceMd - 4),
           Expanded(
             child: Column(

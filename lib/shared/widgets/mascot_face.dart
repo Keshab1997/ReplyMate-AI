@@ -110,6 +110,9 @@ class _MascotFaceState extends State<MascotFace> with TickerProviderStateMixin {
   /// One blink roughly every third bob, so it never looks like a metronome.
   void _maybeBlink() {
     if (!widget.animate || _blinking) return;
+    if (widget.mood != MascotMood.idle && widget.mood != MascotMood.listening) {
+      return;
+    }
     if (_bob.value < 0.98) return;
     _blinking = true;
     _blinks += 1;
@@ -179,19 +182,32 @@ class _MascotFaceState extends State<MascotFace> with TickerProviderStateMixin {
         child: ClipOval(
           child: AnimatedBuilder(
             animation: _blink,
-            builder: (context, child) => Transform(
-              alignment: Alignment.center,
-              // The blink is a squash of the whole face: on a robot that reads
-              // as eyelids, without needing a second artwork.
-              transform: Matrix4.diagonal3Values(
-                1,
-                moving ? 1 - (_blink.value * 0.88) : 1,
-                1,
-              ),
-              child: child,
+            builder: (context, child) => Stack(
+              fit: StackFit.expand,
+              children: [
+                child!,
+                // A real eyelid frame, not a squash of the whole robot. The
+                // image only exists during the blink, so the resting tree and
+                // semantics stay exactly as light as before.
+                if (moving && _blink.value > 0)
+                  Opacity(
+                    opacity: _blink.value,
+                    child: Image.asset(
+                      'assets/mascot/mascot_face_blink.png',
+                      fit: BoxFit.cover,
+                      filterQuality: FilterQuality.medium,
+                      errorBuilder: (context, error, stack) =>
+                          const SizedBox.shrink(),
+                    ),
+                  ),
+              ],
             ),
             child: Image.asset(
-              'assets/mascot/mascot_face.png',
+              switch (widget.mood) {
+                MascotMood.happy => 'assets/mascot/mascot_face_happy.png',
+                MascotMood.alert => 'assets/mascot/mascot_face_alert.png',
+                _ => 'assets/mascot/mascot_face.png',
+              },
               fit: BoxFit.cover,
               filterQuality: FilterQuality.medium,
               // A missing asset must never take a screen down.

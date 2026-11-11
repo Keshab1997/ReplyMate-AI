@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/app_theme.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../../../shared/widgets/brand_icon.dart';
 import '../domain/conversation_memory.dart';
 import '../providers/conversation_memory_provider.dart';
 
@@ -102,6 +103,15 @@ class _ConversationMemoryCardState extends ConsumerState<ConversationMemoryCard>
           SwitchListTile(
             value: enabled,
             onChanged: _setEnabled,
+            secondary: AppSurfaces.iconBadge(
+              context,
+              size: 36,
+              child: BrandIcon(
+                type: BrandIconType.memory,
+                color: theme.colorScheme.primary,
+                size: 18,
+              ),
+            ),
             title: Text(_strings.rememberRecentChats),
             subtitle: Text(_strings.rememberRecentChatsBody),
           ),

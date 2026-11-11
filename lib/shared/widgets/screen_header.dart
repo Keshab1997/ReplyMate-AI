@@ -30,8 +30,8 @@ class ScreenHeader extends StatelessWidget {
       children: [
         if (showBack)
           Container(
-            width: 42,
-            height: 42,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
               color: isDark

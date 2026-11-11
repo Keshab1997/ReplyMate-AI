@@ -13,15 +13,16 @@ it appears only in these familiar places:
 | Where | Size | Why |
 | --- | --- | --- |
 | Floating bubble (`OverlayBubbleService`) | 56 dp | the product's front door |
-| Home hero (`MascotFace`) | 88 dp | "your helper" — the first thing on screen |
-| Onboarding hero (`MascotFace`) | 88 dp | meet the character before any permission request |
+| Home hero (`MascotFace`) | 72 dp | "your helper" — compact enough to keep actions in view |
+| Onboarding hero (`MascotFace`) | 64 dp compact / 88 dp large | meet the character before any permission request |
 | Settings header | 44 dp | continuity, not a second hero |
 | Thinking / result states | 40–56 dp | same face, different mood |
 
 `MascotMood` (`lib/shared/widgets/mascot_face.dart`) is how the face reacts:
-`idle`, `listening`, `thinking`, `happy`, `alert`. A mood changes the tilt and
-the light behind it — never the artwork, so there is no frame budget and no
-second asset to keep in sync.
+`idle`, `listening`, `thinking`, `happy`, `alert`. Happy and alert have their
+own carefully matched artwork; idle and listening occasionally crossfade to a
+real closed-eye frame. The old whole-face squash is gone. Every variant keeps
+the same circular crop and transparent outer pixels.
 
 `thinking` additionally shows three breathing dots under the face: the app's
 only "the helper is working" cue, and deliberately wordless — it says
@@ -48,7 +49,22 @@ be happening.
   Flutter's normal implicit-animation behaviour; nothing animates a value the
   user is trying to read.
 
-## 3. Colour
+## 3. Typography and icons
+
+- **Inter** is the Latin face, with **Noto Sans Bengali** and **Noto Sans
+  Devanagari** as bundled fallbacks. All three are variable fonts shipped in
+  `assets/fonts/` with their OFL licences, so rendering never needs a network
+  font download.
+- `AppIcons` keeps the rounded Material icons consistent. Product concepts that
+  need their own language use `BrandIcon`: reply, notification, language,
+  privacy, screen reading and memory share the same rounded stroke.
+- Choice chips can pair a value with its relevant icon. Their touch targets
+  stay padded even when the visible chip is compact.
+- Android uses the same identity at launch: a mascot splash in light and dark,
+  the existing safe-zone adaptive icon, and an Android 13 monochrome reply
+  bubble for themed launchers.
+
+## 4. Colour
 
 | Token | Value | Use |
 | --- | --- | --- |
@@ -63,7 +79,7 @@ be happening.
 State is never colour alone: the dot always has a word next to it (`live` /
 `off`), so the palette is not the only signal.
 
-## 4. Shape and space
+## 5. Shape and space
 
 - Cards `20 dp`, tiles `16 dp`, buttons `16 dp`, pills `11 dp`. Pills are for
   values the app already decided (language, tone, length), never for questions.
@@ -76,7 +92,7 @@ State is never colour alone: the dot always has a word next to it (`live` /
   else, so "the gradient" always means "press this". Disabled actions lose the
   gradient and glow as well as their tap callback.
 
-## 5. Screen rules
+## 6. Screen rules
 
 1. **One big action per screen.** Home has Generate a reply; Suggestions has
    Send. Everything else is a tile or a text button.
@@ -90,7 +106,7 @@ State is never colour alone: the dot always has a word next to it (`live` /
 5. **Dark first.** The night palette is the design; light mode is the same
    layout with the light tokens, not a second design.
 
-## 6. What is still on the old system
+## 7. What is still on the old system
 
 The redesign landed in waves. Done: theme + tokens, the mascot, Home, the
 bubble panel, onboarding, suggestions (cards, BEST FIT badge, quoted message)
@@ -98,7 +114,11 @@ and Settings (grouped sections, helper header, privacy promises as rows).
 The premium polish pass keeps that language while grouping onboarding's four
 promises into one surface, making its bottom action permanently reachable,
 and sharing the same gradient button, icon badge, responsive width and header
-across the main and inner screens.
+across the main and inner screens. Compact screens use a smaller mascot and
+tighter vertical rhythm rather than shrinking explanatory text. Home switches
+to a horizontal hero when space allows and stacks it for large text. Reply
+generation previews the result layout with a finite skeleton, not an endless
+shimmer.
 
 The composer moved too: message card first, one style card for the four axes,
 a quiet error strip instead of an error card, and the honest "sent only when you
@@ -112,7 +132,7 @@ affordance instead of four hand-copied chips.
 Nothing is left on the old system. From here a new screen starts from
 `ScreenHeader` + `AppTheme` tokens + `MascotFace` when the helper is relevant.
 
-## 7. Accessibility rules
+## 8. Accessibility rules
 
 - **Reduce motion is honoured, not decorated.** `MascotFace` stops its
   controllers when `MediaQuery.disableAnimations` is true, so no frames are
@@ -129,19 +149,17 @@ Nothing is left on the old system. From here a new screen starts from
   `maxLines: 1` on a label the user needs: the quick-start grid became two
   `IntrinsicHeight` rows so a 2x font grows the card instead of clipping it.
 
-## 8. Interface language
+## 9. Interface language
 
-`lib/core/l10n/app_strings.dart` holds every string the redesigned screens show,
-in two implementations (`EnglishStrings`, `BengaliStrings`) behind
+`lib/core/l10n/app_strings.dart` holds the interface strings in
+`EnglishStrings`, `BengaliStrings` and `HindiStrings` behind
 `appStringsProvider`. The interface language is **independent of the reply
 language**: a Bengali speaker writing to an English colleague wants a Bengali app
 that drafts English replies, and the docs already treat those as separate
-settings.
+settings. Bundled font fallbacks make those three scripts share one screen
+without falling back to a platform-dependent font.
 
-Scope today: Home and Settings are wired; their language switch lives in
-Settings -> *App language*. The remaining screens keep English strings for now -
-the migration is mechanical (add getters to the abstract class, replace the
-literal) and the compiler lists what is missing.
-
-Deliberately **not** generated ARB files yet: two languages, one translator, and
-a compile error on a missing string is worth more here than a build step.
+Scope today: the heavily used Home, Reply, bubble and Settings surfaces are
+wired; the remaining setup and admin strings are tracked in `ROADMAP.md`.
+Deliberately **not** generated ARB files yet: one translator and a compile
+error on a missing string are worth more here than a build step.

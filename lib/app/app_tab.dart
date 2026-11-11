@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/l10n/app_strings.dart';
+import 'theme/app_icons.dart';
 
 /// The four places in the app, and the order they sit in the bottom bar.
 enum AppTab {
@@ -11,17 +12,17 @@ enum AppTab {
   settings;
 
   IconData get icon => switch (this) {
-    AppTab.home => Icons.home_outlined,
-    AppTab.reply => Icons.auto_awesome_outlined,
-    AppTab.apps => Icons.widgets_outlined,
-    AppTab.settings => Icons.settings_outlined,
+    AppTab.home => AppIcons.homeOutlined,
+    AppTab.reply => AppIcons.replyOutlined,
+    AppTab.apps => AppIcons.appsOutlined,
+    AppTab.settings => AppIcons.settingsOutlined,
   };
 
   IconData get selectedIcon => switch (this) {
-    AppTab.home => Icons.home_rounded,
-    AppTab.reply => Icons.auto_awesome_rounded,
-    AppTab.apps => Icons.widgets_rounded,
-    AppTab.settings => Icons.settings_rounded,
+    AppTab.home => AppIcons.home,
+    AppTab.reply => AppIcons.reply,
+    AppTab.apps => AppIcons.apps,
+    AppTab.settings => AppIcons.settings,
   };
 
   String label(AppStrings strings) => switch (this) {

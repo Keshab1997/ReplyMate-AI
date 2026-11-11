@@ -10,6 +10,7 @@ class ChoiceChips<T> extends StatelessWidget {
     required this.selected,
     required this.onSelected,
     required this.labelOf,
+    this.iconOf,
     super.key,
   });
 
@@ -17,6 +18,7 @@ class ChoiceChips<T> extends StatelessWidget {
   final T selected;
   final ValueChanged<T> onSelected;
   final String Function(T option) labelOf;
+  final IconData Function(T option)? iconOf;
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +28,9 @@ class ChoiceChips<T> extends StatelessWidget {
       children: [
         for (final option in options)
           ChoiceChip(
+            materialTapTargetSize: MaterialTapTargetSize.padded,
+            avatar: iconOf == null ? null : Icon(iconOf!(option), size: 16),
+            showCheckmark: iconOf == null,
             label: Text(labelOf(option)),
             selected: option == selected,
             onSelected: (_) => onSelected(option),
