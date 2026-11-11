@@ -89,7 +89,7 @@ them can be checked from CI.
 | 31 | Tap the bubble, close the panel, then tap the bubble again | The bubble is back in the same spot after the panel closes and the second tap shows the same message, not an empty panel |
 | 32 | Keep the panel closed and send yourself a second message | One soft pop, a haptic tick and the count goes to 2 - never a second bubble |
 | 29 | Copy a message from the chat, tap the bubble / Paste, then Generate | The pasted text is what gets replies; Copy puts the captured message on the clipboard; Edit lets you change it first |
-| 24 | Close the panel, then inspect storage and logs: `adb shell run-as com.keshabstudios.replymate ls -R files/ shared_prefs/` and `adb logcat -c && adb logcat \| grep -i replymate` | No message text anywhere on disk; no message text in logcat | _pending_ |
+| 24 | With *Remember recent chats* **off**, close the panel, then inspect storage and logs: `adb shell run-as com.keshabstudios.replymate ls -R files/ shared_prefs/` and `adb logcat -c && adb logcat \| grep -i replymate` | No message text anywhere on disk; no message text in logcat | _pending_ |
 
 ## Screen reading (docs/SCREEN_READING.md)
 
@@ -109,9 +109,26 @@ docs and the reader get changed to match the device, not the other way round.
 | 31 | Turn the switch off, receive another message, then check `adb logcat \| grep -i replymate` | Nothing is read while the switch is off; no message text in logcat | _pending_ |
 | 32 | Open a chat in a second allowed app (Telegram or Messenger) | It is read too — or, if its layout defeats the heuristics, nothing happens and nothing is invented | _pending_ |
 | 33 | Put a device with Advanced Protection Mode on and try to grant access | Android refuses the grant; the settings screen says nothing is being read | _pending_ |
-| 34 | Generate a reply from a screen-read message, then inspect storage | A reply is drafted; quick reply is never offered; no message text on disk | _pending_ |
+| 34 | With *Remember recent chats* **off**, generate a reply from a screen-read message, then inspect storage | A reply is drafted; quick reply is never offered; no message text on disk | _pending_ |
 | 35 | With the switch on, scroll back through a long chat, then stop on an old message | No bubble appears for any message you scrolled past, and none for the one you stopped on | _pending_ |
 | 36 | Scroll back, then receive a new message | The new message is still read - the gate closes for the scroll, not for good | _pending_ |
+
+## Conversation memory (docs/CONVERSATION_MEMORY.md)
+
+Only relevant when the user turns *Remember recent chats* on. Rows 24 and 34
+above are the "off" half of the same promise and stay valid: with the switch
+off, nothing is written and the directory does not exist.
+
+| # | Test | Steps | Expected | Result |
+|---|---|---|---|---|
+| M1 | Switch off means nothing written | Talk in an allowed chat with the switch off, then `adb shell run-as com.keshabstudios.replymate ls -R files/` | No memory directory, no memory file | _pending_ |
+| M2 | Switch on stores the window | Turn it on, exchange a few messages, then list the directory | A memory store exists and holds the recent lines for that contact | _pending_ |
+| M3 | The cap evicts the oldest, not the newest | Keep talking past 40 lines in one chat | Exactly the cap is kept and today's messages are still there | _pending_ |
+| M4 | Age expiry | Restore/advance a stored line past 7 days (or leave the device for a week) | The old line is gone; newer ones remain | _pending_ |
+| M5 | Per-contact delete | Delete one contact from the memory list, then generate a reply in that chat | Context is empty for that contact only; other contacts keep theirs | _pending_ |
+| M6 | Switch off deletes everything | Turn *Remember recent chats* off, then list the directory | The store is gone in full, not merely stopped | _pending_ |
+| M7 | Not in a cloud backup | `adb backup -noapk com.keshabstudios.replymate` (or verify `android:allowBackup="false"` in the built manifest) | No memory content can be extracted; the backup is refused | _pending_ |
+| M8 | Voice examples need screen reading | Switch screen reading off, keep memory on, reply in a chat | Context lines only; no "how you write" examples are claimed in the panel | _pending_ |
 
 ## Reading the results
 

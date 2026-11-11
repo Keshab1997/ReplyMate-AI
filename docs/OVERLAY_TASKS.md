@@ -6,9 +6,9 @@ buildable and every check green.
 
 **Repo rules that still apply:** `AGENTS.md` (manual CI, preflight before every
 push, commit straight to `main`, conventional messages), guest-mode invariant,
-no automatic message sending, no message content on disk, no message text in
-logs, and screen reading only through the consented path in
-docs/SCREEN_READING.md.
+no automatic message sending, no message content on disk (except the opt-in
+conversation memory of docs/CONVERSATION_MEMORY.md), no message text in logs,
+and screen reading only through the consented path in docs/SCREEN_READING.md.
 
 ---
 

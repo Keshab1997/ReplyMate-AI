@@ -294,6 +294,15 @@ down here is never touched).
   `ScreenTextReader` takes no Android imports, so its heuristics stay
   provable on a plain JVM: keep it that way, and add a test there for
   every heuristic you change.
+- **Conversation memory** (`docs/CONVERSATION_MEMORY.md`) is the *only*
+  place message text may be written to disk, and it stays inside its four
+  walls: off by default (and turning it off deletes, not just stops),
+  allowlist-bound, on this device only (`android:allowBackup` stays false so
+  no cloud backup carries it off), and capped (40 lines/contact, 50 contacts,
+  7 days) with per-contact delete. No inferred personality profile - the
+  voice half is verbatim few-shot examples of the user's own replies, and it
+  needs screen reading to exist at all. Every other capture still follows the
+  old rule: thrown away when the panel closes.
 - **Extra verification:** Phase 1 is not done until the real-device checklist
   in `docs/PHASE1_DEVICE_TESTS.md` has no `_pending_` rows — CI cannot see
   notifications, quick reply, the selection menu or the screen reader. Rows

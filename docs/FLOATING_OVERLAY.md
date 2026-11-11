@@ -76,9 +76,13 @@ The bubble never reads the screen. It only knows what the notification posted.
    its own switch, its own disclosure and its own rules
    (docs/SCREEN_READING.md); it shares this bubble's pipeline, never its
    permission to act.
-2. **No message content on disk.** The pending message lives in process memory
-   (`OverlayBubbleController`) and, while the panel is open, in the intent that
-   launched it. It is cleared when the panel closes.
+2. **No message content on disk** — with one named exception. The pending
+   message lives in process memory (`OverlayBubbleController`) and, while the
+   panel is open, in the intent that launched it; it is cleared when the panel
+   closes. The exception is the opt-in conversation memory in
+   docs/CONVERSATION_MEMORY.md: off by default, capped, on this device only,
+   never in a log, deleted when the user says so. A capture nothing asked to
+   remember still follows this rule unchanged.
 3. **No message text in logs.** Not `Log.d`, not `debugPrint`, not analytics.
 4. **No automatic send.** Quick reply runs only after the user taps a specific
    suggestion, and only against the notification that produced the context.

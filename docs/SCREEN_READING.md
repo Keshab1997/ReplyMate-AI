@@ -204,7 +204,11 @@ message while scrolling back through a chat looks exactly like a new arrival.
 | Allowed packages | the user's allowlist | the same allowlist |
 | Bubble / fallback decision | `OverlayRouter` | the same `OverlayRouter` |
 | Quick reply | only with a live `RemoteInput` | never — `hasReplyAction: false` |
-| Stored on disk | never | never |
+| Stored on disk | never\* | never\* |
+
+\* Unless the user switched on conversation memory (docs/CONVERSATION_MEMORY.md),
+which is off by default, capped, on this device only, and deleted when turned
+off. Without it, both sources are thrown away when the panel closes.
 
 `CapturedNotification.isScreenRead` carries the difference to the UI, so a
 screen-read message can say where it came from. That is not a warning — it is a

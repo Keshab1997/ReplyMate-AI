@@ -42,7 +42,10 @@ enabled, the text of the message being answered does leave it.
   see it, on their own screen.
 - The pending message lives in process memory only. It is cleared when the
   panel closes or the process dies. It is never written to disk, a database,
-  or a log.
+  or a log — unless the user switched on conversation memory, which is the one
+  documented exception (docs/CONVERSATION_MEMORY.md): off by default, capped at
+  40 lines per contact and 7 days, kept on this device only, excluded from
+  Android Auto Backup, and deleted in full when the switch goes off.
 - The overlay never reads the screen underneath, never captures the screen,
   and never inspects other apps' UI.
 - The fallback notification says only "New message from \<app\>" and is
@@ -54,7 +57,12 @@ enabled, the text of the message being answered does leave it.
 - Do not log raw notification content.
 - Do not collect unnecessary personal information.
 - Keep only the information required to complete the requested action.
-- Clear the in-memory notification buffer and native pending reply action when the composer session closes; never persist message content as conversation history.
+- Clear the in-memory notification buffer and native pending reply action when
+  the composer session closes. Message content is never persisted as
+  conversation history, with one opt-in exception: the capped, per-contact
+  window in docs/CONVERSATION_MEMORY.md. It is a bounded working set (40 lines,
+  50 contacts, 7 days), not an archive, and it is deleted when the switch is
+  turned off.
 
 ## Permissions
 
