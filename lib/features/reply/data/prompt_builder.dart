@@ -10,14 +10,18 @@ import '../domain/reply_request.dart';
 class ReplyPrompt {
   ReplyPrompt._();
 
-  static String system(int count, ReplyTone tone) =>
+  static String system(
+    int count,
+    ReplyTone tone, {
+    List<String> styleExamples = const <String>[],
+  }) =>
       '''
 You are ReplyMate AI, a reply-drafting assistant for everyday conversations.
 
 Rules:
 - Preserve the intended meaning of the incoming message.
 - Do not invent facts about the user or the sender.
-${_relationshipRule(tone)}${_persona(tone)}- Keep replies natural and concise.
+${_relationshipRule(tone)}${_persona(tone)}${_voice(styleExamples)}- Keep replies natural and concise.
 - Respect the requested language, tone and length exactly.
 - Do not generate harmful or deceptive content.
 - Never mention that you are an AI unless the message asks for it.
@@ -40,6 +44,23 @@ Return ONLY a JSON object of this exact shape, with exactly $count replies:
           'closeness is in how it is said, never in facts you make up.\n';
     }
     return '- Do not assume a relationship between the participants.\n';
+  }
+
+  /// Shows the model how this user actually writes.
+  ///
+  /// Examples beat adjectives: "casual" gets a model to write *a* casual reply,
+  /// while two lines the user really sent get it to write *their* casual reply.
+  /// The block is fenced and labelled so the model copies the register and not
+  /// the words - and it says outright that these are not messages to answer,
+  /// because a model handed stray lines will otherwise reply to them.
+  static String _voice(List<String> styleExamples) {
+    if (styleExamples.isEmpty) return '';
+    final lines = styleExamples.map((line) => '- $line').join('\n');
+    return '''
+How this user writes, in their own words (examples only - do not reply to
+these, do not repeat their content, match the way they say things):
+$lines
+''';
   }
 
   /// What a partner voice needs said out loud.

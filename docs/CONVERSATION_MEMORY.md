@@ -97,9 +97,10 @@ and the spec says so instead of pretending the key is exact.
 
 ## 7. How it reaches the model
 
-Nothing new on the wire. `ReplyRequest.priorMessages` already exists and
-`ReplyPrompt` already renders it — the memory window is simply the source that
-fills it when memory is on:
+`ReplyRequest.priorMessages` already existed and `ReplyPrompt` already rendered
+it; the memory window is simply the source that fills it when memory is on.
+`ReplyRequest.styleExamples` is the one field this feature added — prompt input,
+never message content in a new shape, and empty whenever memory is off:
 
 - `ConversationMemory.contextLines()` → `priorMessages`, oldest first, tagged so
   the model can tell who spoke (`them: …` / `me: …`).

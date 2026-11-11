@@ -14,6 +14,7 @@ import '../app_selection/app_selection_screen.dart';
 import '../notifications/providers/notification_providers.dart';
 import '../overlay/providers/bubble_providers.dart';
 import '../screen_reading/providers/screen_reading_provider.dart';
+import '../memory/widgets/conversation_memory_card.dart';
 import '../screen_reading/widgets/screen_reading_status_card.dart';
 import '../permissions/permission_setup_screen.dart';
 import '../permissions/providers/permission_provider.dart';
@@ -586,6 +587,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                     ),
                   ],
                 ),
+              ),
+
+              section(
+                'Conversation memory',
+                const ConversationMemoryCard(),
               ),
 
               section(

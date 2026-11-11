@@ -94,4 +94,54 @@ void main() {
     expect(system, contains('exactly 2 replies'));
     expect(system, contains('{"replies":'));
   });
+
+  group('voice examples', () {
+    test('an empty list adds nothing at all', () {
+      final system = ReplyPrompt.system(1, ReplyTone.friendly);
+
+      // With memory off (or nothing to learn from) the prompt must be exactly
+      // what it always was - no empty scaffold, no dangling header.
+      expect(system, isNot(contains('How this user writes')));
+    });
+
+    test('the user\'s own lines are quoted back as examples', () {
+      final system = ReplyPrompt.system(
+        1,
+        ReplyTone.casual,
+        styleExamples: ['haa aschi, ektu deri hobe', 'kal dekha hobe tahole'],
+      );
+
+      expect(system, contains('How this user writes'));
+      expect(system, contains('- haa aschi, ektu deri hobe'));
+      expect(system, contains('- kal dekha hobe tahole'));
+    });
+
+    test('the examples are fenced as things not to answer', () {
+      // A model handed stray lines replies to them: that would produce a draft
+      // answering the user's own sentence instead of the incoming message.
+      final system = ReplyPrompt.system(
+        1,
+        ReplyTone.friendly,
+        styleExamples: ['aschi'],
+      );
+
+      expect(system, contains('do not reply to'));
+      expect(system, contains('do not repeat their content'));
+      // The examples are in the system prompt; the message being answered is
+      // still the only thing framed as incoming.
+      expect(system, isNot(contains('Incoming message')));
+    });
+
+    test('the rest of the rules survive the extra block', () {
+      final system = ReplyPrompt.system(
+        3,
+        ReplyTone.professional,
+        styleExamples: ['aschi'],
+      );
+
+      expect(system, contains('Preserve the intended meaning'));
+      expect(system, contains('exactly 3 replies'));
+      expect(system, contains('Do not assume a relationship'));
+    });
+  });
 }

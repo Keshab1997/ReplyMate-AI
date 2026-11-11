@@ -210,10 +210,13 @@ class EnglishStrings extends AppStrings {
   @override
   String get privacySection => 'Privacy';
   @override
-  String get messagesNeverStored => 'Messages are never stored';
+  String get messagesNeverStored => 'Messages are not stored by default';
   @override
   String get messagesNeverStoredBody =>
-      'Nothing you reply to is written to disk or to the logs.';
+      'Nothing you reply to is written to disk or to the logs. The one '
+      'exception is "Remember recent chats" - off unless you turn it on, kept '
+      'on this device only, capped at 40 lines per chat for 7 days, and deleted '
+      'when you switch it off.';
   @override
   String get nothingSentAlone => 'Nothing is sent by itself';
   @override
@@ -344,10 +347,12 @@ class BengaliStrings extends AppStrings {
   @override
   String get privacySection => 'প্রাইভেসি';
   @override
-  String get messagesNeverStored => 'মেসেজ কোথাও জমা থাকে না';
+  String get messagesNeverStored => 'মেসেজ ডিফল্টভাবে কোথাও জমা থাকে না';
   @override
   String get messagesNeverStoredBody =>
-      'আপনি যে মেসেজের উত্তর দেন, তা ডিস্কে বা লগে লেখা হয় না।';
+      'আপনি যে মেসেজের উত্তর দেন, তা ডিস্কে বা লগে লেখা হয় না। একমাত্র '
+      'ব্যতিক্রম "সাম্প্রতিক চ্যাট মনে রাখা" - আপনি চালু না করলে বন্ধ, শুধু এই '
+      'ডিভাইসে, প্রতি চ্যাটে ৪০ লাইন ৭ দিন, আর বন্ধ করলেই মুছে যায়।';
   @override
   String get nothingSentAlone => 'নিজে থেকে কিছু পাঠায় না';
   @override

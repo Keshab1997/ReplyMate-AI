@@ -14,6 +14,7 @@ class ReplyRequest {
     required this.length,
     this.count = 3,
     this.priorMessages = const <String>[],
+    this.styleExamples = const <String>[],
   });
 
   final String message;
@@ -26,6 +27,18 @@ class ReplyRequest {
   /// captured. Carried into the prompt so a reply answers a conversation
   /// instead of a single line pulled out of one.
   final List<String> priorMessages;
+
+  /// Verbatim lines the user themelves sent in this conversation, newest first
+  /// (docs/CONVERSATION_MEMORY.md §6-§7).
+  ///
+  /// These are examples of a voice, never content to answer. They are stored
+  /// and shown as the user's own words rather than as an inferred profile of
+  /// "how this person writes", because a profile is a claim the user cannot
+  /// read back and delete.
+  ///
+  /// Notification capture alone can never fill this: it only sees arrivals, so
+  /// an empty list is the normal state with screen reading off.
+  final List<String> styleExamples;
 
   String get trimmedMessage => message.trim();
 
@@ -64,5 +77,6 @@ class ReplyRequest {
     'length': length.label,
     'count': count,
     'priorMessages': priorMessages,
+    'styleExamples': styleExamples,
   };
 }

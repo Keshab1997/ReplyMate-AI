@@ -55,6 +55,7 @@ void main() {
         'length': 'Short',
         'count': 3,
         'priorMessages': const <String>[],
+        'styleExamples': const <String>[],
       });
     });
   });
@@ -97,5 +98,36 @@ void main() {
     final romantic = ReplyTone.values.where((tone) => tone.isRomantic);
 
     expect(romantic.map((tone) => tone.name), <String>['premika', 'premik']);
+  });
+
+  test('the wire shape carries the voice examples', () {
+    // docs/AI_INTEGRATION.md: the request JSON is the contract. Style examples
+    // are prompt input, and an empty list is the normal state - not a field
+    // that should go missing.
+    const request = ReplyRequest(
+      message: 'kal dekha hobe?',
+      language: ReplyLanguage.bengali,
+      tone: ReplyTone.casual,
+      length: ReplyLength.short,
+      styleExamples: ['aschi'],
+      priorMessages: ['them: before this'],
+    );
+
+    final json = request.toJson();
+
+    expect(json['styleExamples'], ['aschi']);
+    expect(json['priorMessages'], ['them: before this']);
+  });
+
+  test('style examples default to empty', () {
+    const request = ReplyRequest(
+      message: 'hello',
+      language: ReplyLanguage.english,
+      tone: ReplyTone.friendly,
+      length: ReplyLength.short,
+    );
+
+    expect(request.styleExamples, isEmpty);
+    expect(request.toJson()['styleExamples'], isEmpty);
   });
 }

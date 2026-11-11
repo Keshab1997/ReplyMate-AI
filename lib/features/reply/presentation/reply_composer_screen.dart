@@ -8,6 +8,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/reply_options.dart';
 import '../../../shared/widgets/choice_chips.dart';
 import '../../../shared/widgets/mascot_face.dart';
+import '../../memory/providers/conversation_memory_provider.dart';
 import '../../notifications/models/captured_notification.dart';
 import '../../notifications/models/launch_context.dart';
 import '../../notifications/providers/notification_providers.dart';
@@ -100,13 +101,26 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
   }
 
   Future<void> _generate() async {
+    // Same memory contract as the bubble: file the message, then draft from the
+    // window that includes it. Null here means memory is off or does not apply,
+    // and the capture's own history is used instead.
+    final capture = _context;
+    final memory = capture == null
+        ? null
+        : await ref
+              .read(conversationMemoryControllerProvider)
+              .rememberCapture(capture);
+    if (!mounted) return;
     final request = ReplyRequest(
       message: _messageController.text,
       language: _language,
       tone: _tone,
       length: _length,
       count: _count,
-      priorMessages: _context?.priorMessages ?? const <String>[],
+      priorMessages: memory?.contextLines() ??
+          capture?.priorMessages ??
+          const <String>[],
+      styleExamples: memory?.styleExamples() ?? const <String>[],
     );
     final problems = request.validate();
     if (problems.isNotEmpty) {

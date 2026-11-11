@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +8,7 @@ import '../../../app/theme/app_theme.dart';
 import '../../../shared/widgets/mascot_face.dart';
 import '../../../core/firebase/firebase_providers.dart';
 import '../../../shared/widgets/section_label.dart';
+import '../../memory/providers/conversation_memory_provider.dart';
 import '../../notifications/providers/notification_providers.dart';
 import '../../reply/data/reply_repository.dart';
 import '../../reply/domain/reply_request.dart';
@@ -57,6 +60,11 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
   /// for; the switcher can move it to another chat that is also waiting.
   OverlayContext? _active;
 
+  /// The context the current drafts belong to. An accepted reply is filed
+  /// against *this* conversation, not whichever one the panel last showed - the
+  /// wrong-chat mistake quick reply is already guarded against.
+  OverlayContext? _draftingFor;
+
   @override
   void dispose() {
     _messageController.dispose();
@@ -89,13 +97,24 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     // Style comes from the user's saved defaults, so the same reply style
     // follows them from the composer into the bubble.
     final preferences = ref.read(preferencesProvider);
+    // Conversation memory, when the user switched it on: this both files the
+    // message being answered and hands back the window including it
+    // (docs/CONVERSATION_MEMORY.md §7). Null means "no memory applies here",
+    // and the capture's own history is what the prompt gets instead - exactly
+    // what the app did before memory existed.
+    final memory = await ref
+        .read(conversationMemoryControllerProvider)
+        .rememberCapture(overlay.notification);
+    if (!mounted) return;
+    _draftingFor = overlay;
     final request = ReplyRequest(
       message: _messageController.text,
       language: preferences.language,
       tone: preferences.tone,
       length: preferences.length,
       count: preferences.suggestionCount,
-      priorMessages: overlay.notification.priorMessages,
+      priorMessages: memory?.contextLines() ?? overlay.notification.priorMessages,
+      styleExamples: memory?.styleExamples() ?? const <String>[],
     );
     final problems = request.validate();
     if (problems.isNotEmpty) {
@@ -189,8 +208,22 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     });
   }
 
+  /// A reply the user copies or shares is a reply they accepted, and the only
+  /// reliable source of the user's own voice (docs/CONVERSATION_MEMORY.md §8).
+  /// Fire and forget: memory must never make sending a reply wait.
+  void _rememberAccepted(String text) {
+    final target = _draftingFor;
+    if (target == null) return;
+    unawaited(
+      ref
+          .read(conversationMemoryControllerProvider)
+          .rememberAcceptedReply(capture: target.notification, text: text),
+    );
+  }
+
   Future<void> _copy(String text) async {
     await Clipboard.setData(ClipboardData(text: text));
+    _rememberAccepted(text);
     if (!mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('Reply copied.')));
@@ -198,6 +231,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
 
   Future<void> _share(String text) async {
     final opened = await ref.read(notificationsBridgeProvider).shareText(text);
+    if (opened) _rememberAccepted(text);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
