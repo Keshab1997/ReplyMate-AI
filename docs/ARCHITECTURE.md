@@ -28,7 +28,7 @@ Responsible for:
 - RemoteInput quick-reply integration where supported
 - Android lifecycle and permission handling
 
-### 3. Backend
+### 3. Backend (target — see status below)
 
 Responsible for:
 - Authenticated AI requests
@@ -44,32 +44,66 @@ Generates suggested replies from the context explicitly provided by the user and
 
 ## Data Flow
 
-1. A messaging notification arrives.
-2. Android provides notification data to the native service.
-3. The native layer checks whether the app is allowed and selected.
-4. Available message context is passed to the Flutter interface.
-5. The user requests suggestions.
-6. Flutter sends the request to the secure backend.
-7. The backend calls the configured AI provider.
-8. Suggestions return to the application.
-9. The user reviews and chooses an action.
+What actually runs, today:
+
+1. A message arrives — as a notification, as shared text, as a `PROCESS_TEXT`
+   selection, or as a bubble on a chat the user opened.
+2. Android hands it to the native layer: the notification listener, the share
+   intent, or the screen reader (`ReplyMateScreenReaderService`, off by default,
+   docs/SCREEN_READING.md).
+3. The native layer checks the user's app allowlist and drops anything else.
+4. Available context — the message, the history the source could give, and (for
+   a screen read) which line came from which side — reaches Flutter as
+   `CapturedNotification`, or opens the reply bubble.
+5. If the user switched on conversation memory, the message is filed against its
+   contact and the window is pulled back for the prompt
+   (docs/CONVERSATION_MEMORY.md). Off means nothing is written and the prompt
+   is exactly what it would have been.
+6. The user asks for suggestions. Flutter takes a key from the Firestore pool and
+   calls the provider **directly** — architecture A in `API_SECURITY.md`.
+7. Suggestions return; the app parses them and refuses to present an empty or
+   unparseable answer as a success.
+8. The user reviews, edits, copies, shares or quick-replies. **Nothing is ever
+   sent on its own.**
+
+The target flow — Flutter to an authenticated backend, which owns the provider
+key, validation and rate limiting — is §3 above and stays unimplemented.
 
 ## Important Boundaries
 
-- Notification access does not mean access to an entire conversation.
-- The app cannot read arbitrary underlying app screens.
-- Quick reply is conditional on source-app support.
+- Notification access does not mean access to an entire conversation. A
+  notification carries the line that triggered it and, when the sender's app
+  includes it, a few lines before that — nothing more.
+- **Screen reading is a separate, opt-in feature** and not a general screen
+  scraper: it is off until the user grants accessibility *and* turns the switch
+  on, it obeys the same app allowlist, it reads only the visible message list of
+  an allowed chat, and it never types, clicks or sends
+  (docs/SCREEN_READING.md).
+- Conversation memory is bound by narrower rules than either source: off by
+  default, capped, on the device only, deletable, and it never infers a profile
+  of the user (docs/CONVERSATION_MEMORY.md).
+- Quick reply is conditional on source-app support: it needs a live
+  `RemoteInput` action on the notification being answered. The native channel
+  (`sendQuickReply`) is implemented and its guard is tested; no Flutter surface
+  currently offers it — the bubble and composer offer copy and share instead,
+  and saying "quick reply works end to end" would overstate what ships today.
 - The AI backend must not send messages.
 - Sending remains a user-controlled action.
 
-## Current implementation status (2026-11-06)
+## Current implementation status (2026-11-11)
 
 The backend flow above is the target/hardening architecture, not the current
 runtime path. The MVP currently uses architecture A from
 [`API_SECURITY.md`](API_SECURITY.md): Flutter reads the Firestore key pool and
 calls the configured provider directly. A server-side proxy, authentication
-and rate limiting remain open work. Do not treat the target flow above as an
-implemented backend.
+and rate limiting remain open work (ROADMAP Phase 3). Do not treat the target
+flow above as an implemented backend.
+
+Since this note was first written, the runtime path gained the floating bubble,
+screen reading and conversation memory — all reflected in "Data Flow" above and
+in their own specs. The one thing that has *not* changed is the AI transport:
+still the client-side key pool, still the trade-off recorded in
+`API_SECURITY.md`.
 
 ## Architectural Principle
 
