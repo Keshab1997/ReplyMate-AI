@@ -13,6 +13,11 @@ import '../providers/conversation_memory_provider.dart';
 /// is listed here by name so it can be deleted one line at a time. A memory the
 /// user cannot see is not a memory they consented to - it is a leak with a
 /// toggle.
+///
+/// The list reads a provider, not a `initState` snapshot: the shell keeps
+/// Settings alive in an `IndexedStack`, so a one-off read would keep showing
+/// "nothing remembered yet" long after something was remembered. A device found
+/// that, which is exactly the kind of bug this card exists to make impossible.
 class ConversationMemoryCard extends ConsumerStatefulWidget {
   const ConversationMemoryCard({super.key});
 
@@ -21,50 +26,45 @@ class ConversationMemoryCard extends ConsumerStatefulWidget {
       _ConversationMemoryCardState();
 }
 
-class _ConversationMemoryCardState
-    extends ConsumerState<ConversationMemoryCard> {
-  List<ConversationKey>? _contacts;
-  bool _loading = false;
-
+class _ConversationMemoryCardState extends ConsumerState<ConversationMemoryCard>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    _refresh();
+    WidgetsBinding.instance.addObserver(this);
   }
 
-  Future<void> _refresh() async {
-    final controller = ref.read(conversationMemoryControllerProvider);
-    final contacts = await controller.contacts();
-    if (!mounted) return;
-    setState(() {
-      _contacts = contacts;
-      _loading = false;
-    });
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Drafts are generated in the bubble, which runs in its own Flutter engine,
+    // so its writes cannot invalidate anything here. Coming back to the app is
+    // the moment the list can honestly catch up.
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(conversationMemoryContactsProvider);
+    }
+  }
+
+  AppStrings get _strings => ref.read(appStringsProvider);
 
   Future<void> _setEnabled(bool enabled) async {
     await ref
         .read(conversationMemoryEnabledProvider.notifier)
         .setEnabled(enabled);
     if (!mounted) return;
-    // Switching on starts empty and switching off deletes, so the list is
-    // re-read either way rather than patched.
-    setState(() => _loading = true);
-    await _refresh();
+    ref.invalidate(conversationMemoryContactsProvider);
   }
-
-  AppStrings get _strings => ref.read(appStringsProvider);
 
   Future<void> _forget(ConversationKey key) async {
     await ref.read(conversationMemoryControllerProvider).forget(key);
     if (!mounted) return;
-    setState(() => _loading = true);
-    await _refresh();
-    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Forgot the conversation with ${key.contactName}.'),
-      ),
+      SnackBar(content: Text(_strings.forgotConversation(key.contactName))),
     );
   }
 
@@ -88,16 +88,13 @@ class _ConversationMemoryCardState
     );
     if (confirmed != true) return;
     await ref.read(conversationMemoryControllerProvider).forgetAll();
-    if (!mounted) return;
-    setState(() => _loading = true);
-    await _refresh();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final enabled = ref.watch(conversationMemoryEnabledProvider);
-    final contacts = _contacts ?? const <ConversationKey>[];
+    final contacts = ref.watch(conversationMemoryContactsProvider);
 
     return Card(
       child: Column(
@@ -110,8 +107,8 @@ class _ConversationMemoryCardState
           ),
           if (enabled) ...[
             const Divider(height: 1),
-            if (_loading)
-              const Padding(
+            contacts.when(
+              loading: () => const Padding(
                 padding: EdgeInsets.all(AppTheme.spaceMd),
                 child: Center(
                   child: SizedBox(
@@ -120,50 +117,76 @@ class _ConversationMemoryCardState
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 ),
-              )
-            else if (contacts.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(AppTheme.spaceMd),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    _strings.nothingRememberedYet,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ),
-              )
-            else ...[
-              for (final key in contacts)
-                ListTile(
-                  dense: true,
-                  title: Text(key.contactName),
-                  subtitle: Text(key.packageName),
-                  trailing: IconButton(
-                    tooltip: _strings.forgetThisChat,
-                    onPressed: () => _forget(key),
-                    icon: const Icon(Icons.delete_outline, size: 20),
-                  ),
-                ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppTheme.spaceMd,
-                  0,
-                  AppTheme.spaceMd,
-                  AppTheme.spaceMd,
-                ),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: OutlinedButton.icon(
-                    onPressed: _forgetAll,
-                    icon: const Icon(Icons.delete_sweep_outlined, size: 18),
-                    label: Text(_strings.deleteAllRemembered),
-                  ),
-                ),
               ),
-            ],
+              // A store that cannot be read is not an error to shout about: the
+              // honest statement is that nothing could be listed.
+              error: (_, _) =>
+                  _Empty(theme: theme, text: _strings.nothingRememberedYet),
+              data: (keys) => keys.isEmpty
+                  ? _Empty(theme: theme, text: _strings.nothingRememberedYet)
+                  : Column(
+                      children: [
+                        for (final key in keys)
+                          ListTile(
+                            dense: true,
+                            title: Text(key.contactName),
+                            subtitle: Text(key.packageName),
+                            trailing: IconButton(
+                              tooltip: _strings.forgetThisChat,
+                              onPressed: () => _forget(key),
+                              icon: const Icon(Icons.delete_outline, size: 20),
+                            ),
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppTheme.spaceMd,
+                            0,
+                            AppTheme.spaceMd,
+                            AppTheme.spaceMd,
+                          ),
+                          child: Row(
+                            children: [
+                              OutlinedButton.icon(
+                                onPressed: _forgetAll,
+                                icon: const Icon(
+                                  Icons.delete_sweep_outlined,
+                                  size: 18,
+                                ),
+                                label: Text(_strings.deleteAllRemembered),
+                              ),
+                              const Spacer(),
+                              IconButton(
+                                tooltip: _strings.refresh,
+                                onPressed: () => ref.invalidate(
+                                  conversationMemoryContactsProvider,
+                                ),
+                                icon: const Icon(Icons.refresh, size: 20),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
           ],
         ],
       ),
     );
   }
+}
+
+class _Empty extends StatelessWidget {
+  const _Empty({required this.theme, required this.text});
+
+  final ThemeData theme;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.all(AppTheme.spaceMd),
+    child: Align(
+      alignment: Alignment.centerLeft,
+      child: Text(text, style: theme.textTheme.bodySmall),
+    ),
+  );
 }

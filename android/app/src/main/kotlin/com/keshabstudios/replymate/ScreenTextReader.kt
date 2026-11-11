@@ -254,9 +254,16 @@ object ScreenTextReader {
         if (candidate == null) {
             return ReadResult(null, ReadOutcome.NO_MESSAGE, lists.size, rows.size)
         }
+        // The chat's title rides along with the message, and it is not optional
+        // decoration: it is the only thing that names the conversation, and
+        // conversation memory files a chat by it. A screen-read capture with a
+        // null title could never be remembered at all - which is exactly what
+        // "memory never saves anything" looked like on a device, because the
+        // screen path is the one that runs while the chat is open.
+        val titled = candidate.copy(conversationTitle = readConversationTitle(root))
         return ReadResult(
-            candidate,
-            if (candidate.isOutgoing) ReadOutcome.OUTGOING else ReadOutcome.READ,
+            titled,
+            if (titled.isOutgoing) ReadOutcome.OUTGOING else ReadOutcome.READ,
             lists.size,
             rows.size,
             // Everything above the message being answered, handed back oldest

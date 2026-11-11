@@ -124,6 +124,7 @@ abstract class AppStrings {
   String get share;
   String get conversationMemorySection;
   String get bubbleSwitchTitle;
+  String get refresh;
   String get rememberRecentChats;
   String get rememberRecentChatsBody;
   String get nothingRememberedYet;
@@ -340,6 +341,8 @@ class EnglishStrings extends AppStrings {
   String get conversationMemorySection => 'Conversation memory';
   @override
   String get bubbleSwitchTitle => 'Floating reply bubble';
+  @override
+  String get refresh => 'Refresh';
   @override
   String get rememberRecentChats => 'Remember recent chats';
   @override
@@ -573,6 +576,8 @@ class BengaliStrings extends AppStrings {
   String get conversationMemorySection => 'কথোপকথনের স্মৃতি';
   @override
   String get bubbleSwitchTitle => 'ভাসমান রিপ্লাই বাবল';
+  @override
+  String get refresh => 'রিফ্রেশ';
   @override
   String get rememberRecentChats => 'সাম্প্রতিক চ্যাট মনে রাখুন';
   @override
@@ -809,6 +814,8 @@ class HindiStrings extends AppStrings {
   String get conversationMemorySection => 'बातचीत की याद';
   @override
   String get bubbleSwitchTitle => 'फ़्लोटिंग रिप्लाई बबल';
+  @override
+  String get refresh => 'रीफ़्रेश';
   @override
   String get rememberRecentChats => 'हाल की चैट याद रखें';
   @override

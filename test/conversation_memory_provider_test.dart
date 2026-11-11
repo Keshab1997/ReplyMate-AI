@@ -228,4 +228,79 @@ void main() {
       expect((await controller.windowFor(capture()))!.isEmpty, isTrue);
     },
   );
+
+  test('the Settings list updates after a save, without remounting', () async {
+    await build(memoryOn: true);
+    final controller = container.read(conversationMemoryControllerProvider);
+
+    // The card reads this once and watches it. A snapshot read is what showed
+    // "Nothing remembered yet" on a device while a save was working.
+    expect(
+      await container.read(conversationMemoryContactsProvider.future),
+      isEmpty,
+    );
+
+    await controller.rememberCapture(capture());
+
+    final listed = await container.read(
+      conversationMemoryContactsProvider.future,
+    );
+    expect(listed.map((key) => key.contactName), ['Rahim']);
+  });
+
+  test(
+    'deleting one chat drops it from the list and leaves the others',
+    () async {
+      await build(memoryOn: true);
+      final controller = container.read(conversationMemoryControllerProvider);
+      await controller.rememberCapture(capture());
+      await controller.rememberCapture(capture(title: 'Karim'));
+
+      expect(
+        await container.read(conversationMemoryContactsProvider.future),
+        hasLength(2),
+      );
+
+      final rahim = (await container.read(
+        conversationMemoryContactsProvider.future,
+      )).firstWhere((key) => key.contactName == 'Rahim');
+      await controller.forget(rahim);
+
+      final listed = await container.read(
+        conversationMemoryContactsProvider.future,
+      );
+      expect(listed.map((key) => key.contactName), ['Karim']);
+    },
+  );
+
+  test('turning the switch off empties the list too', () async {
+    await build(memoryOn: true);
+    await container
+        .read(conversationMemoryControllerProvider)
+        .rememberCapture(capture());
+
+    await container
+        .read(conversationMemoryEnabledProvider.notifier)
+        .setEnabled(false);
+
+    expect(
+      await container.read(conversationMemoryContactsProvider.future),
+      isEmpty,
+    );
+  });
+
+  test(
+    'a capture with no sender name is never listed under a blank contact',
+    () async {
+      await build(memoryOn: true);
+      await container
+          .read(conversationMemoryControllerProvider)
+          .rememberCapture(capture(title: null));
+
+      expect(
+        await container.read(conversationMemoryContactsProvider.future),
+        isEmpty,
+      );
+    },
+  );
 }

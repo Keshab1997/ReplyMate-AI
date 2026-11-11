@@ -89,7 +89,14 @@ Per contact, a list of `MemoryLine`s: the text, who said it (`them` / `me`),
 and when. Plus the key the lines hang off — the package name and the sender
 name as the app displayed it.
 
-That key is honest about its own weakness: **a notification sender name is a
+**A capture with no sender name is not filed at all.** That is why the screen
+reader now hands back the chat's title with the message: without it every
+screen-read capture was unfilable, so memory looked broken on exactly the path
+that runs while a chat is open. Badge-worthy consequence of the same rule: a
+notification that exposes no title is not remembered either, rather than being
+dropped into a nameless bucket shared by every anonymous sender.
+
+The key is honest about its own weakness: **a notification sender name is a
 display name, not a contact identity.** A rename starts a new memory. A group
 chat shows the group's name, so its lines mix speakers, and a contact whose
 name is the same as a group's will collide. We do not try to fix that with
@@ -148,6 +155,22 @@ each capped at 500 characters). A notification's history stays authorless and is
 still dropped rather than guessed at — see §6, "no inferred personality
 profile", which this change does not touch: the examples are still verbatim
 lines, only now there are more of them.
+
+## 8a. Two ways this feature silently did nothing on a device
+
+Both were found from a screenshot of the Settings card saying "Nothing
+remembered yet" with the switch on, and both are now closed:
+
+1. **No title, no memory.** The screen reader returned a message with a null
+   conversation title, and a capture without a title cannot be filed. Fixed in
+   the reader, not by loosening the key rule.
+2. **A cold engine answering "off".** The reply panel is a separate Flutter
+   engine: it reads the switch and the allowlist from disk again, and both
+   default to "no". A Generate pressed before those reads landed wrote nothing —
+   silently. Every write path now waits for both to be known, and the Settings
+   list is a provider that is invalidated on write and on app resume (the panel's
+   engine cannot invalidate the main app's cache), with a refresh control for the
+   case where neither fires.
 
 ## 9. Failure modes that must stay honest
 

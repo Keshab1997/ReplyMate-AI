@@ -15,6 +15,18 @@ final Provider<ConversationMemoryStore> conversationMemoryStoreProvider =
 final Provider<MemoryRecorder> memoryRecorderProvider =
     Provider<MemoryRecorder>((ref) => const MemoryRecorder());
 
+/// The chats that have memory, for the Settings list.
+///
+/// A provider rather than a one-off read, because the list is the feature's
+/// proof: every remembered chat has to appear without the user wondering
+/// whether it saved. The shell keeps Settings alive in an `IndexedStack`, so a
+/// `initState` read shows whatever was true the first time the tab opened -
+/// which is how "Nothing remembered yet" survived a working save on a device.
+final FutureProvider<List<ConversationKey>> conversationMemoryContactsProvider =
+    FutureProvider<List<ConversationKey>>(
+      (ref) => ref.watch(conversationMemoryStoreProvider).contacts(),
+    );
+
 /// The master switch of docs/CONVERSATION_MEMORY.md — off until the user says
 /// otherwise, and turning it off deletes what it stored.
 ///
@@ -32,11 +44,20 @@ class ConversationMemorySwitch extends Notifier<bool> {
 
   bool _alive = true;
 
+  /// Completes when the stored value has been read.
+  ///
+  /// The reply panel is a **separate Flutter engine**, so it boots cold and
+  /// reads these preferences again. Answering from [build]'s initial `false`
+  /// before the read lands would mean "the user turned memory on, generated a
+  /// reply, and nothing was saved" - a silent save that never happened. Anything
+  /// that decides *whether to write* waits for this.
+  late final Future<void> ready;
+
   @override
   bool build() {
     _alive = true;
     ref.onDispose(() => _alive = false);
-    _load();
+    ready = _load();
     return false;
   }
 
@@ -81,6 +102,14 @@ class ConversationMemoryController {
 
   bool get isEnabled => _ref.read(conversationMemoryEnabledProvider);
 
+  /// Waits for both halves of the privacy decision to be known: the switch and
+  /// the app allowlist. Both are read from disk asynchronously, and both default
+  /// to "no" - so without this, a cold engine can refuse a legitimate save.
+  Future<void> _settled() async {
+    await _ref.read(conversationMemoryEnabledProvider.notifier).ready;
+    await _ref.read(selectedAppsProvider.notifier).ready;
+  }
+
   ConversationMemoryStore get _store =>
       _ref.read(conversationMemoryStoreProvider);
 
@@ -105,6 +134,7 @@ class ConversationMemoryController {
   /// the capture itself carried, which is exactly what the app did before this
   /// feature existed.
   Future<ConversationMemory?> windowFor(CapturedNotification capture) async {
+    await _settled();
     if (!isEnabled) return null;
     final key = keyFor(capture);
     if (key == null) return null;
@@ -124,6 +154,7 @@ class ConversationMemoryController {
     CapturedNotification capture, {
     DateTime? now,
   }) async {
+    await _settled();
     if (!isEnabled) return null;
     final key = keyFor(capture);
     if (key == null) return null;
@@ -142,6 +173,7 @@ class ConversationMemoryController {
       return existing;
     }
     await _store.save(next, now: at);
+    _ref.invalidate(conversationMemoryContactsProvider);
     return next;
   }
 
@@ -152,6 +184,7 @@ class ConversationMemoryController {
     required String text,
     DateTime? now,
   }) async {
+    await _settled();
     if (!isEnabled) return;
     final key = keyFor(capture);
     if (key == null) return;
@@ -167,13 +200,20 @@ class ConversationMemoryController {
     );
     if (identical(next, existing)) return;
     await _store.save(next, now: at);
+    _ref.invalidate(conversationMemoryContactsProvider);
   }
 
   Future<List<ConversationKey>> contacts() => _store.contacts();
 
-  Future<void> forget(ConversationKey key) => _store.forget(key);
+  Future<void> forget(ConversationKey key) async {
+    await _store.forget(key);
+    _ref.invalidate(conversationMemoryContactsProvider);
+  }
 
-  Future<void> forgetAll() => _store.forgetAll();
+  Future<void> forgetAll() async {
+    await _store.forgetAll();
+    _ref.invalidate(conversationMemoryContactsProvider);
+  }
 }
 
 final Provider<ConversationMemoryController>
