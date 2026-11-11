@@ -70,6 +70,19 @@ Writing beyond a limit evicts the oldest line, never the newest: a full store
 must still answer today's message. A store that cannot add without dropping
 something newer is a store that has stopped being useful.
 
+## 4a. When it is written
+
+Only when the user **asks for a draft** — the Generate button, in the bubble or
+in the composer. Not on notification arrival, and not when a panel merely opens:
+opening the bubble and closing it again stores nothing.
+
+Two reasons, both deliberate. A message nobody asked about is not a conversation
+the user asked this app to remember; and writing on arrival would put message
+text on disk before the user had shown any interest in it. The consequence is
+honest and worth stating: a chat the user reads but never asks a draft for
+leaves no memory behind, so a window can look shorter than the conversation
+that actually happened.
+
 ## 5. What is stored
 
 Per contact, a list of `MemoryLine`s: the text, who said it (`them` / `me`),

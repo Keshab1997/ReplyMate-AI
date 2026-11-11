@@ -114,9 +114,12 @@ class ConversationMemoryController {
 
   /// Stores the incoming message, then returns the window *including* it.
   ///
-  /// Called where a reply surface opens, not on every notification: a message
-  /// the user never answered is not a conversation the user asked this app to
-  /// remember (docs/CONVERSATION_MEMORY.md §5).
+  /// Called when the user **asks for a draft** - the Generate button in the
+  /// bubble and in the composer - not when a notification arrives and not when
+  /// a panel opens. Two reasons, and both matter: a message nobody asked about
+  /// is not a conversation the user asked this app to remember, and writing on
+  /// arrival would put a message on disk before the user ever expressed
+  /// interest in it. Opening the bubble and closing it again stores nothing.
   Future<ConversationMemory?> rememberCapture(
     CapturedNotification capture, {
     DateTime? now,
