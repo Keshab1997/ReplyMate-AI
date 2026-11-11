@@ -8,13 +8,16 @@
   it, getSource() returns null and the feature silently does nothing - which is
   the safer failure.
 
-  isAccessibilityTool is deliberately absent. It is reserved for real
-  assistive technology - screen readers, switch access, voice control - and
-  ReplyMate is not one. Claiming it would be a lie to the system that is
-  tightening exactly this rule (Android 16+ Advanced Protection refuses
-  accessibility access to apps that do not declare it), so the honest
-  consequence is accepted instead: on a device with Advanced Protection Mode
-  on, this service will not run.
+  isAccessibilityTool is declared, on the owner's instruction. Android 16+
+  Advanced Protection Mode refuses - and revokes - accessibility access for a
+  service the system does not classify as an accessibility tool, which leaves
+  this feature dead on such a device for no benefit to anyone: this is a
+  personal, sideloaded build that is never distributed, and the only person it
+  could mislead is the person who asked for it.
+
+  Declaring it changes nothing about what the service does. It still reads only
+  the packages on the user's allowlist, only while the user's switch is on, and
+  it still never types, clicks or sends.
 
   No packageNames filter: the allowlist is the user's choice, made in the app,
   and it changes without a reinstall - so it belongs in the app's preferences
@@ -23,9 +26,10 @@
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/screen_reader_description"
     android:summary="@string/screen_reader_summary"
-    android:accessibilityEventTypes="typeWindowContentChanged|typeWindowStateChanged"
+    android:accessibilityEventTypes="typeWindowContentChanged|typeWindowStateChanged|typeViewScrolled"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:accessibilityFlags="flagIncludeNotImportantViews|flagRetrieveInteractiveWindows"
+    android:isAccessibilityTool="true"
     android:canRetrieveWindowContent="true"
     android:notificationTimeout="300"
     android:settingsActivity="com.keshabstudios.replymate.MainActivity" />
