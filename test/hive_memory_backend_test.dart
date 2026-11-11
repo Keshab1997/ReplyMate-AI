@@ -129,4 +129,26 @@ void main() {
     await store.forgetAll();
     expect((await store.read(key, now: now)).isEmpty, isTrue);
   });
+
+  test('overlapping operations in one isolate do not fight over the box', () async {
+    // The list refreshes while a save is in flight in the real app. Before the
+    // queue, one call could close the box the other was still reading.
+    const boxName = 'memory_concurrency_test';
+    final backend = HiveMemoryBackend(boxName: boxName);
+    final now = DateTime.utc(2026, 11, 11, 12).toIso8601String();
+
+    await Future.wait<void>([
+      for (var i = 0; i < 10; i++)
+        backend.put('contact$i', {
+          'key': 'contact$i',
+          'lines': [
+            {'text': 'message $i', 'author': 'them', 'at': now},
+          ],
+        }),
+      for (var i = 0; i < 5; i++) backend.loadAll(),
+    ]);
+
+    final all = await backend.loadAll();
+    expect(all.length, 10);
+  });
 }

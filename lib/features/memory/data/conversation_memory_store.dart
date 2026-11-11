@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -44,6 +45,15 @@ class HiveMemoryBackend implements MemoryBackend {
 
   final String boxName;
 
+  /// Operations run one at a time.
+  ///
+  /// Not caution: the box is opened and closed by every operation, so two
+  /// overlapping calls in this isolate could have one closing the box the other
+  /// is still reading. Serialising is cheap here (the store holds at most 50
+  /// chats) and removes a whole class of "Box has already been closed" failures
+  /// from the path that must never break a reply.
+  Future<void> _tail = Future<void>.value();
+
   /// Runs one operation against the box, then **closes it again**.
   ///
   /// The close is the whole point, and it is not tidiness. The reply panel runs
@@ -58,8 +68,12 @@ class HiveMemoryBackend implements MemoryBackend {
     T fallback,
     Future<T> Function(Box<String> box) action,
   ) async {
+    final previous = _tail;
+    final released = Completer<void>();
+    _tail = released.future;
     Box<String>? box;
     try {
+      await previous;
       box = await _open();
       return await action(box);
     } catch (error) {
@@ -73,6 +87,8 @@ class HiveMemoryBackend implements MemoryBackend {
       } catch (_) {
         // A failed close costs nothing: the next operation reopens.
       }
+      // Released whatever happened, so one failure cannot stall the queue.
+      released.complete();
     }
   }
 
