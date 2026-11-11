@@ -210,6 +210,26 @@ message while scrolling back through a chat looks exactly like a new arrival.
 which is off by default, capped, on this device only, and deleted when turned
 off. Without it, both sources are thrown away when the panel closes.
 
+## 6. The visible thread, and the one thing only this source can say
+
+The reader hands back the newest message **and the bubbles above it** — up to
+`ScreenTextReader.MAX_HISTORY_LINES` (12) lines, oldest first, each marked as
+incoming or outgoing, walked with the same row rules that accept the newest
+message so a line of chrome is rejected identically in both places
+(`ReadResult.history`).
+
+That side marker is the whole point. It is the **only** place in this app where
+a line's author is known: a notification carries arrivals and nothing else, so
+its history is authorless and conversation memory refuses to store it rather
+than label the user's own words as the sender's
+(docs/CONVERSATION_MEMORY.md §8). With screen reading on, memory gets both
+sides of the conversation — and the user's own lines become the voice examples
+that make a draft sound like them.
+
+Everything here is still a heuristic read of one visible screen. It is not a
+scrollback, it is not synced, and the caps in the reader exist so that one
+forwarded essay cannot take the budget of twelve messages.
+
 `CapturedNotification.isScreenRead` carries the difference to the UI, so a
 screen-read message can say where it came from. That is not a warning — it is a
 fact the app owes the user, because "where did this come from" is exactly the

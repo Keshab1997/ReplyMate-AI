@@ -375,4 +375,71 @@ class ScreenTextReaderTest {
         assertEquals(2, result.rowCount)
         assertEquals("two", result.message?.text)
     }
+
+    @Test
+    fun theVisibleThreadComesBackWithItsAuthors() {
+        val screen = chatScreen(
+            fullWidthRow("kal dekha hobe?", top = 200, incoming = true),
+            fullWidthRow("haan ashchi", top = 340, incoming = false),
+            fullWidthRow("tahole kal dekha hobe", top = 480, incoming = true),
+        )
+
+        val result = ScreenTextReader.read(screen, SCREEN_WIDTH)
+
+        assertEquals("tahole kal dekha hobe", result.message?.text)
+        // Oldest first, and each line says which side it came from: the newest
+        // message is NOT repeated in the history it belongs to.
+        assertEquals(
+            listOf("kal dekha hobe?", "haan ashchi"),
+            result.history.map { it.text },
+        )
+        assertEquals(
+            listOf(false, true),
+            result.history.map { it.isOutgoing },
+        )
+    }
+
+    @Test
+    fun aChatWithOneMessageHasNoHistory() {
+        val screen = chatScreen(fullWidthRow("ekta i message", top = 200, incoming = true))
+
+        val result = ScreenTextReader.read(screen, SCREEN_WIDTH)
+
+        assertEquals("ekta i message", result.message?.text)
+        // Empty is a normal answer, not a failure: nothing above it was visible.
+        assertTrue(result.history.isEmpty())
+    }
+
+    @Test
+    fun historyIsCappedAndKeepsTheNewestLines() {
+        val rows = (0 until ScreenTextReader.MAX_HISTORY_LINES + 4).map { index ->
+            fullWidthRow("message $index", top = 100 + index * 120, incoming = index % 2 == 0)
+        }
+        val screen = chatScreen(*rows.toTypedArray())
+
+        val result = ScreenTextReader.read(screen, SCREEN_WIDTH)
+
+        assertEquals(ScreenTextReader.MAX_HISTORY_LINES, result.history.size)
+        // The line just above the newest one survives; the top of the screen
+        // does not, because it is further than the reader will reach.
+        val newestIndex = ScreenTextReader.MAX_HISTORY_LINES + 3
+        assertEquals(
+            "message ${newestIndex - 1}",
+            result.history.last().text,
+        )
+    }
+
+    @Test
+    fun anUnreadableRowDoesNotThrowAwayTheConversation() {
+        val screen = chatScreen(
+            fullWidthRow("first real line", top = 100, incoming = true),
+            incomingBubble("10:42", top = 220),
+            fullWidthRow("second real line", top = 340, incoming = true),
+        )
+
+        val result = ScreenTextReader.read(screen, SCREEN_WIDTH)
+
+        assertEquals("second real line", result.message?.text)
+        assertEquals(listOf("first real line"), result.history.map { it.text })
+    }
 }

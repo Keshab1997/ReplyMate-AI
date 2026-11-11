@@ -14,6 +14,7 @@ class CapturedNotification {
     this.title,
     this.text,
     this.priorMessages = const <String>[],
+    this.priorAuthors = const <String>[],
     required this.isTruncated,
     required this.isGrouped,
     required this.isGroupSummary,
@@ -43,6 +44,7 @@ class CapturedNotification {
       title: title is String ? title : null,
       text: text is String ? text : null,
       priorMessages: _priorMessages(map['priorMessages']),
+      priorAuthors: _priorAuthors(map['priorAuthors']),
       isTruncated: map['isTruncated'] == true,
       isGrouped: map['isGrouped'] == true,
       isGroupSummary: map['isGroupSummary'] == true,
@@ -68,6 +70,16 @@ class CapturedNotification {
   /// else.
   final List<String> priorMessages;
 
+  /// Who said each entry of [priorMessages], oldest first: `me` or `them`.
+  ///
+  /// Empty means **unknown**, not "them". Only the screen reader knows a line's
+  /// author, because only the screen shows which side a bubble sits on; a
+  /// notification carries arrivals and nothing else. Callers that need the
+  /// author must check [hasTaggedHistory] and refuse the history otherwise -
+  /// guessing would label the user's own words as the sender's
+  /// (docs/CONVERSATION_MEMORY.md §8).
+  final List<String> priorAuthors;
+
   final bool isTruncated;
   final bool isGrouped;
   final bool isGroupSummary;
@@ -85,6 +97,20 @@ class CapturedNotification {
 
   /// Missing or wrong-typed history degrades to empty rather than throwing.
   /// Only the structural fields of a capture are worth refusing an event for.
+  /// True when every prior line arrived with its author. The two lists are
+  /// filtered by the same rule, so equal lengths mean the indexes line up.
+  bool get hasTaggedHistory =>
+      priorMessages.isNotEmpty && priorAuthors.length == priorMessages.length;
+
+  static List<String> _priorAuthors(Object? raw) {
+    if (raw is! List) return const <String>[];
+    return <String>[
+      for (final entry in raw)
+        if (entry is String && entry.trim().isNotEmpty)
+          entry.trim() == 'me' ? 'me' : 'them',
+    ];
+  }
+
   static List<String> _priorMessages(Object? raw) {
     if (raw is! List) return const <String>[];
     return <String>[

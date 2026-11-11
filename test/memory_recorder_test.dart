@@ -15,6 +15,7 @@ void main() {
     String? text = 'kal dekha hobe?',
     String? title = 'Rahim',
     List<String> priorMessages = const <String>[],
+    List<String> priorAuthors = const <String>[],
     bool isGroupSummary = false,
     bool mayBeRedacted = false,
     bool isTruncated = false,
@@ -25,6 +26,7 @@ void main() {
     title: title,
     text: text,
     priorMessages: priorMessages,
+    priorAuthors: priorAuthors,
     isTruncated: isTruncated,
     isGrouped: false,
     isGroupSummary: isGroupSummary,
@@ -36,39 +38,39 @@ void main() {
 
   group('a capture', () {
     test('is remembered as the other person\'s line', () {
-      final line = recorder.lineForCapture(
+      final lines = recorder.linesForCapture(
         capture(),
         allowedPackages: allowlist,
         now: now,
       );
 
-      expect(line, isNotNull);
-      expect(line!.text, 'kal dekha hobe?');
-      expect(line.author, MemoryAuthor.them);
+      expect(lines, hasLength(1));
+      expect(lines.single.text, 'kal dekha hobe?');
+      expect(lines.single.author, MemoryAuthor.them);
     });
 
     test('from an app outside the allowlist is refused', () {
       // Wall 2. The native layer filters too; memory gates itself anyway,
       // because a persistence decision should not depend on an upstream check
       // staying correct forever.
-      final line = recorder.lineForCapture(
+      final lines = recorder.linesForCapture(
         capture(packageName: 'com.example.other'),
         allowedPackages: allowlist,
         now: now,
       );
 
-      expect(line, isNull);
+      expect(lines, isEmpty);
     });
 
     test('with no text is refused', () {
       for (final text in <String?>[null, '', '   ']) {
         expect(
-          recorder.lineForCapture(
+          recorder.linesForCapture(
             capture(text: text),
             allowedPackages: allowlist,
             now: now,
           ),
-          isNull,
+          isEmpty,
         );
       }
     });
@@ -76,31 +78,54 @@ void main() {
     test('that is a group summary is refused', () {
       // "3 new messages" is a count, not something anyone said.
       expect(
-        recorder.lineForCapture(
+        recorder.linesForCapture(
           capture(text: '3 new messages', isGroupSummary: true),
           allowedPackages: allowlist,
           now: now,
         ),
-        isNull,
+        isEmpty,
       );
     });
 
     test('that is redacted is refused rather than stored as a placeholder', () {
       // A stored "You have a new message" looks like content and is not.
       expect(
-        recorder.lineForCapture(
+        recorder.linesForCapture(
           capture(text: 'You have a new message', mayBeRedacted: true),
           allowedPackages: allowlist,
           now: now,
         ),
-        isNull,
+        isEmpty,
       );
     });
 
-    test('keeps exactly one line and never the untagged history', () {
-      // The wire carries no per-line author, so storing priorMessages would
-      // label the user's own words as the sender's. One capture, one line.
-      final line = recorder.lineForCapture(
+    test('truncated content is stored as captured, not repaired', () {
+      final lines = recorder.linesForCapture(
+        capture(text: 'kal dekha hobe kin…', isTruncated: true),
+        allowedPackages: allowlist,
+        now: now,
+      );
+
+      expect(lines.single.text, 'kal dekha hobe kin…');
+      // The UI already says "truncated"; memory stores what was actually there.
+    });
+
+    test('a screen-read capture is remembered like any other', () {
+      final lines = recorder.linesForCapture(
+        capture(text: 'screen e ja ache', isScreenRead: true),
+        allowedPackages: allowlist,
+        now: now,
+      );
+
+      expect(lines.single.author, MemoryAuthor.them);
+    });
+  });
+
+  group('history', () {
+    test('untagged history is dropped, never guessed', () {
+      // The notification path: priorMessages with no author. Storing these
+      // would label the user's own words as the sender's.
+      final lines = recorder.linesForCapture(
         capture(
           priorMessages: ['amar kotha', 'tomar kotha', 'kal dekha hobe?'],
         ),
@@ -108,28 +133,74 @@ void main() {
         now: now,
       );
 
-      expect(line!.text, 'kal dekha hobe?');
+      expect(lines, hasLength(1));
+      expect(lines.single.text, 'kal dekha hobe?');
     });
 
-    test('truncated content is stored as captured, not repaired', () {
-      final line = recorder.lineForCapture(
-        capture(text: 'kal dekha hobe kin…', isTruncated: true),
+    test('tagged history keeps both sides, in order', () {
+      // The screen-reading path, the only one that knows who spoke.
+      final lines = recorder.linesForCapture(
+        capture(
+          text: 'kal dekha hobe?',
+          priorMessages: ['amar kotha', 'tomar kotha'],
+          priorAuthors: ['them', 'me'],
+          isScreenRead: true,
+        ),
         allowedPackages: allowlist,
         now: now,
       );
 
-      expect(line!.text, 'kal dekha hobe kin…');
-      // The UI already says "truncated"; memory stores what was actually there.
+      expect(lines.map((line) => line.text), [
+        'amar kotha',
+        'tomar kotha',
+        'kal dekha hobe?',
+      ]);
+      expect(lines.map((line) => line.author), [
+        MemoryAuthor.them,
+        MemoryAuthor.me,
+        MemoryAuthor.them,
+      ]);
     });
 
-    test('a screen-read capture is remembered like any other', () {
-      final line = recorder.lineForCapture(
-        capture(text: 'screen e ja ache', isScreenRead: true),
+    test('the history sits before the newest line, and the newest is last', () {
+      final lines = recorder.linesForCapture(
+        capture(text: 'newest', priorMessages: ['older'], priorAuthors: ['me']),
         allowedPackages: allowlist,
         now: now,
       );
 
-      expect(line!.author, MemoryAuthor.them);
+      // Ordering is expressed in timestamps because a window sorts on them;
+      // equal stamps would make the sort arbitrary.
+      expect(lines.last.text, 'newest');
+      expect(lines.last.at.isAfter(lines.first.at), isTrue);
+    });
+
+    test('a misaligned author list is treated as no history at all', () {
+      // Half-tagged is not tagged: a length mismatch means the pairing cannot
+      // be trusted, so nothing is claimed about who spoke.
+      final lines = recorder.linesForCapture(
+        capture(priorMessages: ['one', 'two'], priorAuthors: ['me']),
+        allowedPackages: allowlist,
+        now: now,
+      );
+
+      expect(lines, hasLength(1));
+    });
+
+    test('too much history keeps the newest lines', () {
+      const small = MemoryRecorder(policy: MemoryPolicy(maxLinesPerContact: 3));
+      final lines = small.linesForCapture(
+        capture(
+          text: 'now',
+          priorMessages: ['one', 'two', 'three', 'four'],
+          priorAuthors: ['them', 'them', 'them', 'them'],
+        ),
+        allowedPackages: allowlist,
+        now: now,
+      );
+
+      // Cap counts history only; the message being answered is always kept.
+      expect(lines.map((line) => line.text), ['two', 'three', 'four', 'now']);
     });
   });
 
@@ -166,17 +237,17 @@ void main() {
     test('leaves the window untouched when nothing was recorded', () {
       final memory = ConversationMemory.empty(key: key);
 
-      final after = recorder.apply(memory, null, now: now);
+      final after = recorder.apply(memory, const <MemoryLine>[], now: now);
 
       expect(identical(after, memory), isTrue);
       expect(after.isEmpty, isTrue);
     });
 
-    test('adds the line when there is one', () {
+    test('adds every line it is given', () {
       final memory = ConversationMemory.empty(key: key);
       final line = recorder.lineForAcceptedReply('aschi', now: now);
 
-      final after = recorder.apply(memory, line, now: now);
+      final after = recorder.apply(memory, <MemoryLine>[line!], now: now);
 
       expect(after.lines, hasLength(1));
       expect(after.lines.single.author, MemoryAuthor.me);

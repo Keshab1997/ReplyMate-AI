@@ -77,6 +77,20 @@ enum class ReadOutcome {
     READ,
 }
 
+/**
+ * One line of the visible conversation around the newest message.
+ *
+ * [isOutgoing] is the whole reason this type exists: it is the only place in
+ * this app where a line's *author* is known, and conversation memory needs the
+ * author to tell "what they said" from "how the user writes"
+ * (docs/CONVERSATION_MEMORY.md §8). The notification path cannot say this -
+ * a notification only ever carries arrivals.
+ */
+data class ScreenHistoryLine(
+    val text: String,
+    val isOutgoing: Boolean,
+)
+
 /** What the reader found, and what it had to work with. */
 data class ReadResult(
     val message: ScreenMessage?,
@@ -85,6 +99,12 @@ data class ReadResult(
     val listCount: Int,
     /** How many of the chosen list's children looked readable. */
     val rowCount: Int,
+    /**
+     * The messages visible above [message], oldest first, capped at
+     * [ScreenTextReader.MAX_HISTORY_LINES]. Empty is a normal answer - a chat
+     * with one message on screen has no history to hand over.
+     */
+    val history: List<ScreenHistoryLine> = emptyList(),
 )
 
 data class ScreenMessage(
@@ -114,6 +134,21 @@ object ScreenTextReader {
      * absorbs the reaction and quote rows that sit under the newest bubble.
      */
     const val MAX_CANDIDATE_ROWS = 6
+
+    /**
+     * How many visible messages of context to hand back with the newest one.
+     *
+     * Twelve is roughly a phone screen's worth of bubbles, which is the honest
+     * limit of "what the user can see while reading the message they asked
+     * about". More would be a scroll this reader never performed.
+     */
+    const val MAX_HISTORY_LINES = 12
+
+    /**
+     * Per-line cap for history. Deliberately shorter than [MAX_TEXT_LENGTH]:
+     * one forwarded essay must not take the budget of twelve messages.
+     */
+    const val MAX_HISTORY_TEXT_LENGTH = 500
 
     /**
      * A bubble this wide is chrome, not a bubble. Every messaging app we target
@@ -198,22 +233,38 @@ object ScreenTextReader {
         val rows = list.children.filter { it.isVisibleRow() }
         if (rows.isEmpty()) return ReadResult(null, ReadOutcome.NO_ROWS, lists.size, 0)
 
-        val newestFirst = rows.takeLast(MAX_CANDIDATE_ROWS).reversed()
-        for (row in newestFirst) {
-            val candidate = readRow(row, screenWidth)
-            // Stop at the first row that actually holds a message: a newer
-            // outgoing message means the user already answered, and a newer
-            // row of chrome means the layout changed underneath us.
-            if (candidate != null) {
-                return ReadResult(
-                    candidate,
-                    if (candidate.isOutgoing) ReadOutcome.OUTGOING else ReadOutcome.READ,
-                    lists.size,
-                    rows.size,
-                )
+        // The search window for the *newest message* stays at
+        // MAX_CANDIDATE_ROWS: it is the shape proven on devices, and widening it
+        // would read a chrome row as the message. The history walk below starts
+        // from wherever this search stopped, so the two limits do not have to be
+        // the same number.
+        val windowStart = (rows.size - MAX_CANDIDATE_ROWS).coerceAtLeast(0)
+        var newestIndex = -1
+        var candidate: ScreenMessage? = null
+        var index = rows.lastIndex
+        while (index >= windowStart) {
+            val read = readRow(rows[index], screenWidth)
+            if (read != null) {
+                candidate = read
+                newestIndex = index
+                break
             }
+            index--
         }
-        return ReadResult(null, ReadOutcome.NO_MESSAGE, lists.size, rows.size)
+        if (candidate == null) {
+            return ReadResult(null, ReadOutcome.NO_MESSAGE, lists.size, rows.size)
+        }
+        return ReadResult(
+            candidate,
+            if (candidate.isOutgoing) ReadOutcome.OUTGOING else ReadOutcome.READ,
+            lists.size,
+            rows.size,
+            // Everything above the message being answered, handed back oldest
+            // first. Never a row below it: those were rejected above, and
+            // pulling them in would mean answering a message that is no longer
+            // the newest one.
+            history = readHistory(rows, newestIndex, screenWidth),
+        )
     }
 
     private fun collectLists(node: ScreenNode, into: MutableList<ScreenNode>) {
@@ -286,6 +337,49 @@ object ScreenTextReader {
             isTruncated = truncated,
             isOutgoing = isOutgoing,
         )
+    }
+
+    /**
+     * The messages above the newest one, oldest first.
+     *
+     * Same row reader as the newest message, so a line of chrome is rejected by
+     * exactly the same rules in both places - the history must never be more
+     * trusting than the message it belongs to. A row this reader cannot read is
+     * skipped rather than stopping the walk: one unreadable reaction row must
+     * not throw away the conversation above it.
+     */
+    private fun readHistory(
+        rows: List<ScreenNode>,
+        newestIndex: Int,
+        screenWidth: Int,
+    ): List<ScreenHistoryLine> {
+        val collected = mutableListOf<ScreenHistoryLine>()
+        // Bounded work as well as a bounded result: a row this reader cannot
+        // read is skipped rather than ending the walk, so one reaction row does
+        // not throw away the conversation above it - but the walk still stops,
+        // because a fixed budget is what keeps this cheap on every event.
+        val budget = MAX_HISTORY_LINES + MAX_CANDIDATE_ROWS
+        var examined = 0
+        var index = newestIndex - 1
+        while (index >= 0 && collected.size < MAX_HISTORY_LINES && examined < budget) {
+            examined++
+            val line = readRow(rows[index], screenWidth)
+            if (line != null) {
+                val text = line.text.trim()
+                if (text.isNotEmpty()) {
+                    collected.add(
+                        ScreenHistoryLine(
+                            text = text.take(MAX_HISTORY_TEXT_LENGTH),
+                            isOutgoing = line.isOutgoing,
+                        ),
+                    )
+                }
+            }
+            index--
+        }
+        // Walked newest first, handed back oldest first - the order every
+        // prompt and every memory window expects.
+        return collected.asReversed()
     }
 
     /**

@@ -40,7 +40,7 @@ it.
 | `listener_connected` | – | The notification listener service is live. |
 | `listener_disconnected` | – | The service died or access was revoked. |
 | `notification_captured` | `{notification: <map below>}` | A notification from an allowed package arrived. |
-| `screen_captured` | `{notification: <map below>}` | A message was read off the screen of an allowed package (docs/SCREEN_READING.md). Same payload, plus `fromScreen: true`. |
+| `screen_captured` | `{notification: <map below>}` | A message was read off the screen of an allowed package (docs/SCREEN_READING.md). Same payload, plus `fromScreen: true` and `priorAuthors` for the visible thread above it. |
 
 Events posted before the engine exists, or after it is torn down, are
 **dropped on purpose**: queueing them would retain message content
@@ -61,6 +61,7 @@ Events posted before the engine exists, or after it is torn down, are
 | `hasReplyAction` | `bool` | True only when some action carries a non-empty `remoteInputs`. |
 | `replyActionLabel` | `String?` | That action's title. |
 | `postedAtMillis` | `int` | `StatusBarNotification.postTime`. |
+| `priorAuthors` | `List<String>` | Who said each entry of `priorMessages`, oldest first: `me` or `them`. **Only `screen_captured` sets it** — the screen is the only place a bubble's side is visible. Absent (the normal case for a notification) means *unknown*, never "them": a caller that needs the author must refuse the history rather than guess. Surfaced as `CapturedNotification.priorAuthors` / `hasTaggedHistory`. |
 | `fromScreen` | `bool` | `true` when the text was read off the screen rather than delivered by a notification; absent means false. Surfaced on the model as `isScreenRead` so the UI can say where a message came from. |
 
 | `priorMessages` | `List<String>` | The lines that came before `text`, oldest first, when the notification carried them: `EXTRA_HISTORIC_MESSAGES` + `EXTRA_MESSAGES` for MessagingStyle, `EXTRA_TEXT_LINES` otherwise. Empty is the normal answer for an app that posts only the line that triggered the notification. Capped at six lines and 400 characters each by `ConversationHistory`. |

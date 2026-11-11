@@ -128,6 +128,14 @@ Notification capture alone can never learn a voice: it only ever sees arrivals.
 The UI must not imply otherwise — with screen reading off, memory is context
 only, and the Settings copy says so.
 
+Both sources are wired as of the screen-reader thread read: a `screen_captured`
+payload carries `priorMessages` **and** `priorAuthors` (`me` / `them`) for the
+visible thread, so those lines are stored with their real author (up to 12,
+each capped at 500 characters). A notification's history stays authorless and is
+still dropped rather than guessed at — see §6, "no inferred personality
+profile", which this change does not touch: the examples are still verbatim
+lines, only now there are more of them.
+
 ## 9. Failure modes that must stay honest
 
 - **Store unavailable / read error** → memory is empty, the reply still gets

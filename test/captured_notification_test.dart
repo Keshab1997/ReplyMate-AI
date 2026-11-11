@@ -229,4 +229,62 @@ void main() {
 
     expect(ReplyPrompt.user(request), isNot(contains('Earlier in')));
   });
+
+  group('history authors', () {
+    test('a screen-read capture carries who said each line', () {
+      final capture = CapturedNotification.fromMap({
+        'packageName': 'com.whatsapp',
+        'key': 'screen:com.whatsapp:1',
+        'title': 'Riya',
+        'text': 'tahole kal dekha hobe',
+        'priorMessages': ['kal dekha hobe?', 'haan ashchi'],
+        'priorAuthors': ['them', 'me'],
+        'fromScreen': true,
+      });
+
+      expect(capture.hasTaggedHistory, isTrue);
+      expect(capture.priorAuthors, ['them', 'me']);
+    });
+
+    test('a notification capture has no authors, and says so', () {
+      final capture = CapturedNotification.fromMap({
+        'packageName': 'com.whatsapp',
+        'key': 'k',
+        'text': 'hello',
+        'priorMessages': ['something older'],
+      });
+
+      // Unknown, not "them": the difference is what stops memory from filing the
+      // user's own words as the sender's.
+      expect(capture.priorAuthors, isEmpty);
+      expect(capture.hasTaggedHistory, isFalse);
+    });
+
+    test('a half-tagged history is not a tagged one', () {
+      final capture = CapturedNotification.fromMap({
+        'packageName': 'com.whatsapp',
+        'key': 'k',
+        'text': 'hello',
+        'priorMessages': ['one', 'two'],
+        'priorAuthors': ['me'],
+      });
+
+      expect(capture.hasTaggedHistory, isFalse);
+    });
+
+    test('an unknown author value reads as them, never as the user', () {
+      final capture = CapturedNotification.fromMap({
+        'packageName': 'com.whatsapp',
+        'key': 'k',
+        'text': 'hello',
+        'priorMessages': ['one'],
+        'priorAuthors': ['someone-else'],
+      });
+
+      // Fail safe: claiming a line is the user's own would put words in their
+      // mouth in the next draft.
+      expect(capture.priorAuthors, ['them']);
+      expect(capture.hasTaggedHistory, isTrue);
+    });
+  });
 }

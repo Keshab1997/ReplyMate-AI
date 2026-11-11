@@ -127,12 +127,12 @@ class ConversationMemoryController {
 
     final at = now ?? DateTime.now();
     final existing = await _store.read(key, now: at);
-    final line = _recorder.lineForCapture(
+    final lines = _recorder.linesForCapture(
       capture,
       allowedPackages: _allowlist,
       now: at,
     );
-    final next = _recorder.apply(existing, line, now: at);
+    final next = _recorder.apply(existing, lines, now: at);
     if (identical(next, existing)) {
       // Nothing was allowed in (allowlist, redaction, empty text). Do not write;
       // an unanswered "nothing happened" must not look like a change.
@@ -157,7 +157,11 @@ class ConversationMemoryController {
     final at = now ?? DateTime.now();
     final existing = await _store.read(key, now: at);
     final line = _recorder.lineForAcceptedReply(text, now: at);
-    final next = _recorder.apply(existing, line, now: at);
+    final next = _recorder.apply(
+      existing,
+      line == null ? const <MemoryLine>[] : <MemoryLine>[line],
+      now: at,
+    );
     if (identical(next, existing)) return;
     await _store.save(next, now: at);
   }

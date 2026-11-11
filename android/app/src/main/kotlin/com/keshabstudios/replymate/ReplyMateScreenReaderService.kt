@@ -225,7 +225,7 @@ class ReplyMateScreenReaderService : AccessibilityService() {
                         result.listCount,
                         result.rowCount,
                     )
-                    emit(packageName, message)
+                    emit(packageName, message, result.history)
                 }
             }
         } finally {
@@ -237,7 +237,11 @@ class ReplyMateScreenReaderService : AccessibilityService() {
      * Hands a screen-read message to the same pipeline a notification would have
      * used.
      */
-    private fun emit(packageName: String, message: ScreenMessage) {
+    private fun emit(
+        packageName: String,
+        message: ScreenMessage,
+        history: List<ScreenHistoryLine>,
+    ) {
         val parsed = mapOf<String, Any?>(
             "packageName" to packageName,
             // Stable per message, so a chat that repaints updates the same
@@ -258,6 +262,13 @@ class ReplyMateScreenReaderService : AccessibilityService() {
             "replyActionLabel" to null,
             "postedAtMillis" to System.currentTimeMillis(),
             "fromScreen" to true,
+            // The visible thread around the message, oldest first, with the side
+            // each line came from. This is the only capture path that knows a
+            // line's author, so it is the only one whose history may be stored
+            // (docs/CONVERSATION_MEMORY.md §8). Notification history stays
+            // authorless and is still thrown away rather than guessed at.
+            "priorMessages" to history.map { it.text },
+            "priorAuthors" to history.map { if (it.isOutgoing) "me" else "them" },
         )
         ReplyMateNotificationListener.eventSink?.invoke(
             mapOf("type" to "screen_captured", "notification" to parsed),
