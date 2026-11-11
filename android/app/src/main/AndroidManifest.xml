@@ -12,9 +12,19 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
 
+    <!--
+        allowBackup is false on purpose, and it is a privacy rule, not a
+        default left alone. Conversation memory (docs/CONVERSATION_MEMORY.md)
+        is the one place this app writes message text to storage, and it
+        promises that text never leaves the device. Android Auto Backup would
+        quietly upload app-private files to the user's Drive - a promise kept
+        on-device and broken in the cloud is worse than no promise, so the
+        store is not eligible for backup at all.
+    -->
     <application
         android:label="ReplyMate AI"
         android:name="${applicationName}"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
