@@ -43,19 +43,36 @@ class HiveMemoryBackend implements MemoryBackend {
   static const String defaultBoxName = 'conversation_memory_v1';
 
   final String boxName;
-  Future<Box<String>>? _opening;
 
-  Future<Box<String>?> _box() async {
+  /// Runs one operation against the box, then **closes it again**.
+  ///
+  /// The close is the whole point, and it is not tidiness. The reply panel runs
+  /// in its own Flutter engine, which means its own Dart isolate, which means
+  /// its own Hive instance holding its own in-memory copy of every box it has
+  /// opened. A box kept open in the main app never sees what the panel wrote -
+  /// the write is on disk and the main app keeps serving its stale cache - so
+  /// "remembered in the bubble, invisible in Settings" is exactly what happens.
+  /// Reopening per operation makes the disk the single source of truth, at the
+  /// cost of a tiny file read for a store capped at 50 chats.
+  Future<T> _withBox<T>(
+    T fallback,
+    Future<T> Function(Box<String> box) action,
+  ) async {
+    Box<String>? box;
     try {
-      _opening ??= _open();
-      return await _opening;
+      box = await _open();
+      return await action(box);
     } catch (error) {
-      // One failed open must not poison every later attempt: the next read
-      // tries again, which is what the user gets after granting storage or
-      // restarting.
-      _opening = null;
+      // Memory is never allowed to break generation (docs/CONVERSATION_MEMORY.md
+      // §9), and one bad open must not poison every later attempt.
       debugPrint('ReplyMate: conversation memory unavailable ($error)');
-      return null;
+      return fallback;
+    } finally {
+      try {
+        if (box != null && box.isOpen) await box.close();
+      } catch (_) {
+        // A failed close costs nothing: the next operation reopens.
+      }
     }
   }
 
@@ -63,7 +80,8 @@ class HiveMemoryBackend implements MemoryBackend {
     if (!Hive.isBoxOpen(boxName)) {
       try {
         // Safe to call again: with Firebase configured this is a no-op on the
-        // path it already set, and in guest mode it is the only init.
+        // path it already set, and in guest mode it is the only init. Each
+        // isolate needs it, because each isolate has its own Hive.
         await Hive.initFlutter();
       } catch (_) {
         // Already initialised by bootstrap; keep going.
@@ -73,47 +91,45 @@ class HiveMemoryBackend implements MemoryBackend {
   }
 
   @override
-  Future<Map<String, Map<Object?, Object?>>> loadAll() async {
-    final box = await _box();
-    if (box == null) return const <String, Map<Object?, Object?>>{};
-
-    final result = <String, Map<Object?, Object?>>{};
-    for (final key in box.keys) {
-      final raw = box.get(key);
-      if (raw == null) continue;
-      try {
-        final decoded = jsonDecode(raw);
-        if (decoded is Map) {
-          result['$key'] = Map<Object?, Object?>.from(decoded);
+  Future<Map<String, Map<Object?, Object?>>> loadAll() =>
+      _withBox(const <String, Map<Object?, Object?>>{}, (box) async {
+        final result = <String, Map<Object?, Object?>>{};
+        for (final key in box.keys) {
+          final raw = box.get(key);
+          if (raw == null) continue;
+          try {
+            final decoded = jsonDecode(raw);
+            if (decoded is Map) {
+              result['$key'] = Map<Object?, Object?>.from(decoded);
+            }
+          } catch (_) {
+            // A corrupt record is one lost contact, never a lost store.
+            continue;
+          }
         }
-      } catch (_) {
-        // A corrupt record is one lost contact, never a lost store.
-        continue;
-      }
-    }
-    return result;
-  }
+        return result;
+      });
 
   @override
-  Future<void> put(String id, Map<String, Object?> json) async {
-    final box = await _box();
-    if (box == null) return;
-    await box.put(id, jsonEncode(json));
-  }
+  Future<void> put(String id, Map<String, Object?> json) =>
+      _withBox(null, (box) async {
+        await box.put(id, jsonEncode(json));
+        // Flushed before the box closes, so the other isolate reads what was
+        // actually written rather than what was queued.
+        await box.flush();
+      });
 
   @override
-  Future<void> remove(String id) async {
-    final box = await _box();
-    if (box == null) return;
+  Future<void> remove(String id) => _withBox(null, (box) async {
     await box.delete(id);
-  }
+    await box.flush();
+  });
 
   @override
-  Future<void> clearAll() async {
-    final box = await _box();
-    if (box == null) return;
+  Future<void> clearAll() => _withBox(null, (box) async {
     await box.clear();
-  }
+    await box.flush();
+  });
 }
 
 /// The store proper: per-contact windows with the cap from

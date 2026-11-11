@@ -158,13 +158,21 @@ lines, only now there are more of them.
 
 ## 8a. Two ways this feature silently did nothing on a device
 
-Both were found from a screenshot of the Settings card saying "Nothing
-remembered yet" with the switch on, and both are now closed:
+All three were found from a screenshot of the Settings card saying "Nothing
+remembered yet" with the switch on, and all three are now closed:
 
 1. **No title, no memory.** The screen reader returned a message with a null
    conversation title, and a capture without a title cannot be filed. Fixed in
    the reader, not by loosening the key rule.
-2. **A cold engine answering "off".** The reply panel is a separate Flutter
+2. **A cached box in one isolate.** The panel is a second Flutter engine and so
+   a second Dart isolate, and Hive gives each isolate its own in-memory copy of
+   any box it opened. The main app kept its box open, so the panel's write
+   reached the disk and the main app kept serving the copy it already had —
+   Settings stayed empty while the save had worked. The backend now opens,
+   flushes and **closes** the box on every operation, making the disk the single
+   source of truth; a test proves it with a real second isolate, and fails
+   against the previous cached implementation.
+3. **A cold engine answering "off".** The reply panel is a separate Flutter
    engine: it reads the switch and the allowlist from disk again, and both
    default to "no". A Generate pressed before those reads landed wrote nothing —
    silently. Every write path now waits for both to be known, and the Settings
