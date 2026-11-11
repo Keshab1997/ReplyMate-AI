@@ -80,4 +80,46 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString(AppConstants.prefAppLanguage), 'bn');
   });
+
+  testWidgets('a saved hindi preference renders the hindi home', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      AppConstants.prefAppLanguage: 'hi',
+    });
+    await pumpHome(tester);
+    expect(find.text('बस थोड़ा सा बाकी'), findsOneWidget);
+    expect(find.text('जवाब बनाएँ'), findsOneWidget);
+    expect(find.text('Generate a reply'), findsNothing);
+  });
+
+  testWidgets('every interface language is complete, not just the new one', (
+    tester,
+  ) async {
+    // The compiler already refuses a missing getter on a new AppStrings
+    // subclass; this catches the other half - a language that exists in the
+    // enum but answers with blank or english copy.
+    for (final language in AppLanguage.values) {
+      final strings = switch (language) {
+        AppLanguage.english => const EnglishStrings(),
+        AppLanguage.bengali => const BengaliStrings(),
+        AppLanguage.hindi => const HindiStrings(),
+      };
+      expect(strings.language, language);
+      for (final value in <String>[
+        strings.tabHome,
+        strings.tabReply,
+        strings.tabApps,
+        strings.tabSettings,
+        strings.generateAReply,
+        strings.almostThereTitle,
+        strings.privacySection,
+        strings.messagesNeverStored,
+        strings.nothingSentAlone,
+        strings.screenReadingTitle,
+      ]) {
+        expect(value.trim(), isNotEmpty, reason: '${language.code} has a gap');
+      }
+    }
+  });
 }

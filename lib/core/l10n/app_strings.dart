@@ -11,7 +11,8 @@ import '../constants/app_constants.dart';
 /// two as independent settings; this file is where the interface half lives.
 enum AppLanguage {
   english('en', 'English'),
-  bengali('bn', 'বাংলা');
+  bengali('bn', 'বাংলা'),
+  hindi('hi', 'हिन्दी');
 
   const AppLanguage(this.code, this.label);
 
@@ -370,6 +371,144 @@ class BengaliStrings extends AppStrings {
 final NotifierProvider<AppLanguageNotifier, AppLanguage> appLanguageProvider =
     NotifierProvider<AppLanguageNotifier, AppLanguage>(AppLanguageNotifier.new);
 
+/// Hindi. The third interface language, and the one where the words have to be
+/// checked by a speaker rather than by a compiler - `hi` here means the
+/// interface only, exactly like `bn` (see [ReplyLanguage] for the reply).
+class HindiStrings extends AppStrings {
+  const HindiStrings();
+
+  @override
+  AppLanguage get language => AppLanguage.hindi;
+
+  @override
+  String get appName => 'ReplyMate';
+  @override
+  String get back => 'पीछे';
+  @override
+  String get settings => 'सेटिंग्स';
+  @override
+  String get change => 'बदलें';
+
+  @override
+  String get readyTitle => 'जब आप तैयार हों';
+  @override
+  String get almostThereTitle => 'बस थोड़ा सा बाकी';
+  @override
+  String get readySubtitle => 'यह कभी अपने आप कुछ नहीं भेजता।';
+  @override
+  String get almostThereSubtitle =>
+      'सहायक को जगाने के लिए नोटिफिकेशन की अनुमति दें।';
+  @override
+  String get listeningTitle => 'संदेशों पर नज़र';
+  @override
+  String get notListeningTitle => 'अभी सुन नहीं रहा';
+  @override
+  String get manage => 'प्रबंधित करें';
+  @override
+  String get enable => 'चालू करें';
+  @override
+  String get chooseApps => 'ऐप चुनें';
+  @override
+  String get replyStyleTitle => 'जवाब की शैली';
+  @override
+  String get generateAReply => 'जवाब बनाएँ';
+  @override
+  String get quickStart => 'तुरंत शुरू करें';
+  @override
+  String get pasteAMessage => 'संदेश पेस्ट करें';
+  @override
+  String get pasteAMessageSubtitle => 'जिस चैट में हैं उसका जवाब दें';
+  @override
+  String get supportedApps => 'समर्थित ऐप';
+  @override
+  String get noneSelectedYet => 'अभी कुछ नहीं चुना';
+  @override
+  String selectedAppsCount(int count) => '$count चुने गए';
+  @override
+  String get bubbleTitle => 'बबल';
+  @override
+  String get bubbleShowsOverChats => 'आपकी चैट के ऊपर दिखता है';
+  @override
+  String get bubbleNeedsPermission => 'अनुमति चाहिए';
+
+  @override
+  String get screenReadingTitle => 'खुली चैट पढ़ें';
+
+  @override
+  String get screenReadingSubtitle =>
+      'जो चैट आपने पहले से खोली हुई है, उसी से जवाब तैयार करता है - जहाँ ऐप कोई '
+      'नोटिफिकेशन नहीं भेजता।';
+
+  @override
+  String get screenReadingNeedsPermission => 'एक्सेसिबिलिटी अनुमति चाहिए';
+
+  @override
+  String get screenReadingDisclosureTitle => 'इसे चालू करने से पहले';
+
+  @override
+  String get screenReadingDisclosureBody =>
+      'ReplyMate आपके चुने हुए ऐप की स्क्रीन पर दिख रहा संदेश पढ़ेगा, ताकि जब '
+      'चैट पहले से खुली होने के कारण कोई नोटिफिकेशन न आए तब भी जवाब तैयार हो '
+      'सके। यह किसी दूसरे ऐप में कभी टाइप नहीं करता और अपने आप कुछ नहीं भेजता। '
+      'पाठ केवल मेमोरी में रहता है और ऐप बंद होते ही चला जाता है।';
+
+  @override
+  String get screenReadingOpenSettings => 'एक्सेसिबिलिटी सेटिंग्स खोलें';
+
+  @override
+  String get screenReadingBlocked =>
+      'Android इस ऐप को एक्सेसिबिलिटी अनुमति नहीं दे रहा, इसलिए कुछ भी नहीं पढ़ा '
+      'जा रहा।';
+  @override
+  String get connectionTitle => 'कनेक्शन';
+  @override
+  String get guestModeUnlessConfigured => 'कॉन्फ़िगर न होने पर गेस्ट मोड';
+
+  @override
+  String get tabHome => 'होम';
+
+  @override
+  String get tabReply => 'जवाब';
+
+  @override
+  String get tabApps => 'ऐप';
+
+  @override
+  String get tabSettings => 'सेटिंग्स';
+
+  @override
+  String get replyStyle => 'जवाब की शैली';
+  @override
+  String get languageLabel => 'भाषा';
+  @override
+  String get toneLabel => 'लहज़ा';
+  @override
+  String get lengthLabel => 'लंबाई';
+  @override
+  String get captureSection => 'कैप्चर';
+  @override
+  String get privacySection => 'निजता';
+  @override
+  String get messagesNeverStored => 'संदेश डिफ़ॉल्ट रूप से कहीं जमा नहीं होते';
+  @override
+  String get messagesNeverStoredBody =>
+      'आप जिस संदेश का जवाब देते हैं, वह डिस्क या लॉग में नहीं लिखा जाता। एकमात्र '
+      'अपवाद "हाल की चैट याद रखें" है - आपके चालू किए बिना बंद, केवल इसी डिवाइस '
+      'पर, हर चैट में 40 लाइनें 7 दिन तक, और बंद करते ही मिट जाता है।';
+  @override
+  String get nothingSentAlone => 'कुछ भी अपने आप नहीं भेजा जाता';
+  @override
+  String get nothingSentAloneBody =>
+      'ReplyMate जवाब लिखता है। भेजने का बटन आप दबाते हैं।';
+  @override
+  String get clearLocalPreferences => 'लोकल प्राथमिकताएँ साफ़ करें';
+  @override
+  String get appLanguageSection => 'ऐप की भाषा';
+  @override
+  String get appLanguageNote =>
+      'ऐप हिंदी में चलेगा। जवाब फिर भी ऊपर चुनी गई जवाब की भाषा में बनेंगे।';
+}
+
 class AppLanguageNotifier extends Notifier<AppLanguage> {
   bool _alive = true;
 
@@ -400,5 +539,6 @@ final Provider<AppStrings> appStringsProvider = Provider<AppStrings>((ref) {
   return switch (language) {
     AppLanguage.english => const EnglishStrings(),
     AppLanguage.bengali => const BengaliStrings(),
+    AppLanguage.hindi => const HindiStrings(),
   };
 });
