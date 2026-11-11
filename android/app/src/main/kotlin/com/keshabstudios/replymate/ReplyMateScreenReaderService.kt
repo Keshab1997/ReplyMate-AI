@@ -46,6 +46,34 @@ class ReplyMateScreenReaderService : AccessibilityService() {
 
         const val KEY_SCREEN_READING_ENABLED = "screen_reading_enabled"
 
+        /** Where the last scan's report is kept, so Settings can show it. */
+        private const val PREFS_DIAG = "replymate_screen_reading_diag"
+
+        /** How much of a read message the report carries - enough to debug. */
+        private const val MAX_REPORTED_TEXT = 200
+
+        /**
+         * What the reader is actually doing, for the Settings screen.
+         *
+         * Without this, "screen reading does not work" is one sentence with
+         * five possible causes and no way to tell them apart on a phone.
+         */
+        fun report(context: Context): Map<String, Any?> {
+            val prefs = context.getSharedPreferences(PREFS_DIAG, Context.MODE_PRIVATE)
+            return mapOf(
+                "connected" to (instance != null),
+                "enabledByUser" to isEnabledByUser(context),
+                "allowlist" to AppAllowlist.all(context),
+                "scanCount" to prefs.getInt("scanCount", 0),
+                "lastScanAtMillis" to prefs.getLong("lastScanAtMillis", 0L),
+                "lastOutcome" to prefs.getString("lastOutcome", null),
+                "lastPackage" to prefs.getString("lastPackage", null),
+                "lastText" to prefs.getString("lastText", null),
+                "listCount" to prefs.getInt("listCount", 0),
+                "rowCount" to prefs.getInt("rowCount", 0),
+            )
+        }
+
         /**
          * How often the visible conversation may be re-read. A chat repaints
          * for the clock, for a typing dot, for a scroll of one pixel; without a
@@ -120,53 +148,120 @@ class ReplyMateScreenReaderService : AccessibilityService() {
      * has not answered yet, hands it to the same pipeline a notification would
      * have used.
      */
+    /**
+     * Writes down what the last look at the screen found.
+     *
+     * Kept in preferences rather than in memory because the process reading the
+     * screen is not the one showing Settings: Android kills and restarts it
+     * freely, and a report that dies with it is a report nobody ever reads.
+     */
+    private fun record(
+        outcome: String,
+        packageName: String?,
+        text: String?,
+        listCount: Int,
+        rowCount: Int,
+    ) {
+        val prefs = getSharedPreferences(PREFS_DIAG, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putInt("scanCount", prefs.getInt("scanCount", 0) + 1)
+            .putLong("lastScanAtMillis", System.currentTimeMillis())
+            .putString("lastOutcome", outcome)
+            .putString("lastPackage", packageName)
+            .putString("lastText", text?.take(MAX_REPORTED_TEXT))
+            .putInt("listCount", listCount)
+            .putInt("rowCount", rowCount)
+            .apply()
+    }
+
+    /**
+     * Reads the visible conversation once and, when it holds a message the user
+     * has not answered yet, hands it to the same pipeline a notification would
+     * have used.
+     */
     private fun scan(packageName: String, nowMillis: Long) {
-        val root = rootInActiveWindow ?: return
+        val root = rootInActiveWindow
+        if (root == null) {
+            record("no_window", packageName, null, 0, 0)
+            return
+        }
         try {
             // The active window may belong to another app entirely - a toast, a
             // keyboard, a system dialog. Reading that would not be "the app the
             // user allowed", so it is dropped before any text is touched.
-            if (root.packageName?.toString() != packageName) return
+            if (root.packageName?.toString() != packageName) {
+                record("other_app", packageName, null, 0, 0)
+                return
+            }
 
-            val tree = AndroidScreenNode(root)
-            val message = ScreenTextReader.readNewestMessage(
-                tree,
+            val result = ScreenTextReader.read(
+                AndroidScreenNode(root),
                 resources.displayMetrics.widthPixels,
-            ) ?: return
-            // The newest message is the user's own, so they have already
-            // answered; there is nothing here for us to draft.
-            if (message.isOutgoing) return
-            // New to us, and not something the user just scrolled past.
-            if (!gate.shouldEmit(packageName, message.text, nowMillis)) return
-
-            val parsed = mapOf<String, Any?>(
-                "packageName" to packageName,
-                // Stable per message, so a chat that repaints updates the same
-                // pending slot instead of stacking a duplicate behind the bubble.
-                "key" to "screen:$packageName:${message.text.hashCode()}",
-                "title" to ScreenTextReader.readConversationTitle(tree),
-                "text" to message.text,
-                "isTruncated" to message.isTruncated,
-                "isGrouped" to false,
-                "isGroupSummary" to false,
-                // Nothing was hidden from us by the platform, and nothing is
-                // redacted: the text came off the screen the user is looking at.
-                "mayBeRedacted" to false,
-                // A screen reading gives us no RemoteInput to reply through, and
-                // inventing one would mean typing into someone else's app. The
-                // UI offers copy / share instead, which is the honest answer.
-                "hasReplyAction" to false,
-                "replyActionLabel" to null,
-                "postedAtMillis" to System.currentTimeMillis(),
-                "fromScreen" to true,
             )
+            val message = result.message
+            when {
+                result.outcome != ReadOutcome.READ -> record(
+                    result.outcome.name.lowercase(),
+                    packageName,
+                    message?.text,
+                    result.listCount,
+                    result.rowCount,
+                )
 
-            ReplyMateNotificationListener.eventSink?.invoke(
-                mapOf("type" to "screen_captured", "notification" to parsed),
-            )
-            OverlayRouter.route(this, parsed)
+                // New to us, and not something the user just scrolled past.
+                !gate.shouldEmit(packageName, message!!.text, nowMillis) -> record(
+                    "not_new",
+                    packageName,
+                    message.text,
+                    result.listCount,
+                    result.rowCount,
+                )
+
+                else -> {
+                    record(
+                        "read",
+                        packageName,
+                        message.text,
+                        result.listCount,
+                        result.rowCount,
+                    )
+                    emit(packageName, message)
+                }
+            }
         } finally {
             root.recycle()
         }
+    }
+
+    /**
+     * Hands a screen-read message to the same pipeline a notification would have
+     * used.
+     */
+    private fun emit(packageName: String, message: ScreenMessage) {
+        val parsed = mapOf<String, Any?>(
+            "packageName" to packageName,
+            // Stable per message, so a chat that repaints updates the same
+            // pending slot instead of stacking a duplicate behind the bubble.
+            "key" to "screen:$packageName:${message.text.hashCode()}",
+            "title" to message.conversationTitle,
+            "text" to message.text,
+            "isTruncated" to message.isTruncated,
+            "isGrouped" to false,
+            "isGroupSummary" to false,
+            // Nothing was hidden from us by the platform, and nothing is
+            // redacted: the text came off the screen the user is looking at.
+            "mayBeRedacted" to false,
+            // A screen reading gives us no RemoteInput to reply through, and
+            // inventing one would mean typing into someone else's app. The UI
+            // offers copy / share instead, which is the honest answer.
+            "hasReplyAction" to false,
+            "replyActionLabel" to null,
+            "postedAtMillis" to System.currentTimeMillis(),
+            "fromScreen" to true,
+        )
+        ReplyMateNotificationListener.eventSink?.invoke(
+            mapOf("type" to "screen_captured", "notification" to parsed),
+        )
+        OverlayRouter.route(this, parsed)
     }
 }

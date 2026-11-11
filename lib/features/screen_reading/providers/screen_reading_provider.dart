@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../notifications/providers/notification_providers.dart';
+import '../models/screen_reading_status.dart';
 
 /// The user's "Read the open chat" switch (docs/SCREEN_READING.md).
 ///
@@ -88,3 +89,13 @@ class ScreenReadingAvailabilityNotifier extends Notifier<bool> {
 
   Future<void> refresh() => _load();
 }
+
+/// What the reader did the last time it looked at a screen.
+///
+/// A [FutureProvider] rather than a notifier holding state: the truth lives on
+/// the native side and changes while the user is in another app, so every read
+/// here is a fresh ask. The card's Refresh button invalidates this.
+final FutureProvider<ScreenReadingStatus?> screenReadingStatusProvider =
+    FutureProvider<ScreenReadingStatus?>((ref) async {
+      return ref.read(notificationsBridgeProvider).screenReadingStatus();
+    });

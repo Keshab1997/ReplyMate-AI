@@ -114,6 +114,8 @@ abstract class ReplyMateFlutterActivity : FlutterActivity() {
                     setBubbleEnabled(enabled)
                     result.success(null)
                 }
+                "screenReadingStatus" ->
+                    result.success(ReplyMateScreenReaderService.report(this))
                 "isScreenReadingAvailable" ->
                     result.success(isScreenReadingAvailable())
                 "openAccessibilitySettings" -> {

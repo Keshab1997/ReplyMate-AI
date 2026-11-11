@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 
 import '../constants/app_constants.dart';
+import '../../features/screen_reading/models/screen_reading_status.dart';
 
 /// A messaging app the native layer can actually see installed.
 class CandidateApp {
@@ -215,6 +216,25 @@ class NotificationsBridge {
       return false;
     } on PlatformException {
       return false;
+    }
+  }
+
+  /// What the screen reader did on its last look at the screen.
+  ///
+  /// Null when there is nothing to report - no native layer, or a build with no
+  /// screen reader at all. Every field inside is allowed to be empty: a reader
+  /// that has never run is a normal state, not an error.
+  Future<ScreenReadingStatus?> screenReadingStatus() async {
+    try {
+      final raw = await _channel.invokeMethod<Map<Object?, Object?>>(
+        'screenReadingStatus',
+      );
+      if (raw == null) return null;
+      return ScreenReadingStatus.fromMap(raw);
+    } on MissingPluginException {
+      return null;
+    } on PlatformException {
+      return null;
     }
   }
 

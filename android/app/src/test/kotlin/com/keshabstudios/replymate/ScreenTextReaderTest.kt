@@ -299,4 +299,80 @@ class ScreenTextReaderTest {
 
         assertEquals("ok", message?.text)
     }
+
+    @Test
+    fun aScreenWithNoMessageListSaysSo() {
+        // "It read nothing" is five failures; this is the first one, and the
+        // report is how they get told apart on a phone.
+        val screen = FakeNode(
+            className = "android.widget.FrameLayout",
+            children = listOf(
+                FakeNode(text = "no list here", className = "android.widget.TextView"),
+            ),
+        )
+
+        val result = ScreenTextReader.read(screen, SCREEN_WIDTH)
+
+        assertEquals(ReadOutcome.NO_LIST, result.outcome)
+        assertNull(result.message)
+    }
+
+    @Test
+    fun aListWhoseRowsHoldNoTextSaysSo() {
+        val screen = chatScreen(
+            FakeNode(
+                className = "android.widget.FrameLayout",
+                bounds = ScreenRect(0, 200, SCREEN_WIDTH, 300),
+            ),
+        )
+
+        assertEquals(
+            ReadOutcome.NO_ROWS,
+            ScreenTextReader.read(screen, SCREEN_WIDTH).outcome,
+        )
+    }
+
+    @Test
+    fun rowsThatHoldNoMessageSaySo() {
+        // A list of timestamps: readable rows, nothing in them to answer.
+        val screen = chatScreen(
+            FakeNode(
+                className = "android.widget.FrameLayout",
+                bounds = ScreenRect(40, 200, 760, 300),
+                children = listOf(
+                    FakeNode(text = "10:42", className = "android.widget.TextView"),
+                ),
+            ),
+        )
+
+        assertEquals(
+            ReadOutcome.NO_MESSAGE,
+            ScreenTextReader.read(screen, SCREEN_WIDTH).outcome,
+        )
+    }
+
+    @Test
+    fun anOutgoingNewestMessageIsReportedAsOutgoing() {
+        val result = ScreenTextReader.read(
+            chatScreen(outgoingBubble("haan, ashchi")),
+            SCREEN_WIDTH,
+        )
+
+        assertEquals(ReadOutcome.OUTGOING, result.outcome)
+        assertEquals("haan, ashchi", result.message?.text)
+    }
+
+    @Test
+    fun aGoodReadCountsWhatItWorkedWith() {
+        val screen = chatScreen(
+            incomingBubble("one", top = 200),
+            incomingBubble("two", top = 340),
+        )
+
+        val result = ScreenTextReader.read(screen, SCREEN_WIDTH)
+
+        assertEquals(ReadOutcome.READ, result.outcome)
+        assertEquals(2, result.rowCount)
+        assertEquals("two", result.message?.text)
+    }
 }

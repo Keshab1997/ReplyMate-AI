@@ -15,10 +15,15 @@ object AppAllowlist {
 
     fun contains(context: Context, packageName: String): Boolean {
         if (packageName.isBlank()) return false
+        return all(context).contains(packageName)
+    }
+
+    /** The allowlist as the user left it, so Settings can show it back. */
+    fun all(context: Context): List<String> {
         val allowed = context
             .getSharedPreferences(ReplyMateNotificationListener.PREFS_NAME, Context.MODE_PRIVATE)
             .getStringSet(ReplyMateNotificationListener.KEY_ALLOWED_PACKAGES, emptySet())
             ?: emptySet()
-        return allowed.contains(packageName)
+        return allowed.sorted()
     }
 }

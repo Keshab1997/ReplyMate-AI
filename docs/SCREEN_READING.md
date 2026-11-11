@@ -140,10 +140,42 @@ guessing. A message we cannot attribute is a message we do not invent.
   simply deliver nothing.
 - **Advanced Protection Mode (Android 16+)**: the system refuses to grant
   accessibility access to an app it does not classify as an accessibility tool,
-  and revokes it from one already granted. ReplyMate is **not** an accessibility
-  tool and does not claim to be one — `isAccessibilityTool` is deliberately
-  absent from `screen_reader_service_config.xml`. On such a device this feature
-  does not run, and the settings screen says so in words.
+  and revokes it from one already granted. ReplyMate is not assistive technology
+  in the usual sense, but `isAccessibilityTool="true"` **is** declared in
+  `screen_reader_service_config.xml`, at the owner's instruction: this is a
+  personal, sideloaded build with one user, and the alternative is a feature
+  that is dead on such a device for no benefit to anybody. The flag changes
+  nothing about what the service does — it still reads only allowlisted apps,
+  only while the in-app switch is on, and never types, clicks or sends.
+## 3b. Finding out why it read nothing
+
+"Screen reading does not work" is five different failures, and from outside the
+phone they look identical. Every scan now records which one it was, and
+**Settings → Screen reading → "What the reader is doing"** shows it:
+
+| Report | What it means |
+|---|---|
+| `no_window` | Nothing was in front to read — no active window at all. |
+| `other_app` | The window in front belonged to a different package (a keyboard, a toast, a system dialog). |
+| `no_list` | No scrolling container on that screen — not a conversation, or the tree was empty. |
+| `no_rows` | The list was found but none of its rows looked readable. |
+| `no_message` | Rows were readable, but none held a message (timestamps, typing dots, date headers). |
+| `outgoing` | The newest message is one the user sent, so there is nothing to answer. |
+| `not_new` | Already seen, or the user scrolled past it — the gate is doing its job. |
+| `read` | A message was read and handed to the pipeline. |
+
+The card also shows whether the service is running, whether the switch is on,
+which packages are being watched, and how many scans have happened since
+install. `screenReadingStatus` on the channel is the same report.
+
+The report is kept in preferences rather than in memory because the process that
+reads the screen is not the one showing Settings: Android kills and restarts it
+freely, and a report that dies with it is a report nobody reads.
+
+**`typeViewScrolled` is requested on purpose.** Scrolling is the event that
+teaches the gate what the user has already seen; without it, stopping on an old
+message while scrolling back through a chat looks exactly like a new arrival.
+
 - **Distribution.** This build is sideloaded. If that ever changes, Google Play's
   accessibility policy has to be settled *first* — non-accessibility use of the
   API needs a declaration and an approval, and an undeclared one is a removal.

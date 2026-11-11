@@ -14,6 +14,7 @@ import '../app_selection/app_selection_screen.dart';
 import '../notifications/providers/notification_providers.dart';
 import '../overlay/providers/bubble_providers.dart';
 import '../screen_reading/providers/screen_reading_provider.dart';
+import '../screen_reading/widgets/screen_reading_status_card.dart';
 import '../permissions/permission_setup_screen.dart';
 import '../permissions/providers/permission_provider.dart';
 import 'providers/preferences_provider.dart';
@@ -508,6 +509,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                                 ],
                               ),
                             ),
+                          // Shown once Android has granted access: that is the
+                          // only point at which "it reads nothing" is a
+                          // question about the reading rather than the grant.
+                          if (screenReadingAvailable)
+                            const ScreenReadingStatusCard(),
                           // The fix for "the switch does nothing": the reason
                           // is a permission, so the permission gets a button
                           // *here*, not three screens away.

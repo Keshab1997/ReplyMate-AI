@@ -52,6 +52,41 @@ interface ScreenNode {
 }
 
 /** One message read off the screen, with everything we could not promise. */
+/**
+ * Why a read ended the way it did.
+ *
+ * "It read nothing" is four different failures, and from outside the phone they
+ * look identical: the list was missing, every row was rejected, the newest
+ * message was one the user had already sent, or the screen held no text at all.
+ * Settings shows this so the difference is visible without adb.
+ */
+enum class ReadOutcome {
+    /** No scrolling container on the screen. */
+    NO_LIST,
+
+    /** A list was found, but none of its rows looked readable. */
+    NO_ROWS,
+
+    /** Rows were readable but none of them held a message. */
+    NO_MESSAGE,
+
+    /** The newest message is one the user sent: nothing to answer. */
+    OUTGOING,
+
+    /** A message was read. */
+    READ,
+}
+
+/** What the reader found, and what it had to work with. */
+data class ReadResult(
+    val message: ScreenMessage?,
+    val outcome: ReadOutcome,
+    /** How many scrolling containers were on the screen. */
+    val listCount: Int,
+    /** How many of the chosen list's children looked readable. */
+    val rowCount: Int,
+)
+
 data class ScreenMessage(
     val text: String,
     /** The chat's own title, when the screen exposed one. */
@@ -132,11 +167,36 @@ object ScreenTextReader {
      * @param screenWidth the display width in pixels, used only to tell the
      *   left half of the screen from the right one.
      */
-    fun readNewestMessage(root: ScreenNode, screenWidth: Int): ScreenMessage? {
-        if (screenWidth <= 0) return null
-        val list = findMessageList(root) ?: return null
+    fun readNewestMessage(root: ScreenNode, screenWidth: Int): ScreenMessage? =
+        read(root, screenWidth).message
+
+    /**
+     * The same read, with what it had to work with.
+     *
+     * The plain answer is [readNewestMessage]; this is the one the service
+     * uses, because a feature that silently reads nothing cannot be fixed from
+     * the outside without knowing which of the five ways it failed.
+     */
+    fun read(root: ScreenNode, screenWidth: Int): ReadResult {
+        if (screenWidth <= 0) return ReadResult(null, ReadOutcome.NO_LIST, 0, 0)
+
+        // The scrolling container with the most children: in every messaging app
+        // this reader targets, the conversation is the biggest list on screen. A
+        // layout with two equally large lists is not one we claim to understand,
+        // so the tie is resolved by taking the lower one (the chat sits below
+        // the header in every app we have seen).
+        //
+        // A container with a single child still counts - a two-message chat is a
+        // conversation, and refusing to read it because the list is short is the
+        // kind of false negative that looks like a broken feature.
+        val lists = mutableListOf<ScreenNode>()
+        collectLists(root, lists)
+        val list = lists.maxWithOrNull(
+            compareBy<ScreenNode> { it.children.size }.thenBy { it.bounds?.top ?: 0 },
+        ) ?: return ReadResult(null, ReadOutcome.NO_LIST, lists.size, 0)
+
         val rows = list.children.filter { it.isVisibleRow() }
-        if (rows.isEmpty()) return null
+        if (rows.isEmpty()) return ReadResult(null, ReadOutcome.NO_ROWS, lists.size, 0)
 
         val newestFirst = rows.takeLast(MAX_CANDIDATE_ROWS).reversed()
         for (row in newestFirst) {
@@ -144,29 +204,16 @@ object ScreenTextReader {
             // Stop at the first row that actually holds a message: a newer
             // outgoing message means the user already answered, and a newer
             // row of chrome means the layout changed underneath us.
-            if (candidate != null) return candidate
+            if (candidate != null) {
+                return ReadResult(
+                    candidate,
+                    if (candidate.isOutgoing) ReadOutcome.OUTGOING else ReadOutcome.READ,
+                    lists.size,
+                    rows.size,
+                )
+            }
         }
-        return null
-    }
-
-    /**
-     * The scrolling container with the most children: in every messaging app
-     * this reader targets, the conversation is the biggest list on screen. A
-     * layout with two equally large lists is not one we claim to understand,
-     * so the tie is resolved by taking the lower one (the chat sits below the
-     * header in every app we have seen).
-     *
-     * A container with a single child still counts - a two-message chat is a
-     * conversation, and refusing to read it because the list is short is the
-     * kind of false negative that looks like a broken feature.
-     */
-    private fun findMessageList(root: ScreenNode): ScreenNode? {
-        val candidates = mutableListOf<ScreenNode>()
-        collectLists(root, candidates)
-        if (candidates.isEmpty()) return null
-        return candidates.maxWithOrNull(
-            compareBy<ScreenNode> { it.children.size }.thenBy { it.bounds?.top ?: 0 },
-        )
+        return ReadResult(null, ReadOutcome.NO_MESSAGE, lists.size, rows.size)
     }
 
     private fun collectLists(node: ScreenNode, into: MutableList<ScreenNode>) {
