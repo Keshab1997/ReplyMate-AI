@@ -259,4 +259,66 @@ void main() {
       expect(prefs.getStringList(AppConstants.prefSelectedApps), isNull);
     },
   );
+
+  testWidgets('the composer speaks the interface language, not English', (
+    tester,
+  ) async {
+    // The point of the sweep: a Bengali session must not meet English copy in
+    // the screen it uses most. This asserts on the composer's own strings, which
+    // used to be literals.
+    SharedPreferences.setMockInitialValues({
+      AppConstants.prefAppLanguage: 'bn',
+    });
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final repository = _RecordingReplyRepository();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+        child: const MaterialApp(home: ReplyComposerScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('নতুন জবাব'), findsOneWidget);
+    expect(
+      find.text(
+        'No message was captured. ReplyMate only keeps a message '
+        'while the app is running; open ReplyMate after a new message arrives, '
+        'or paste the text.',
+      ),
+      findsNothing,
+    );
+    expect(find.textContaining('কোনো মেসেজ ধরা পড়েনি'), findsOneWidget);
+    expect(find.text('পরামর্শ তৈরি করুন'), findsOneWidget);
+  });
+
+  testWidgets('a hindi session renders hindi, including the style labels', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      AppConstants.prefAppLanguage: 'hi',
+    });
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          replyRepositoryProvider.overrideWithValue(
+            _RecordingReplyRepository(),
+          ),
+        ],
+        child: const MaterialApp(home: ReplyComposerScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('नया जवाब'), findsOneWidget);
+    expect(find.text('भाषा'), findsOneWidget);
+    expect(find.text('सुझाव बनाएँ'), findsOneWidget);
+  });
 }

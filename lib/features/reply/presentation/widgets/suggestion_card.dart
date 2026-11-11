@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/l10n/app_strings.dart';
+
 import '../../../../app/theme/app_theme.dart';
 
 /// One generated reply: editable text, and copy/share to hand it over.
@@ -13,8 +15,13 @@ class SuggestionCard extends StatefulWidget {
     required this.onCopy,
     required this.onShare,
     this.best = false,
+    this.strings = const EnglishStrings(),
     super.key,
   });
+
+  /// The interface language. A default rather than a lookup so this card stays a
+  /// plain widget: the screens that know the language pass it down.
+  final AppStrings strings;
 
   final TextEditingController controller;
   final ValueChanged<String> onCopy;
@@ -111,7 +118,7 @@ class _SuggestionCardState extends State<SuggestionCard> {
                   ),
                   _Action(
                     icon: Icons.share_outlined,
-                    label: 'Share',
+                    label: widget.strings.share,
                     onPressed: () => widget.onShare(widget.controller.text),
                   ),
                 ],
@@ -129,8 +136,8 @@ class _SuggestionCardState extends State<SuggestionCard> {
                 color: AppTheme.mint,
                 borderRadius: BorderRadius.circular(7),
               ),
-              child: const Text(
-                'BEST FIT',
+              child: Text(
+                widget.strings.bestFit,
                 style: TextStyle(
                   fontSize: 9,
                   fontWeight: FontWeight.w800,

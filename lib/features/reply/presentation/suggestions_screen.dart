@@ -2,6 +2,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/l10n/app_strings.dart';
+
 import '../../../app/theme/app_theme.dart';
 import '../../../shared/widgets/mascot_face.dart';
 import '../../notifications/models/captured_notification.dart';
@@ -29,6 +31,8 @@ class SuggestionsScreen extends ConsumerStatefulWidget {
 }
 
 class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
+  AppStrings get _strings => ref.read(appStringsProvider);
+
   late final List<TextEditingController> _controllers = [
     for (final reply in widget.replies) TextEditingController(text: reply),
   ];
@@ -45,7 +49,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
     ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Reply copied.')));
+        .showSnackBar(SnackBar(content: Text(_strings.replyCopied)));
   }
 
   /// Shares the edited suggestion through Android's chooser. Opening the
@@ -56,9 +60,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          opened
-              ? 'Share sheet opened. Choose an app to continue.'
-              : 'Sharing is unavailable here. Copy the reply instead.',
+          opened ? _strings.shareOpened : _strings.shareUnavailable,
         ),
       ),
     );
@@ -102,7 +104,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                       children: [
                         Text(
                           count == 1
-                              ? 'One way to say it'
+                              ? _strings.oneWayToSayIt
                               : '$count ways to say it',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w700,
@@ -154,7 +156,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                       const SizedBox(height: 3),
                       Text(
                         widget.context!.displayText.isEmpty
-                            ? 'No message text was visible in the notification.'
+                            ? _strings.noTextVisible
                             : widget.context!.displayText,
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
@@ -173,6 +175,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                   best: index == 0 && count > 1,
                   onCopy: _copy,
                   onShare: _share,
+                  strings: _strings,
                 ),
                 const SizedBox(height: AppTheme.spaceMd),
               ],
@@ -180,7 +183,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
               const SizedBox(height: AppTheme.spaceMd),
               OutlinedButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Generate again'),
+                child: Text(_strings.generateAgain),
               ),
             ],
           ),

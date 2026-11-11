@@ -464,7 +464,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                             onChanged: overlayEnabled
                                 ? (value) => _setBubble(context, ref, value)
                                 : null,
-                            title: const Text('Floating reply bubble'),
+                            title: Text(strings.bubbleSwitchTitle),
                             subtitle: Text(
                               overlayEnabled
                                   ? 'Shows a bubble over the app you are in '

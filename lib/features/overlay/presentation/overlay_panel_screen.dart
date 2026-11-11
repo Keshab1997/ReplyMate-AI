@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../shared/widgets/mascot_face.dart';
 import '../../../core/firebase/firebase_providers.dart';
+import '../../../core/l10n/app_strings.dart';
 import '../../../shared/widgets/section_label.dart';
 import '../../memory/providers/conversation_memory_provider.dart';
 import '../../notifications/providers/notification_providers.dart';
@@ -159,7 +160,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
   /// One card is not "Suggestions", and a lone card must not be badged
   /// "BEST FIT" as though it had beaten the others.
   String get _suggestionsLabel =>
-      _controllers.length == 1 ? 'Suggestion' : 'Suggestions';
+      _strings.suggestionsLabel(_controllers.length);
 
   /// Moves the panel to another waiting chat. The message box is reset to that
   /// chat's text and the old reply drafts are dropped: replies written for one
@@ -179,14 +180,15 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     });
   }
 
+  AppStrings get _strings => ref.read(appStringsProvider);
+
   Future<void> _copyMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Message copied. Paste it anywhere.')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(_strings.messageCopied)));
   }
 
   /// Pulls text off the clipboard into the message box. This is the supported
@@ -197,9 +199,8 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     final pasted = data?.text?.trim() ?? '';
     if (!mounted) return;
     if (pasted.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('The clipboard is empty.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(_strings.clipboardEmpty)));
       return;
     }
     setState(() {
@@ -227,7 +228,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     _rememberAccepted(text);
     if (!mounted) return;
     ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Reply copied.')));
+        .showSnackBar(SnackBar(content: Text(_strings.replyCopied)));
   }
 
   Future<void> _share(String text) async {
@@ -237,9 +238,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          opened
-              ? 'Share sheet opened. Choose an app to continue.'
-              : 'Sharing is unavailable here. Copy the reply instead.',
+          opened ? _strings.shareOpened : _strings.shareUnavailable,
         ),
       ),
     );
@@ -321,17 +320,17 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
             children: [
               Expanded(
                 child: Text(
-                  'Nothing to reply to',
+                  _strings.nothingToReplyTo,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
               IconButton(
-                tooltip: 'Settings',
+                tooltip: _strings.settings,
                 icon: const Icon(Icons.tune),
                 onPressed: _openSettings,
               ),
               IconButton(
-                tooltip: 'Close',
+                tooltip: _strings.close,
                 icon: const Icon(Icons.close),
                 onPressed: () => _close(),
               ),
@@ -339,14 +338,14 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
           ),
           const SizedBox(height: AppTheme.spaceSm),
           Text(
-            'This message is no longer available. ReplyMate keeps a message '
-            'only in memory, so it is gone once the panel closes or the app is '
-            'stopped. Wait for the next message, or paste the text in the '
-            'composer.',
+            _strings.messageGoneBody,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: AppTheme.spaceMd),
-          OutlinedButton(onPressed: () => _close(), child: const Text('Close')),
+          OutlinedButton(
+            onPressed: () => _close(),
+            child: Text(_strings.close),
+          ),
         ],
       ),
     );
@@ -444,18 +443,17 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
                     minLines: 3,
                     maxLines: 8,
                     style: theme.textTheme.bodyLarge,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       border: InputBorder.none,
                       isDense: true,
-                      hintText: 'Paste the message you want to reply to',
+                      hintText: _strings.pasteHint,
                     ),
                     onChanged: (_) => setState(() => _failure = null),
                   )
                 : SingleChildScrollView(
                     child: Text(
                       empty
-                          ? 'This notification exposed no message text. Use '
-                                'Paste below to reply to something yourself.'
+                          ? _strings.noTextInNotification
                           : _messageController.text,
                       style: theme.textTheme.bodyLarge,
                     ),
@@ -472,7 +470,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
             TextButton.icon(
               onPressed: _pasteMessage,
               icon: const Icon(Icons.content_paste_go, size: 16),
-              label: const Text('Paste'),
+              label: Text(_strings.paste),
             ),
             TextButton.icon(
               onPressed: () =>
@@ -614,7 +612,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
                   ),
                 ),
                 Text(
-                  'Change',
+                  _strings.change,
                   style: theme.textTheme.labelLarge?.copyWith(
                     color: scheme.primary,
                   ),
@@ -628,8 +626,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
         if (!firebaseReady) ...[
           const SizedBox(height: AppTheme.spaceXs),
           Text(
-            'AI generation is not configured on this install, so generating '
-            'will explain that instead of inventing a reply.',
+            _strings.aiNotConfiguredPanel,
             style: theme.textTheme.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -664,10 +661,12 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
               : const Icon(Icons.auto_awesome),
           label: Text(
             _generating
-                ? 'Generating…'
+                ? _strings.generating
                 : (preferences.suggestionCount == 1
-                      ? 'Generate a reply'
-                      : 'Generate ${preferences.suggestionCount} suggestions'),
+                      ? _strings.generateAReply
+                      : _strings.generateSuggestionsCount(
+                          preferences.suggestionCount,
+                        )),
           ),
         ),
         if (_controllers.isNotEmpty) ...[
@@ -679,6 +678,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
               onCopy: _copy,
               onShare: _share,
               best: index == 0 && _controllers.length > 1,
+              strings: _strings,
             ),
             const SizedBox(height: AppTheme.spaceSm),
           ],

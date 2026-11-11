@@ -92,6 +92,52 @@ abstract class AppStrings {
   String get nothingSentAloneBody;
   String get clearLocalPreferences;
   String get appLanguageSection;
+
+  // ------------------------------------------------ bubble, composer, memory
+  String get suggestionOne;
+  String get suggestionMany;
+  String get messageCopied;
+  String get clipboardEmpty;
+  String get replyCopied;
+  String get shareOpened;
+  String get shareUnavailable;
+  String get nothingToReplyTo;
+  String get close;
+  String get messageGoneBody;
+  String get pasteHint;
+  String get noTextInNotification;
+  String get paste;
+  String get aiNotConfiguredPanel;
+  String get generating;
+  String get generateSuggestions;
+  String get noMessageCaptured;
+  String get newReply;
+  String get messageLabel;
+  String get clear;
+  String get messageTextHint;
+  String get howManyOptions;
+  String get sentOnlyOnGenerate;
+  String get oneWayToSayIt;
+  String get noTextVisible;
+  String get generateAgain;
+  String get bestFit;
+  String get share;
+  String get conversationMemorySection;
+  String get bubbleSwitchTitle;
+  String get rememberRecentChats;
+  String get rememberRecentChatsBody;
+  String get nothingRememberedYet;
+  String get forgetThisChat;
+  String get deleteAllRemembered;
+  String get deleteAllTitle;
+  String get deleteAllBody;
+  String get keep;
+  String get delete;
+  String suggestionsLabel(int count);
+  String generateSuggestionsCount(int count);
+  String fromSource(String source);
+  String forgotConversation(String name);
+
   String get appLanguageNote;
 }
 
@@ -228,6 +274,104 @@ class EnglishStrings extends AppStrings {
   @override
   String get appLanguageSection => 'App language';
   @override
+  String get suggestionOne => 'Suggestion';
+  @override
+  String get suggestionMany => 'Suggestions';
+  @override
+  String get messageCopied => 'Message copied. Paste it anywhere.';
+  @override
+  String get clipboardEmpty => 'The clipboard is empty.';
+  @override
+  String get replyCopied => 'Reply copied.';
+  @override
+  String get shareOpened => 'Share sheet opened. Choose an app to continue.';
+  @override
+  String get shareUnavailable =>
+      'Sharing is unavailable here. Copy the reply instead.';
+  @override
+  String get nothingToReplyTo => 'Nothing to reply to';
+  @override
+  String get close => 'Close';
+  @override
+  String get messageGoneBody =>
+      'This message is no longer available. ReplyMate keeps a message only in memory, so it is gone once the panel closes or the app is stopped. Wait for the next message, or paste the text in the composer.';
+  @override
+  String get pasteHint => 'Paste the message you want to reply to';
+  @override
+  String get noTextInNotification =>
+      'This notification exposed no message text. Use Paste below to reply to something yourself.';
+  @override
+  String get paste => 'Paste';
+  @override
+  String get aiNotConfiguredPanel =>
+      'AI generation is not configured on this install, so generating will explain that instead of inventing a reply.';
+  @override
+  String get generating => 'Generating…';
+  @override
+  String get generateSuggestions => 'Generate suggestions';
+  @override
+  String get noMessageCaptured =>
+      'No message was captured. ReplyMate only keeps a message while the app is open, so paste the text below to reply to something yourself.';
+  @override
+  String get newReply => 'New reply';
+  @override
+  String get messageLabel => 'MESSAGE';
+  @override
+  String get clear => 'Clear';
+  @override
+  String get messageTextHint => 'Message text…';
+  @override
+  String get howManyOptions => 'How many options';
+  @override
+  String get sentOnlyOnGenerate =>
+      'The message is sent to an AI service only when you press Generate.';
+  @override
+  String get oneWayToSayIt => 'One way to say it';
+  @override
+  String get noTextVisible =>
+      'No message text was visible in the notification.';
+  @override
+  String get generateAgain => 'Generate again';
+  @override
+  String get bestFit => 'BEST FIT';
+  @override
+  String get share => 'Share';
+  @override
+  String get conversationMemorySection => 'Conversation memory';
+  @override
+  String get bubbleSwitchTitle => 'Floating reply bubble';
+  @override
+  String get rememberRecentChats => 'Remember recent chats';
+  @override
+  String get rememberRecentChatsBody =>
+      'Keeps the last few messages of each chat - and replies you accept - so the next draft follows the conversation and sounds like you. Stored on this device only, never uploaded, and never in a backup. Off by default; turning it off deletes everything it kept.';
+  @override
+  String get nothingRememberedYet =>
+      'Nothing remembered yet. Open a reply for a chat and it will show up here.';
+  @override
+  String get forgetThisChat => 'Forget this chat';
+  @override
+  String get deleteAllRemembered => 'Delete all remembered chats';
+  @override
+  String get deleteAllTitle => 'Delete all remembered chats?';
+  @override
+  String get deleteAllBody =>
+      'Every message this app remembered is deleted from this device. The replies are not affected - only what the app kept to write them.';
+  @override
+  String get keep => 'Keep';
+  @override
+  String get delete => 'Delete';
+  @override
+  String suggestionsLabel(int count) =>
+      count == 1 ? suggestionOne : suggestionMany;
+  @override
+  String generateSuggestionsCount(int count) => 'Generate $count suggestions';
+  @override
+  String fromSource(String source) => 'From $source.';
+  @override
+  String forgotConversation(String name) =>
+      'Forgot the conversation with $name.';
+  @override
   String get appLanguageNote =>
       'The app speaks Bengali. Replies still follow the reply language above.';
 }
@@ -363,6 +507,102 @@ class BengaliStrings extends AppStrings {
   String get clearLocalPreferences => 'লোকাল পছন্দ মুছে ফেলুন';
   @override
   String get appLanguageSection => 'অ্যাপের ভাষা';
+  @override
+  String get suggestionOne => 'পরামর্শ';
+  @override
+  String get suggestionMany => 'পরামর্শগুলো';
+  @override
+  String get messageCopied => 'মেসেজ কপি হয়েছে। যেখানে খুশি পেস্ট করুন।';
+  @override
+  String get clipboardEmpty => 'ক্লিপবোর্ড খালি।';
+  @override
+  String get replyCopied => 'জবাব কপি হয়েছে।';
+  @override
+  String get shareOpened => 'শেয়ার শিট খুলেছে। কোন অ্যাপে পাঠাবেন বেছে নিন।';
+  @override
+  String get shareUnavailable =>
+      'এখানে শেয়ার করা যাচ্ছে না। জবাবটি কপি করে নিন।';
+  @override
+  String get nothingToReplyTo => 'উত্তর দেওয়ার মতো কিছু নেই';
+  @override
+  String get close => 'বন্ধ করুন';
+  @override
+  String get messageGoneBody =>
+      'এই মেসেজটি আর নেই। ReplyMate মেসেজ শুধু মেমোরিতে রাখে, তাই প্যানেল বন্ধ হলে বা অ্যাপ বন্ধ হলে তা চলে যায়। পরের মেসেজের জন্য অপেক্ষা করুন, বা কম্পোজারে টেক্সট পেস্ট করুন।';
+  @override
+  String get pasteHint => 'যে মেসেজের উত্তর চান সেটি পেস্ট করুন';
+  @override
+  String get noTextInNotification =>
+      'এই নোটিফিকেশনে কোনো মেসেজ টেক্সট ছিল না। নিচের Paste দিয়ে নিজে কিছু লিখে উত্তর দিন।';
+  @override
+  String get paste => 'পেস্ট';
+  @override
+  String get aiNotConfiguredPanel =>
+      'এই ইনস্টলে AI চালু নেই, তাই জেনারেট করলে ভুয়া জবাব না দিয়ে সেটাই জানাবে।';
+  @override
+  String get generating => 'তৈরি হচ্ছে…';
+  @override
+  String get generateSuggestions => 'পরামর্শ তৈরি করুন';
+  @override
+  String get noMessageCaptured =>
+      'কোনো মেসেজ ধরা পড়েনি। ReplyMate মেসেজ রাখে শুধু অ্যাপ খোলা থাকা পর্যন্ত, তাই নিচে টেক্সট পেস্ট করে নিজে উত্তর দিন।';
+  @override
+  String get newReply => 'নতুন জবাব';
+  @override
+  String get messageLabel => 'মেসেজ';
+  @override
+  String get clear => 'মুছুন';
+  @override
+  String get messageTextHint => 'মেসেজের টেক্সট…';
+  @override
+  String get howManyOptions => 'কতগুলো অপশন';
+  @override
+  String get sentOnlyOnGenerate =>
+      'আপনি Generate চাপলে তবেই মেসেজটি AI সার্ভিসে যায়।';
+  @override
+  String get oneWayToSayIt => 'বলার একটি উপায়';
+  @override
+  String get noTextVisible => 'নোটিফিকেশনে কোনো মেসেজ টেক্সট দেখা যায়নি।';
+  @override
+  String get generateAgain => 'আবার তৈরি করুন';
+  @override
+  String get bestFit => 'সবচেয়ে মানানসই';
+  @override
+  String get share => 'শেয়ার';
+  @override
+  String get conversationMemorySection => 'কথোপকথনের স্মৃতি';
+  @override
+  String get bubbleSwitchTitle => 'ভাসমান রিপ্লাই বাবল';
+  @override
+  String get rememberRecentChats => 'সাম্প্রতিক চ্যাট মনে রাখুন';
+  @override
+  String get rememberRecentChatsBody =>
+      'প্রতি চ্যাটের শেষ কয়েকটি মেসেজ - আর আপনি যে জবাবগুলো নেন - মনে রাখে, যাতে পরের ড্রাফট কথোপকথন ধরে আর আপনার মতো শোনায়। শুধু এই ডিভাইসে রাখা হয়, কোথাও আপলোড হয় না, ব্যাকআপেও যায় না। ডিফল্টভাবে বন্ধ; বন্ধ করলে সব মুছে যায়।';
+  @override
+  String get nothingRememberedYet =>
+      'এখনো কিছু মনে রাখা হয়নি। কোনো চ্যাটের জবাব খুললে সেটি এখানে দেখা যাবে।';
+  @override
+  String get forgetThisChat => 'এই চ্যাট ভুলে যান';
+  @override
+  String get deleteAllRemembered => 'মনে রাখা সব চ্যাট মুছুন';
+  @override
+  String get deleteAllTitle => 'মনে রাখা সব চ্যাট মুছবেন?';
+  @override
+  String get deleteAllBody =>
+      'এই অ্যাপের মনে রাখা প্রতিটি মেসেজ এই ডিভাইস থেকে মুছে যাবে। জবাবগুলোতে কিছু হয় না - শুধু যেসব কথা অ্যাপটি জবাব লেখার জন্য রেখেছিল।';
+  @override
+  String get keep => 'রাখুন';
+  @override
+  String get delete => 'মুছুন';
+  @override
+  String suggestionsLabel(int count) =>
+      count == 1 ? suggestionOne : suggestionMany;
+  @override
+  String generateSuggestionsCount(int count) => '$countটি পরামর্শ তৈরি করুন';
+  @override
+  String fromSource(String source) => '$source থেকে।';
+  @override
+  String forgotConversation(String name) => '$name-এর সঙ্গে কথোপকথন ভুলে গেছি।';
   @override
   String get appLanguageNote =>
       'অ্যাপ বাংলায় চলবে। রিপ্লাই কিন্তু উপরের ভাষা অনুযায়ীই তৈরি হবে।';
@@ -504,6 +744,101 @@ class HindiStrings extends AppStrings {
   String get clearLocalPreferences => 'लोकल प्राथमिकताएँ साफ़ करें';
   @override
   String get appLanguageSection => 'ऐप की भाषा';
+  @override
+  String get suggestionOne => 'सुझाव';
+  @override
+  String get suggestionMany => 'सुझाव';
+  @override
+  String get messageCopied => 'संदेश कॉपी हो गया। जहाँ चाहें पेस्ट करें।';
+  @override
+  String get clipboardEmpty => 'क्लिपबोर्ड खाली है।';
+  @override
+  String get replyCopied => 'जवाब कॉपी हो गया।';
+  @override
+  String get shareOpened => 'शेयर शीट खुल गई। जारी रखने के लिए ऐप चुनें।';
+  @override
+  String get shareUnavailable => 'यहाँ शेयर उपलब्ध नहीं है। जवाब कॉपी कर लें।';
+  @override
+  String get nothingToReplyTo => 'जवाब देने के लिए कुछ नहीं';
+  @override
+  String get close => 'बंद करें';
+  @override
+  String get messageGoneBody =>
+      'यह संदेश अब उपलब्ध नहीं है। ReplyMate संदेश केवल मेमोरी में रखता है, इसलिए पैनल बंद होते ही या ऐप रुकते ही वह चला जाता है। अगले संदेश का इंतज़ार करें, या कंपोज़र में पाठ पेस्ट करें।';
+  @override
+  String get pasteHint => 'जिस संदेश का जवाब चाहिए उसे पेस्ट करें';
+  @override
+  String get noTextInNotification =>
+      'इस नोटिफिकेशन में कोई संदेश पाठ नहीं था। नीचे Paste से खुद कुछ लिखकर जवाब दें।';
+  @override
+  String get paste => 'पेस्ट';
+  @override
+  String get aiNotConfiguredPanel =>
+      'इस इंस्टॉल पर AI कॉन्फ़िगर नहीं है, इसलिए जनरेट करने पर नकली जवाब के बजाय यही बताया जाएगा।';
+  @override
+  String get generating => 'बन रहा है…';
+  @override
+  String get generateSuggestions => 'सुझाव बनाएँ';
+  @override
+  String get noMessageCaptured =>
+      'कोई संदेश कैप्चर नहीं हुआ। ReplyMate संदेश केवल ऐप खुला रहने तक रखता है, इसलिए नीचे पाठ पेस्ट करके खुद जवाब दें।';
+  @override
+  String get newReply => 'नया जवाब';
+  @override
+  String get messageLabel => 'संदेश';
+  @override
+  String get clear => 'हटाएँ';
+  @override
+  String get messageTextHint => 'संदेश का पाठ…';
+  @override
+  String get howManyOptions => 'कितने विकल्प';
+  @override
+  String get sentOnlyOnGenerate =>
+      'संदेश AI सेवा को केवल तब भेजा जाता है जब आप Generate दबाते हैं।';
+  @override
+  String get oneWayToSayIt => 'कहने का एक तरीका';
+  @override
+  String get noTextVisible => 'नोटिफिकेशन में कोई संदेश पाठ दिखाई नहीं दिया।';
+  @override
+  String get generateAgain => 'फिर बनाएँ';
+  @override
+  String get bestFit => 'सबसे उपयुक्त';
+  @override
+  String get share => 'शेयर';
+  @override
+  String get conversationMemorySection => 'बातचीत की याद';
+  @override
+  String get bubbleSwitchTitle => 'फ़्लोटिंग रिप्लाई बबल';
+  @override
+  String get rememberRecentChats => 'हाल की चैट याद रखें';
+  @override
+  String get rememberRecentChatsBody =>
+      'हर चैट के पिछले कुछ संदेश - और आपके स्वीकार किए जवाब - याद रखता है, ताकि अगला ड्राफ़्ट बातचीत को आगे बढ़ाए और आप जैसा लगे। केवल इसी डिवाइस पर, कहीं अपलोड नहीं, बैकअप में भी नहीं। डिफ़ॉल्ट रूप से बंद; बंद करने पर सब मिट जाता है।';
+  @override
+  String get nothingRememberedYet =>
+      'अभी कुछ याद नहीं रखा गया। किसी चैट का जवाब खोलें, वह यहाँ दिखेगा।';
+  @override
+  String get forgetThisChat => 'यह चैट भुला दें';
+  @override
+  String get deleteAllRemembered => 'याद रखी सभी चैट हटाएँ';
+  @override
+  String get deleteAllTitle => 'याद रखी सभी चैट हटाएँ?';
+  @override
+  String get deleteAllBody =>
+      'इस ऐप ने जो भी संदेश याद रखा था, वह इस डिवाइस से हट जाएगा। जवाबों पर कोई असर नहीं - केवल वही मिटेगा जो जवाब लिखने के लिए रखा गया था।';
+  @override
+  String get keep => 'रखें';
+  @override
+  String get delete => 'हटाएँ';
+  @override
+  String suggestionsLabel(int count) =>
+      count == 1 ? suggestionOne : suggestionMany;
+  @override
+  String generateSuggestionsCount(int count) => '$count सुझाव बनाएँ';
+  @override
+  String fromSource(String source) => '$source से।';
+  @override
+  String forgotConversation(String name) => '$name के साथ बातचीत भुला दी गई।';
   @override
   String get appLanguageNote =>
       'ऐप हिंदी में चलेगा। जवाब फिर भी ऊपर चुनी गई जवाब की भाषा में बनेंगे।';

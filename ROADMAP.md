@@ -47,13 +47,16 @@ pending.
 - [x] Implement AI reply-language, tone, length and suggestion-count preferences.
 - [x] Implement the reply composer, suggestions, edit/copy/share actions and conditional quick reply.
 - [ ] Add independent Bengali/Hindi/English app-interface localization.
-      Progress: the shared string set now has all three (`EnglishStrings`,
-      `BengaliStrings`, `HindiStrings`, `AppLanguage`), and the compiler refuses
-      a language with a missing string. What is left is the copy that still
-      lives as literal English inside screens - the bubble panel, the composer
-      and the new memory card included - so the box stays open until a walk
-      through the UI finds no English left in a Bengali or Hindi session.
-- [x] Implement settings, privacy explanation and clearing local preferences.
+      Progress: all three languages exist (`EnglishStrings`, `BengaliStrings`,
+      `HindiStrings`) and the compiler refuses a language with a missing string.
+      The **heavily used surfaces are swept** — the bubble panel, the composer,
+      the suggestions screen and card, the conversation-memory card and the
+      Settings section labels all read from `AppStrings`, and widget tests render
+      them in Bengali and Hindi.
+      What is left is the setup path: onboarding, permission setup, app
+      selection, the permission/screen-reading status cards and the admin gate
+      still hold ~57 literal English strings. The box closes when walking those
+      screens in a Bengali session finds no English left.
 
 ## Phase 3 — AI Integration
 

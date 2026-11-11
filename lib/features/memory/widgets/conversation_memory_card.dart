@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/app_theme.dart';
+import '../../../core/l10n/app_strings.dart';
 import '../domain/conversation_memory.dart';
 import '../providers/conversation_memory_provider.dart';
 
@@ -52,6 +53,8 @@ class _ConversationMemoryCardState
     await _refresh();
   }
 
+  AppStrings get _strings => ref.read(appStringsProvider);
+
   Future<void> _forget(ConversationKey key) async {
     await ref.read(conversationMemoryControllerProvider).forget(key);
     if (!mounted) return;
@@ -69,19 +72,16 @@ class _ConversationMemoryCardState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete all remembered chats?'),
-        content: const Text(
-          'Every message this app remembered is deleted from this device. The '
-          'replies are not affected - only what the app kept to write them.',
-        ),
+        title: Text(_strings.deleteAllTitle),
+        content: Text(_strings.deleteAllBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Keep'),
+            child: Text(_strings.keep),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
+            child: Text(_strings.delete),
           ),
         ],
       ),
@@ -105,14 +105,8 @@ class _ConversationMemoryCardState
           SwitchListTile(
             value: enabled,
             onChanged: _setEnabled,
-            title: const Text('Remember recent chats'),
-            subtitle: const Text(
-              'Keeps the last few messages of each chat - and replies you '
-              'accept - so the next draft follows the conversation and sounds '
-              'like you. Stored on this device only, never uploaded, and never '
-              'in a backup. Off by default; turning it off deletes everything '
-              'it kept.',
-            ),
+            title: Text(_strings.rememberRecentChats),
+            subtitle: Text(_strings.rememberRecentChatsBody),
           ),
           if (enabled) ...[
             const Divider(height: 1),
@@ -133,8 +127,7 @@ class _ConversationMemoryCardState
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Nothing remembered yet. Open a reply for a chat and it '
-                    'will show up here.',
+                    _strings.nothingRememberedYet,
                     style: theme.textTheme.bodySmall,
                   ),
                 ),
@@ -146,7 +139,7 @@ class _ConversationMemoryCardState
                   title: Text(key.contactName),
                   subtitle: Text(key.packageName),
                   trailing: IconButton(
-                    tooltip: 'Forget this chat',
+                    tooltip: _strings.forgetThisChat,
                     onPressed: () => _forget(key),
                     icon: const Icon(Icons.delete_outline, size: 20),
                   ),
@@ -163,7 +156,7 @@ class _ConversationMemoryCardState
                   child: OutlinedButton.icon(
                     onPressed: _forgetAll,
                     icon: const Icon(Icons.delete_sweep_outlined, size: 18),
-                    label: const Text('Delete all remembered chats'),
+                    label: Text(_strings.deleteAllRemembered),
                   ),
                 ),
               ),

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/reply_options.dart';
+import '../../../core/l10n/app_strings.dart';
 import '../../../shared/widgets/choice_chips.dart';
 import '../../../shared/widgets/mascot_face.dart';
 import '../../memory/providers/conversation_memory_provider.dart';
@@ -43,14 +44,13 @@ class ReplyComposerScreen extends ConsumerStatefulWidget {
 }
 
 class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
+  AppStrings get _strings => ref.read(appStringsProvider);
+
   /// Shown when the session has no context at all: no captured notification,
   /// no launch text. Silence is the symptom users report ("nothing happened"),
   /// so the composer says why the box is empty instead of looking broken
-  /// (docs/OVERLAY_TASKS.md, Batch 0).
-  static const String noContextText =
-      'No message was captured. ReplyMate only keeps a message while the app '
-      'is running; open ReplyMate after a new message arrives, or paste the '
-      'text.';
+  /// (docs/OVERLAY_TASKS.md, Batch 0). The wording lives in [AppStrings] so a
+  /// Bengali or Hindi session gets it in its own language.
 
   final TextEditingController _messageController = TextEditingController();
 
@@ -213,7 +213,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                       ),
                     const SizedBox(width: AppTheme.spaceSm),
                     Text(
-                      'New reply',
+                      _strings.newReply,
                       style: theme.appBarTheme.titleTextStyle?.copyWith(
                         fontSize: 20,
                       ),
@@ -244,7 +244,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                         Row(
                           children: [
                             Text(
-                              'MESSAGE',
+                              _strings.messageLabel,
                               style: theme.textTheme.labelSmall?.copyWith(
                                 letterSpacing: 1.2,
                                 fontWeight: FontWeight.w700,
@@ -256,7 +256,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                               TextButton.icon(
                                 onPressed: () => setState(_clearSessionContext),
                                 icon: const Icon(Icons.close_rounded, size: 14),
-                                label: const Text('Clear'),
+                                label: Text(_strings.clear),
                                 style: TextButton.styleFrom(
                                   minimumSize: const Size(0, 30),
                                   textStyle: const TextStyle(fontSize: 11),
@@ -325,8 +325,10 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                               // with no explanation reads as a broken app;
                               // this reads as a state the user can act on.
                               launch != null && launch.hasText
-                                  ? 'From ${launch.source.label.toLowerCase()}.'
-                                  : noContextText,
+                                  ? _strings.fromSource(
+                                      launch.source.label.toLowerCase(),
+                                    )
+                                  : _strings.noMessageCaptured,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 fontSize: 10.5,
                                 height: 1.5,
@@ -348,7 +350,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                             fillColor: isDark
                                 ? Colors.black.withValues(alpha: 0.28)
                                 : const Color(0xFFF3F6FC),
-                            hintText: 'Message text…',
+                            hintText: _strings.messageTextHint,
                             hintStyle: theme.textTheme.bodyMedium?.copyWith(
                               fontSize: 13.5,
                               color: theme.colorScheme.onSurfaceVariant,
@@ -386,7 +388,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _StyleLabel('Language'),
+                        _StyleLabel(_strings.languageLabel),
                         ChoiceChips<ReplyLanguage>(
                           options: ReplyLanguage.values,
                           selected: _language,
@@ -403,7 +405,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                           onSelected: (tone) => setState(() => _tone = tone),
                         ),
                         const SizedBox(height: AppTheme.spaceMd),
-                        _StyleLabel('Length'),
+                        _StyleLabel(_strings.lengthLabel),
                         ChoiceChips<ReplyLength>(
                           options: ReplyLength.values,
                           selected: _length,
@@ -412,7 +414,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                               setState(() => _length = length),
                         ),
                         const SizedBox(height: AppTheme.spaceMd),
-                        _StyleLabel('How many options'),
+                        _StyleLabel(_strings.howManyOptions),
                         ChoiceChips<int>(
                           options: List<int>.generate(
                             AppConstants.maxSuggestionCount -
@@ -494,7 +496,9 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                           )
                         : const Icon(Icons.auto_awesome, size: 19),
                     label: Text(
-                      _generating ? 'Generating…' : 'Generate suggestions',
+                      _generating
+                          ? _strings.generating
+                          : _strings.generateSuggestions,
                     ),
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.transparent,
@@ -505,8 +509,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                 const SizedBox(height: AppTheme.spaceSm),
                 Center(
                   child: Text(
-                    'The message is sent to an AI service only when you press '
-                    'Generate.',
+                    _strings.sentOnlyOnGenerate,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontSize: 10,
