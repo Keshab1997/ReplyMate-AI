@@ -239,16 +239,6 @@ abstract class ReplyMateFlutterActivity : FlutterActivity() {
     }
 
     /**
-     * Whether Android has actually granted accessibility access to our screen
-     * reader - the only way it can run at all.
-     *
-     * Read from the system setting rather than remembered, because the grant
-     * happens on a screen Android owns: the user can turn it off there without
-     * this app ever being told. This is also how an Android 16+ device with
-     * Advanced Protection Mode shows up - the grant simply is not there, and
-     * the UI says so instead of blaming the reader (docs/SCREEN_READING.md).
-     */
-    /**
      * Android's accessibility settings, opened on ReplyMate's own page when the
      * device allows it.
      *
@@ -264,7 +254,7 @@ abstract class ReplyMateFlutterActivity : FlutterActivity() {
      */
     private fun openAccessibilitySettings(): String {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val details = Intent(Settings.ACTION_ACCESSIBILITY_DETAILS_SETTINGS)
+            val details = Intent(ACTION_ACCESSIBILITY_DETAILS_SETTINGS)
                 .putExtra(
                     // Intent.EXTRA_COMPONENT_NAME, spelled out: the constant is
                     // hidden from the SDK, the string is what Settings reads.
@@ -293,6 +283,16 @@ abstract class ReplyMateFlutterActivity : FlutterActivity() {
         }
     }
 
+    /**
+     * Whether Android has actually granted accessibility access to our screen
+     * reader - the only way it can run at all.
+     *
+     * Read from the system setting rather than remembered, because the grant
+     * happens on a screen Android owns: the user can turn it off there without
+     * this app ever being told. This is also how an Android 16+ device with
+     * Advanced Protection Mode shows up - the grant simply is not there, and
+     * the UI says so instead of blaming the reader (docs/SCREEN_READING.md).
+     */
     private fun isScreenReadingAvailable(): Boolean {
         val expected =
             ComponentName(this, ReplyMateScreenReaderService::class.java).flattenToString()
@@ -367,6 +367,18 @@ abstract class ReplyMateFlutterActivity : FlutterActivity() {
     private companion object {
         const val CHANNEL = "com.keshabstudios.replymate/notifications"
         const val REQUEST_POST_NOTIFICATIONS = 4311
+
+        /**
+         * `Settings.ACTION_ACCESSIBILITY_DETAILS_SETTINGS`, spelled out.
+         *
+         * The constant is `@hide` + `@SystemApi` in AOSP, so it is not in the
+         * public SDK and does not compile by name (`Unresolved reference`) -
+         * but the Settings activity reads the action string, and that is what
+         * reaches the device. `Intent.EXTRA_COMPONENT_NAME` below needs the
+         * same treatment for the same reason.
+         */
+        const val ACTION_ACCESSIBILITY_DETAILS_SETTINGS =
+            "android.settings.ACCESSIBILITY_DETAILS_SETTINGS"
 
         val CANDIDATE_PACKAGES = listOf(
             "com.whatsapp",
