@@ -238,17 +238,22 @@ class NotificationsBridge {
     }
   }
 
-  /// Opens Android's accessibility settings, where the user grants (or
-  /// revokes) access. Like every permission here, this opens a screen and
+  /// Opens Android's accessibility settings, on ReplyMate's own page when the
+  /// device supports it. Like every permission here, this opens a screen and
   /// grants nothing by itself.
-  Future<void> openAccessibilitySettings() async {
+  ///
+  /// Returns which screen actually opened: `details` (ReplyMate's own toggle),
+  /// `list` (the general accessibility list), or `none` (this device has no
+  /// such screen). The UI says which, so a phone that cannot open the page is
+  /// never described as though it could.
+  Future<String> openAccessibilitySettings() async {
     try {
-      await _channel.invokeMethod<void>('openAccessibilitySettings');
+      return await _channel.invokeMethod<String>('openAccessibilitySettings') ??
+          'none';
     } on MissingPluginException {
-      // No native layer (tests / web): nothing to open.
+      return 'none';
     } on PlatformException {
-      // Some OEMs hide the screen; the switch keeps saying "not granted",
-      // which is the truth.
+      return 'none';
     }
   }
 

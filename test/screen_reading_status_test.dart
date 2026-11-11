@@ -162,4 +162,134 @@ void main() {
     expect(find.text('Service: not running'), findsOneWidget);
     expect(find.text('Switch: off'), findsOneWidget);
   });
+
+  test('a reader that never scanned gets no wrong advice', () {
+    // Not broken, simply never shown a conversation: pointing at Android's
+    // settings here would send somebody looking for a toggle that is already
+    // on. The card says to open a chat instead.
+    final status = ScreenReadingStatus.fromMap(
+      wire(lastOutcome: null, connected: true, enabledByUser: true),
+    );
+
+    expect(status.isHealthy, isFalse);
+    expect(status.hasScanned, isFalse);
+    expect(status.needsAttention, isFalse);
+  });
+
+  test('a service that is not running always asks for attention', () {
+    final status = ScreenReadingStatus.fromMap(
+      wire(connected: false, lastOutcome: null),
+    );
+
+    expect(status.needsAttention, isTrue);
+  });
+
+  test('a scroll-past and an own-message are healthy, not failures', () {
+    // Both are the reader correctly deciding there is nothing to answer.
+    for (final outcome in <String>['read', 'not_new', 'outgoing']) {
+      final status = ScreenReadingStatus.fromMap(wire(lastOutcome: outcome));
+      expect(status.isHealthy, isTrue, reason: outcome);
+      expect(status.needsAttention, isFalse, reason: outcome);
+    }
+  });
+
+  test('the failure outcomes ask for attention', () {
+    for (final outcome in <String>[
+      'no_window',
+      'other_app',
+      'no_list',
+      'no_rows',
+      'no_message',
+    ]) {
+      final status = ScreenReadingStatus.fromMap(wire(lastOutcome: outcome));
+      expect(status.isHealthy, isFalse, reason: outcome);
+      expect(status.needsAttention, isTrue, reason: outcome);
+    }
+  });
+
+  testWidgets('a reader that read nothing offers the way to the setting', (
+    tester,
+  ) async {
+    const channel = MethodChannel(AppConstants.channelName);
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+      call,
+    ) async {
+      if (call.method != 'screenReadingStatus') return null;
+      return wire(scanCount: 4, lastOutcome: 'no_list');
+    });
+    addTearDown(
+      () => binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        null,
+      ),
+    );
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(home: Scaffold(body: ScreenReadingStatusCard())),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Open Android settings'), findsOneWidget);
+    expect(find.textContaining('No message list found'), findsOneWidget);
+  });
+
+  testWidgets('a healthy reading offers no fix button', (tester) async {
+    const channel = MethodChannel(AppConstants.channelName);
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+      call,
+    ) async {
+      if (call.method != 'screenReadingStatus') return null;
+      return wire(lastOutcome: 'read');
+    });
+    addTearDown(
+      () => binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        null,
+      ),
+    );
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(home: Scaffold(body: ScreenReadingStatusCard())),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Open Android settings'), findsNothing);
+    expect(find.text('Last scan: Read a message.'), findsOneWidget);
+  });
+
+  testWidgets('tapping the fix button reaches the native screen', (
+    tester,
+  ) async {
+    const channel = MethodChannel(AppConstants.channelName);
+    final calls = <String>[];
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+      call,
+    ) async {
+      calls.add(call.method);
+      if (call.method != 'screenReadingStatus') return 'details';
+      return wire(lastOutcome: 'no_rows');
+    });
+    addTearDown(
+      () => binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        null,
+      ),
+    );
+
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: MaterialApp(home: Scaffold(body: ScreenReadingStatusCard())),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Open Android settings'));
+    await tester.pumpAndSettle();
+
+    expect(calls, contains('openAccessibilitySettings'));
+  });
 }

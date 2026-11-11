@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/app_theme.dart';
+import '../../notifications/providers/notification_providers.dart';
 import '../models/screen_reading_status.dart';
 import '../providers/screen_reading_provider.dart';
 
-/// What the screen reader is actually doing, in words.
+/// What the screen reader is actually doing, in words - and, when it is not
+/// working, the way to the one screen that can fix it.
 ///
-/// "It does not work" is not a bug report - it is five different failures that
+/// "It does not work" is not a bug report: it is five different failures that
 /// look identical from the outside. This card names the one that happened, so
 /// the difference between a missing permission, an empty allowlist and a bad
-/// read is visible on the phone instead of through adb.
+/// read is visible on the phone instead of through adb on a laptop.
 class ScreenReadingStatusCard extends ConsumerWidget {
   const ScreenReadingStatusCard({super.key});
 
@@ -62,9 +64,39 @@ class ScreenReadingStatusCard extends ConsumerWidget {
                 ),
               ),
             ),
+          // Offered exactly when the reader is not working: this is the button
+          // that turns "it does not work" into one tap on the right toggle.
+          if (status == null || status.needsAttention) ...[
+            const SizedBox(height: AppTheme.spaceSm),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: () => _openAndroidSettings(context, ref),
+                icon: const Icon(Icons.settings_applications_outlined),
+                label: const Text('Open Android settings'),
+              ),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  Future<void> _openAndroidSettings(BuildContext context, WidgetRef ref) async {
+    final opened = await ref
+        .read(notificationsBridgeProvider)
+        .openAccessibilitySettings();
+    if (!context.mounted) return;
+    if (opened == 'none') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'This phone has no accessibility screen to open. '
+            'Look for it under Settings → Accessibility.',
+          ),
+        ),
+      );
+    }
   }
 
   List<String> _lines(ScreenReadingStatus? status) {
@@ -77,6 +109,10 @@ class ScreenReadingStatusCard extends ConsumerWidget {
           : 'Watching: ${status.allowlist.join(', ')}',
       'Scans: ${status.scanCount}',
       'Last scan: ${status.summary}',
+      // The one case where the advice is not a setting: the reader is fine and
+      // has simply never been shown a conversation.
+      if (!status.hasScanned)
+        'Nothing to read yet - open a chat in a watched app.',
       // Shown only when something was read: it is the fastest way to see the
       // reader picked the wrong bubble.
       if (status.lastText != null) 'Seen: "${status.lastText}"',

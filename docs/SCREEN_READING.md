@@ -168,6 +168,18 @@ The card also shows whether the service is running, whether the switch is on,
 which packages are being watched, and how many scans have happened since
 install. `screenReadingStatus` on the channel is the same report.
 
+**The way to the fix is one tap.** The card's "Open Android settings" button
+opens ReplyMate's *own* accessibility page directly
+(`ACTION_ACCESSIBILITY_DETAILS_SETTINGS`, Android 12+) instead of the generic
+list, which on several OEM skins sits two levels down behind "downloaded
+services". It falls back to the list where the deep link is missing, and says
+when the device has no such screen at all.
+
+The button is offered whenever the reader is not working - not only when the
+grant is absent. The grant and the running service are different things, and
+the toggle has to be cycled off and on again after a config change, which is
+something you do while the grant is still in place.
+
 The report is kept in preferences rather than in memory because the process that
 reads the screen is not the one showing Settings: Android kills and restarts it
 freely, and a report that dies with it is a report nobody reads.

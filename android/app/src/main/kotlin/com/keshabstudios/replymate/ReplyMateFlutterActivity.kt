@@ -118,16 +118,8 @@ abstract class ReplyMateFlutterActivity : FlutterActivity() {
                     result.success(ReplyMateScreenReaderService.report(this))
                 "isScreenReadingAvailable" ->
                     result.success(isScreenReadingAvailable())
-                "openAccessibilitySettings" -> {
-                    // Grants nothing by itself: Android keeps the decision.
-                    try {
-                        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                    } catch (error: Exception) {
-                        // Some OEMs hide the screen; the switch then keeps
-                        // saying "not granted", which is the truth.
-                    }
-                    result.success(null)
-                }
+                "openAccessibilitySettings" ->
+                    result.success(openAccessibilitySettings())
                 "setScreenReadingEnabled" -> {
                     val enabled = call.argument<Boolean>("enabled") == true
                     getSharedPreferences(
@@ -256,6 +248,51 @@ abstract class ReplyMateFlutterActivity : FlutterActivity() {
      * Advanced Protection Mode shows up - the grant simply is not there, and
      * the UI says so instead of blaming the reader (docs/SCREEN_READING.md).
      */
+    /**
+     * Android's accessibility settings, opened on ReplyMate's own page when the
+     * device allows it.
+     *
+     * The generic list is a hunt: it holds every service on the phone, and on
+     * several OEM skins the installed ones sit behind an extra "downloaded
+     * services" level first. Since Android 12 the platform can be pointed at
+     * one service directly, which turns "go and find it in Settings" into a
+     * single tap - and when the fix is one toggle away, that is the whole
+     * difference between fixing it and giving up on it.
+     *
+     * @return which screen actually opened, so the UI can say so instead of
+     *   promising a page this device may not have.
+     */
+    private fun openAccessibilitySettings(): String {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val details = Intent(Settings.ACTION_ACCESSIBILITY_DETAILS_SETTINGS)
+                .putExtra(
+                    // Intent.EXTRA_COMPONENT_NAME, spelled out: the constant is
+                    // hidden from the SDK, the string is what Settings reads.
+                    "android.intent.extra.COMPONENT_NAME",
+                    ComponentName(this, ReplyMateScreenReaderService::class.java)
+                        .flattenToString(),
+                )
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            try {
+                startActivity(details)
+                return "details"
+            } catch (error: Exception) {
+                // Not every skin implements it. The list is the honest fallback.
+            }
+        }
+        return try {
+            startActivity(
+                Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+            "list"
+        } catch (error: Exception) {
+            // A few OEMs remove the screen entirely. The switch keeps saying
+            // "not granted", which is the truth.
+            "none"
+        }
+    }
+
     private fun isScreenReadingAvailable(): Boolean {
         val expected =
             ComponentName(this, ReplyMateScreenReaderService::class.java).flattenToString()

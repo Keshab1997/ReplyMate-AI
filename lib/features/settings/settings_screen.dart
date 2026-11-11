@@ -131,6 +131,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   /// rather than out of a notification, and "I agreed to that" has to be an
   /// answer the user gave, not a side effect of tapping a switch. A refusal
   /// leaves the switch exactly where it was (docs/SCREEN_READING.md).
+  /// Opens Android's accessibility screen. Always available, not only when the
+  /// grant is missing: the toggle has to be turned off and on again after a
+  /// config change, which is something you do while the grant is still there.
+  Future<void> _openAccessibilitySettings(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final opened = await ref
+        .read(notificationsBridgeProvider)
+        .openAccessibilitySettings();
+    if (!context.mounted) return;
+    if (opened == 'none') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'This phone has no accessibility screen to open. '
+            'Look for it under Settings \u2192 Accessibility.',
+          ),
+        ),
+      );
+    }
+  }
+
   Future<void> _setScreenReading(
     BuildContext context,
     WidgetRef ref,
@@ -471,32 +494,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                                   : strings.screenReadingNeedsPermission,
                             ),
                           ),
-                          if (!screenReadingAvailable)
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                AppTheme.spaceMd,
-                                0,
-                                AppTheme.spaceMd,
-                                AppTheme.spaceMd,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: OutlinedButton.icon(
-                                      onPressed: () => ref
-                                          .read(notificationsBridgeProvider)
-                                          .openAccessibilitySettings(),
-                                      icon: const Icon(
-                                        Icons.open_in_new,
-                                        size: 18,
-                                      ),
-                                      label: Text(
-                                        strings.screenReadingOpenSettings,
-                                      ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              AppTheme.spaceMd,
+                              0,
+                              AppTheme.spaceMd,
+                              AppTheme.spaceMd,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () => _openAccessibilitySettings(
+                                      context,
+                                      ref,
+                                    ),
+                                    icon: const Icon(
+                                      Icons.open_in_new,
+                                      size: 18,
+                                    ),
+                                    label: Text(
+                                      strings.screenReadingOpenSettings,
                                     ),
                                   ),
+                                ),
+                                if (!screenReadingAvailable) ...[
                                   const SizedBox(height: AppTheme.spaceSm),
                                   Text(
                                     strings.screenReadingBlocked,
@@ -507,8 +531,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                                     ),
                                   ),
                                 ],
-                              ),
+                              ],
                             ),
+                          ),
                           // Shown once Android has granted access: that is the
                           // only point at which "it reads nothing" is a
                           // question about the reading rather than the grant.

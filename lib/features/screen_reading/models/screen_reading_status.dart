@@ -75,6 +75,24 @@ class ScreenReadingStatus {
 
   bool get hasScanned => lastOutcome != null;
 
+  /// Whether the reader is doing its job.
+  ///
+  /// `outgoing` and `not_new` are not failures - they are the reader correctly
+  /// deciding there is nothing to answer - so they must not be offered as
+  /// something to fix. Null is not healthy either: a reader that has never
+  /// scanned once is the situation most worth a button.
+  bool get isHealthy =>
+      lastOutcome == 'read' ||
+      lastOutcome == 'not_new' ||
+      lastOutcome == 'outgoing';
+
+  /// Whether there is something the user can act on.
+  ///
+  /// Deliberately not true before the first scan: a reader that has never been
+  /// given a screen is not broken, and pointing at Android's settings would be
+  /// the wrong advice for somebody who simply has not opened a chat yet.
+  bool get needsAttention => !connected || (hasScanned && !isHealthy);
+
   /// Plain language for the last scan. `no_rows` is not something a person can
   /// act on; "the list was there but no row looked readable" is.
   String get summary {
