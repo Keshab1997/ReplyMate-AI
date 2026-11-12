@@ -116182,7 +116182,7 @@ r=A.hp(B.QS,d.f?B.b5:B.aO,c,14)
 if(k)s=c
 else{s=s.ax
 p=s.rx
-s=o.pH(p==null?s.k3:p,12,1.5)}B.b.K(a,A.c([q,B.aJ,b,B.a1,A.cX(A.c([r,B.ew,A.eM(A.al("An app appears here only after it has been seen installed on this device. Support is claimed only for what has been tested (docs/SCREEN_SPECIFICATIONS.md, screen 5).",c,c,c,s,c,c),1)],a0),B.U,c,B.v,B.C,0)],a0))}return new A.ds(B.bM,c,c,new A.du(B.dw,A.qV(a,B.e9,c,!1),c),c)},
+s=o.pH(p==null?s.k3:p,12,1.5)}B.b.K(a,A.c([q,B.aJ,b,B.a1,A.cX(A.c([r,B.ew,A.eM(A.al("An app appears here only after it has been seen installed on this device. Support is claimed only for what has been tested.",c,c,c,s,c,c),1)],a0),B.U,c,B.v,B.C,0)],a0))}return new A.ds(B.bM,c,c,new A.du(B.dw,A.qV(a,B.e9,c,!1),c),c)},
 $S:699}
 A.afL.prototype={
 $1(a){return this.a.ai(0,$.xY().gdc(),t._5).w3(0,J.be(this.b,this.c).a)},
