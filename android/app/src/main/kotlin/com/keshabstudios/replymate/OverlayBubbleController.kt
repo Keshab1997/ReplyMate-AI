@@ -33,6 +33,20 @@ object OverlayBubbleController {
      */
     private val pending = LinkedHashMap<String, Map<String, Any?>>()
 
+    /**
+     * Bumped on every [hold]. Callers cannot tell "a second message from a
+     * different chat" from "a second message from the same chat" by looking at
+     * [size] - a re-post updates its own entry and the count stays at one - so
+     * the bubble watches this number instead. A counter, not a timestamp: it
+     * carries nothing about the message, which keeps this object inside its
+     * rule that the heap holds context and nothing else.
+     */
+    private var revisionCounter = 0L
+
+    /** Monotonic: changes whenever [hold] stores anything at all. */
+    @Synchronized
+    fun revision(): Long = revisionCounter
+
     /** Adds or refreshes a context. A newer message always wins its slot. */
     @Synchronized
     fun hold(context: Map<String, Any?>) {
@@ -40,6 +54,7 @@ object OverlayBubbleController {
         val key = copy["key"] as? String ?: copy.hashCode().toString()
         pending.remove(key)
         pending[key] = copy
+        revisionCounter++
         while (pending.size > MAX_PENDING) {
             val oldest = pending.keys.firstOrNull() ?: break
             pending.remove(oldest)

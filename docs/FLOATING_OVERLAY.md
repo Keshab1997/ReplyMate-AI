@@ -261,6 +261,12 @@ animations plus matched artwork frames—no Lottie or animated-drawable pipeline
   bubble and 22 dp tab. Android's animator setting disables bob, blink, spring,
   badge and entrance motion.
 
+**Drawing order matters for the tab.** The mascot artwork is drawn before the
+rim and the highlight, and the highlight is a separate clipped oval rather than
+part of the bitmap: a centre-cropped face under a painted ring is what made the
+edges look soft on low-density screens. Nothing here is content - no sender, no
+text, no unread badge beyond a count.
+
 A **long press** (450 ms, cancelled the moment the finger moves) opens a small
 three-row icon menu beside the bubble: *Draft a reply*, *Hide at the edge*,
 *Dismiss until the next message*. Rows are 48 dp high with quiet dividers,
@@ -283,13 +289,38 @@ grace window first, so a post-then-withdraw notification cannot make it flicker
 out from under a finger. Messaging apps retract the notification the moment the
 user opens the conversation, which is exactly when a reply helper is wanted:
 the bubble steps aside as a slim tab, keeps the message in memory, and comes
-back on a tap. The 10-minute auto-hide timer - not the notification - is what
-eventually removes it. Some messaging apps post a notification
+back on a tap. The auto-hide timer - ten minutes by default, the user's choice
+per §5.5 - not the notification, is what eventually removes it. Some messaging apps post a notification
 and retract it a moment later (WhatsApp does this for the chat you already have
 open), and clearing on the first removal made the bubble flicker out of
 existence before a finger could reach it. A tap inside the window is still
 honest: the panel opens with the message and quick reply refuses, because the
 action it would have used is gone.
+
+### 5.5 The auto-hide timer is the user's, not ours
+
+The bubble hides itself when nobody has used it for a while. That timeout used
+to be a fixed ten minutes, which was wrong in both directions: too long for
+someone who has already replied, too short for a long conversation. It is now a
+setting - **5, 10, 30 minutes or never** - shown in Settings directly under the
+bubble switch and only while that switch is on (a hide-timer for a bubble that
+does not exist is a setting that cannot do anything).
+
+- **Default: ten minutes**, the previous hard-coded value, so an existing user's
+  bubble does not change behaviour on update.
+- **"Never" is a real answer.** The service simply does not schedule the timer;
+  the bubble still leaves on a withdrawal, a dismiss, or the switch going off.
+- **The value is mirrored natively** (`bubble_auto_hide_minutes`, minutes, `0` =
+  never) for the same reason as the switch itself: the service has to answer
+  this with no Flutter engine alive.
+- **An unrecognised value falls back to ten minutes, never to "never"** - the
+  quieter of the two honest readings. A hand-edited preference cannot park a
+  bubble on the screen forever.
+- A live bubble picks the new value up on its next schedule, so changing the
+  setting does not need a restart.
+
+The timer is a tidy-up, not a data decision: the pending context is already
+gone from memory when it fires, exactly as before.
 
 ### What notifications cannot do: the chat you are already looking at
 
@@ -426,7 +457,9 @@ bubble is not "done" until those rows say what the device actually does.
   another launch; dismiss and wait for the next message.
 - **Bubble over the wrong app** — it follows the notification, not the
   foreground app. That is intended; it never reads the screen.
-- **Bubble vanishes after a while** — 10-minute auto-hide; by design.
+- **Bubble vanishes after a while** — the auto-hide timer, 10 minutes unless
+  the user changed it (Settings → *Hide the bubble after* → 5 / 10 / 30 min or
+  *Never*); by design.
 - **Quick reply button missing** — the notification has no `RemoteInput`
   action. Copy instead.
 - **Battery saver kills it** — expected on some OEMs. The fallback

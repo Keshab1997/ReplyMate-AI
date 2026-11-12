@@ -106,6 +106,13 @@ class OverlayBubbleService : Service() {
     /** Notification key currently represented by the bubble. */
     private var shownKey: String? = null
 
+    /**
+     * The controller revision the bubble last reacted to. A second message from
+     * the *same* chat keeps the same notification key, so the key alone cannot
+     * tell us anything new happened.
+     */
+    private var shownRevision = -1L
+
     /** How many messages arrived while this bubble has been on screen. */
     private var messagesWhileShowing = 0
 
@@ -158,10 +165,17 @@ class OverlayBubbleService : Service() {
         }
         val key = OverlayBubbleController.pendingKey()
         if (bubbleView != null) {
-            // Already drawn: a newer message updates the badge instead of
-            // stacking a second bubble nobody asked for.
-            if (key != null && key != shownKey) {
+            // A newer message updates the badge instead of stacking a second
+            // bubble nobody asked for. "Newer" is the controller's revision, not
+            // the notification key: a chat that posts twice keeps the same key,
+            // and comparing keys alone made that second message arrive in
+            // complete silence - no pop, no face, no badge. One message from one
+            // chat is still one chat, so the badge stays at 1; what the revision
+            // buys is the feedback that something just happened.
+            val revision = OverlayBubbleController.revision()
+            if (key != null && (key != shownKey || revision != shownRevision)) {
                 shownKey = key
+                shownRevision = revision
                 // The badge is the real number of waiting chats, not a tap
                 // counter: three chats pinging you must say three.
                 messagesWhileShowing = OverlayBubbleController.size()
@@ -186,6 +200,7 @@ class OverlayBubbleService : Service() {
             bubbleView = view
             layoutParams = params
             shownKey = key
+            shownRevision = OverlayBubbleController.revision()
             messagesWhileShowing = maxOf(1, OverlayBubbleController.size())
             updateBadge()
             startIdleAnimation()
@@ -461,9 +476,27 @@ class OverlayBubbleService : Service() {
         lastBadgeCount = count
     }
 
+    /**
+     * The user's hide-after choice in milliseconds, or [NO_TIMER] when they chose
+     * "Never". Read from native prefs on every schedule: the settings
+     * screen can change it while this service is alive, and a bubble that kept
+     * a stale timer would be a setting that only works after a restart.
+     */
+    private fun autoHideMillis(): Long {
+        val minutes = prefs().getInt(KEY_BUBBLE_AUTO_HIDE_MINUTES, DEFAULT_AUTO_HIDE_MINUTES)
+        if (minutes == AUTO_HIDE_NEVER) return NO_TIMER
+        val known = minutes == 5 || minutes == 10 || minutes == 30
+        return (if (known) minutes else DEFAULT_AUTO_HIDE_MINUTES) * 60_000L
+    }
+
     private fun scheduleAutoHide() {
         handler.removeCallbacks(autoHide)
-        handler.postDelayed(autoHide, AUTO_HIDE_MILLIS)
+        val millis = autoHideMillis()
+        // 0 is the user saying "never tidy the bubble away for me". Leaving the
+        // timer unscheduled is the honest reading of that; autoHide still runs
+        // when the message is withdrawn or the switch is turned off.
+        if (millis == NO_TIMER) return
+        handler.postDelayed(autoHide, millis)
     }
 
     /**
@@ -915,8 +948,16 @@ class OverlayBubbleService : Service() {
                         }
                     }
                     if (dragging) {
-                        params.x = startX + dx.toInt()
-                        params.y = startY + dy.toInt()
+                        // Clamped while the finger is still down, not only on
+                        // release: dragging past the edge used to park the
+                        // window off-screen entirely, and a bubble the user
+                        // cannot see or touch is indistinguishable from one that
+                        // crashed. The margin keeps the whole disc reachable.
+                        val metrics = resources.displayMetrics
+                        val maxX = maxOf(0, metrics.widthPixels - params.width)
+                        val maxY = maxOf(0, metrics.heightPixels - params.height)
+                        params.x = (startX + dx.toInt()).coerceIn(0, maxX)
+                        params.y = (startY + dy.toInt()).coerceIn(0, maxY)
                         try {
                             windowManager?.updateViewLayout(view, params)
                         } catch (error: Exception) {
@@ -1087,6 +1128,7 @@ class OverlayBubbleService : Service() {
         collapsed = false
         stopIdleAnimation()
         shownKey = null
+        shownRevision = -1L
         messagesWhileShowing = 0
         handler.removeCallbacks(autoHide)
         if (view != null && manager != null) {
@@ -1195,8 +1237,17 @@ class OverlayBubbleService : Service() {
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     companion object {
-        /** docs/FLOATING_OVERLAY.md §5.3: a bubble nobody uses goes away. */
-        private const val AUTO_HIDE_MILLIS = 10 * 60 * 1000L
+        /**
+         * docs/FLOATING_OVERLAY.md §5.4: a bubble nobody uses goes away. The
+         * default is ten minutes; the user can choose 5, 10, 30 or never.
+         */
+        private const val DEFAULT_AUTO_HIDE_MINUTES = 10
+
+        /** The documented "never hide yourself" choice, in minutes. */
+        private const val AUTO_HIDE_NEVER = 0
+
+        /** Sentinel from autoHideMillis(): the user asked for no timer at all. */
+        private const val NO_TIMER = -1L
 
         /** Fixed id: one bubble notification, replaced rather than stacked. */
         const val OVERLAY_NOTIFICATION_ID = 4211
@@ -1293,5 +1344,32 @@ class OverlayBubbleService : Service() {
         /** Last drag position of the bubble, in pixels. */
         private const val KEY_BUBBLE_X = "bubble_x"
         private const val KEY_BUBBLE_Y = "bubble_y"
+
+        /** The user's hide-after choice, in minutes; 0 means never. */
+        private const val KEY_BUBBLE_AUTO_HIDE_MINUTES = "bubble_auto_hide_minutes"
+
+        /**
+         * Records the user's hide-after choice natively, where the service can
+         * read it with no Flutter engine alive - the same contract as the
+         * bubble switch itself. A live bubble picks the new value up on its next
+         * schedule, so the setting takes effect without waiting for a restart.
+         */
+        fun setAutoHideMinutesByUser(context: Context, minutes: Int) {
+            val stored = when (minutes) {
+                AUTO_HIDE_NEVER, 5, 10, 30 -> minutes
+                else -> DEFAULT_AUTO_HIDE_MINUTES
+            }
+            try {
+                context.getSharedPreferences(ReplyMateNotificationListener.PREFS_NAME, MODE_PRIVATE)
+                    .edit()
+                    .putInt(KEY_BUBBLE_AUTO_HIDE_MINUTES, stored)
+                    .apply()
+            } catch (error: Exception) {
+                // Losing a preference is not worth a crash.
+            }
+            instance?.handler?.post {
+                instance?.scheduleAutoHide()
+            }
+        }
     }
 }

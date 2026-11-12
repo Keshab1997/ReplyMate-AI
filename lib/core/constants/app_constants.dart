@@ -29,6 +29,23 @@ class AppConstants {
   /// alive (docs/FLOATING_OVERLAY.md §5.3).
   static const String prefBubbleEnabled = 'replymate.bubble_enabled';
 
+  /// How long the bubble waits before hiding itself, in minutes, mirrored
+  /// natively for the same reason as the switch above: the service reads it
+  /// while no engine is alive. `0` means it never hides itself, and a value the
+  /// service does not recognise falls back to the documented default rather
+  /// than to "never" - the quieter of the two honest answers
+  /// (docs/FLOATING_OVERLAY.md §5.4).
+  static const String prefBubbleAutoHideMinutes =
+      'replymate.bubble_auto_hide_minutes';
+
+  /// The auto-hide choices the settings screen offers, in minutes. Ten is the
+  /// original fixed value, so an existing user is not moved by the update.
+  static const List<int> bubbleAutoHideOptions = <int>[5, 10, 30, 0];
+
+  /// Ten minutes: long enough to answer the message you were pinged about,
+  /// short enough that a forgotten bubble does not sit there all afternoon.
+  static const int defaultBubbleAutoHideMinutes = 10;
+
   /// The user's screen-reading switch (docs/SCREEN_READING.md). Mirrored
   /// natively for the same reason as the bubble switch: the accessibility
   /// service must read it at a moment when no Flutter engine is alive.

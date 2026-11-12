@@ -193,6 +193,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     final permissionEnabled = ref.watch(listenerPermissionProvider);
     final overlayEnabled = ref.watch(overlayProvider);
     final bubbleEnabled = ref.watch(bubbleEnabledProvider);
+    final bubbleAutoHide = ref.watch(bubbleAutoHideProvider);
     final screenReading = ref.watch(screenReadingProvider);
     final screenReadingAvailable = ref.watch(screenReadingAvailableProvider);
     final strings = ref.watch(appStringsProvider);
@@ -472,6 +473,70 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                                           'come back.',
                               ),
                             ),
+                            // Only meaningful while the bubble exists: a
+                            // hide-timer for a bubble that is switched off
+                            // would be a setting that cannot do anything.
+                            if (bubbleEnabled) ...[
+                              const Divider(height: 1),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  AppTheme.spaceMd,
+                                  AppTheme.spaceSm,
+                                  AppTheme.spaceMd,
+                                  AppTheme.spaceSm,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            'Hide the bubble after',
+                                            style: theme.textTheme.titleSmall,
+                                          ),
+                                        ),
+                                        Text(
+                                          bubbleAutoHide == 0
+                                              ? 'Never'
+                                              : '$bubbleAutoHide min',
+                                          style: theme.textTheme.labelLarge
+                                              ?.copyWith(
+                                                color:
+                                                    theme.colorScheme.primary,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: AppTheme.spaceXs),
+                                    Text(
+                                      'A bubble nobody replies to tidies '
+                                      'itself away. The message is not '
+                                      'lost - a new one brings it back.',
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                    ),
+                                    const SizedBox(height: AppTheme.spaceSm),
+                                    ChoiceChips<int>(
+                                      options:
+                                          AppConstants.bubbleAutoHideOptions,
+                                      selected: bubbleAutoHide,
+                                      labelOf: (minutes) => minutes == 0
+                                          ? 'Never'
+                                          : '$minutes min',
+                                      onSelected: (minutes) => ref
+                                          .read(bubbleAutoHideProvider.notifier)
+                                          .setMinutes(minutes),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                             const Divider(height: 1),
                             // Screen reading: the only feature here that can see
                             // text the platform never hands us, so it asks twice

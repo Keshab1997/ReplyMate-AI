@@ -49,3 +49,59 @@ class BubbleEnabledNotifier extends Notifier<bool> {
     await ref.read(notificationsBridgeProvider).setBubbleEnabled(enabled);
   }
 }
+
+/// How long the bubble waits before hiding itself, in minutes; `0` means it
+/// never does (docs/FLOATING_OVERLAY.md §5.4).
+///
+/// A setting rather than a constant because the fixed ten minutes was wrong in
+/// both directions: too long for someone who wants the bubble gone the moment
+/// they have answered, too short for a long conversation. Default **10
+/// minutes**, which is the value the service used to hard-code, so nobody's
+/// bubble changes behaviour on update.
+///
+/// Mirrored natively exactly like [bubbleEnabledProvider] - the service answers
+/// this question while no Flutter engine exists, so the number has to live on
+/// the native side too.
+final NotifierProvider<BubbleAutoHideNotifier, int> bubbleAutoHideProvider =
+    NotifierProvider<BubbleAutoHideNotifier, int>(BubbleAutoHideNotifier.new);
+
+class BubbleAutoHideNotifier extends Notifier<int> {
+  bool _alive = true;
+
+  /// See `BubbleEnabledNotifier._userChose`: the stored value arrives late, and
+  /// a read that started before the tap must never overwrite it.
+  bool _userChose = false;
+
+  @override
+  int build() {
+    _alive = true;
+    ref.onDispose(() => _alive = false);
+    _load();
+    return AppConstants.defaultBubbleAutoHideMinutes;
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = normalise(
+      prefs.getInt(AppConstants.prefBubbleAutoHideMinutes),
+    );
+    if (_alive && !_userChose) state = stored;
+  }
+
+  Future<void> setMinutes(int minutes) async {
+    _userChose = true;
+    final value = normalise(minutes);
+    state = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(AppConstants.prefBubbleAutoHideMinutes, value);
+    await ref.read(notificationsBridgeProvider).setBubbleAutoHideMinutes(value);
+  }
+
+  /// Keeps only the documented choices. An old build, a hand-edited
+  /// preference or a future value cannot turn a ten-minute bubble into one that
+  /// sits on the screen forever by accident.
+  static int normalise(int? minutes) =>
+      AppConstants.bubbleAutoHideOptions.contains(minutes)
+      ? minutes!
+      : AppConstants.defaultBubbleAutoHideMinutes;
+}

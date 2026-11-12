@@ -114,6 +114,15 @@ abstract class ReplyMateFlutterActivity : FlutterActivity() {
                     setBubbleEnabled(enabled)
                     result.success(null)
                 }
+                "setBubbleAutoHideMinutes" -> {
+                    // An int, not a Duration: the user's list is in minutes and
+                    // 0 is the documented "never". The service clamps anything
+                    // it does not recognise, so a bad value cannot park a bubble
+                    // on the screen forever.
+                    val minutes = call.argument<Int>("minutes") ?: 10
+                    OverlayBubbleService.setAutoHideMinutesByUser(this, minutes)
+                    result.success(null)
+                }
                 "screenReadingStatus" ->
                     result.success(ReplyMateScreenReaderService.report(this))
                 "isScreenReadingAvailable" ->
