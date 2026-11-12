@@ -22,6 +22,13 @@ jobs:
     with:
       flutter-channel: stable
       working-directory: "."
+      # JDK 21, not the reusable workflow's default of 17. The Android Gradle
+      # Plugin in this project (9.3.1, the version Flutter 3.50 templates use)
+      # runs its release lint check on release APKs, and that lint ships code
+      # compiled against JDK 21 - on 17 the task dies with
+      # 'NoSuchMethodError: java.lang.Object java.util.List.removeLast()'.
+      # Nothing in the app needs 21; the toolchain does.
+      java-version: "21"
       build-apk: ${{ inputs.format == 'apk' }}
       build-aab: ${{ inputs.format == 'aab' }}
       artifact-retention-days: 14
