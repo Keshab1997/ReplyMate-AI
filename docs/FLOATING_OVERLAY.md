@@ -267,9 +267,38 @@ part of the bitmap: a centre-cropped face under a painted ring is what made the
 edges look soft on low-density screens. Nothing here is content - no sender, no
 text, no unread badge beyond a count.
 
+**Swipe to dismiss** is the gesture people try on anything that floats, so a
+fast flick (≥72 dp in under 260 ms - a slow drag stays a *move*) removes the
+bubble and its pending message. Dismissing used to be final and reachable only
+through the long-press menu; the flick replaces that dead end with a five-second
+**undo pill** drawn where the bubble was. The pill is native on purpose: a swipe
+happens over *another* app, where no Flutter engine is alive and nothing of ours
+is on screen, so an in-app snackbar would never be seen. Tapping the pill puts
+the contexts back and redraws the bubble; ignoring it lets it go. The pill names
+no sender and no message - it says what happened, not what it was about - so a
+glance from the next seat still learns nothing. The long-press menu's *Dismiss*
+row takes the same path, so both doors offer the same undo.
+
+**Accessibility.** The bubble is a real button, not a picture with a touch
+listener: it is clickable, focusable, reports `android.widget.Button`, exposes
+*long click* as a named action so TalkBack can reach the three-row menu without
+discovering the gesture, and its badge is a polite live region so a new count is
+announced instead of only seen. The menu announces itself when it opens, its rows
+report as buttons, and it closes on a tap outside it (`FLAG_WATCH_OUTSIDE_TOUCH`)
+rather than waiting out its six-second timeout, which used to read as a stuck
+menu.
+
+**Position, rotation and insets.** The usable area is the window bounds minus
+system bars and the display cutout (window metrics on API 30+, subtracted by hand
+below that), and the bubble is clamped into it when restored and on every
+`onConfigurationChanged`. A bubble parked at the bottom edge in portrait used to
+be off-screen after a rotation, which reads as a crash; a tucked tab re-derives
+which edge it is on and an interrupted drag snaps back to where the gesture
+started.
+
 A **long press** (450 ms, cancelled the moment the finger moves) opens a small
 three-row icon menu beside the bubble: *Draft a reply*, *Hide at the edge*,
-*Dismiss until the next message*. Rows are 48 dp high with quiet dividers,
+*Dismiss until the next message* (with a five-second undo, §5.4). Rows are 48 dp high with quiet dividers,
 18 dp card corners, entrance motion and selection haptics. Dragging and waiting for a notification both
 hide the bubble, but neither is discoverable - the long press is the gesture
 people try on anything round. The menu closes on a second tap, on any drag, on

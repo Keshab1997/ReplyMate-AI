@@ -78,6 +78,11 @@ them can be checked from CI.
 | 23b | Settings → *Hide the bubble after* → **Never**, trigger a bubble, leave it 15 minutes | Bubble is still there; dismissing it still works, and the switch still turns it off | _pending_ |
 | 23c | Drag the bubble hard past every screen edge and let go | The bubble stops at the edge and stays draggable - it never parks itself off-screen | _pending_ |
 | 23d | Receive two messages from the **same** chat while the bubble is up | The bubble gives feedback for the second one (pop / face / haptic); the badge still says one chat, not two | _pending_ |
+| 23e | Flick the bubble quickly across the screen and let go | The bubble fades out and an **Undo** pill appears in its place for ~5 s; tapping it brings the bubble and message back; ignoring it lets both go | _pending_ |
+| 23f | Drag the bubble slowly (not a flick) | It moves and stays where you dropped it - a slow drag never dismisses | _pending_ |
+| 23g | With TalkBack on, focus the bubble | It is announced as a button; double-tap opens the panel; **Actions available** offers long-click, which opens the three-row menu; the badge count change is announced | _pending_ |
+| 23h | Open the long-press menu, then tap anywhere outside it | The menu closes on that first tap; the tap also reaches the app underneath | _pending_ |
+| 23i | Tuck the bubble, then rotate the phone to landscape and back | The tab stays on its edge, nothing lands off-screen or under the nav bar/notch, and the bubble is still tappable afterwards | _pending_ |
 | 25 | Tap the bubble on a chat you have not opened | Only the panel appears; Close puts you back in WhatsApp, never in ReplyMate | _pending_ |
 | 26 | Drag the bubble to the left or right screen edge and let go | It tucks itself into a slim tab on that edge; the messaging app underneath stays usable |
 | 27 | Tap the tucked tab, then drag the tab back into the middle of the screen | First tap restores the full bubble without opening the panel; releasing it mid-screen leaves a full bubble, not a stray tab |

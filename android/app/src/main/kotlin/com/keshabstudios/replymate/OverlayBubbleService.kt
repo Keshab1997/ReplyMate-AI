@@ -87,6 +87,9 @@ class OverlayBubbleService : Service() {
     /** The long-press menu window, when it is open. */
     private var menuView: View? = null
 
+    /** The "dismissed - undo" pill, while its few seconds are running. */
+    private var undoPill: View? = null
+
     /**
      * Fires when a finger stays still on the bubble. Dragging cancels it, so a
      * slow drag never opens the menu by accident.
@@ -102,6 +105,21 @@ class OverlayBubbleService : Service() {
      * hidden bubble never makes the user miss something.
      */
     private var collapsed = false
+
+    /**
+     * Where the bubble sits *before* a drag, so an interrupted drag can put it
+     * back. Only meaningful for the duration of one gesture.
+     */
+    private var gestureOriginX = 0
+    private var gestureOriginY = 0
+
+    /**
+     * Set by the long-press menu's dismiss row and read once, after the menu
+     * window is gone: a button inside a window that is being removed cannot
+     * post a snackbar, so the service reports the undo window to the app and the
+     * app does the drawing. Never carries message content.
+     */
+    private var pendingUndo: Map<String, Any?>? = null
 
     /** Notification key currently represented by the bubble. */
     private var shownKey: String? = null
@@ -215,6 +233,7 @@ class OverlayBubbleService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacks(autoHide)
+        hideUndoPill()
         stopIdleAnimation()
         settleAnimator?.cancel()
         unregisterScreenReceiver()
@@ -272,6 +291,8 @@ class OverlayBubbleService : Service() {
             setStroke(dp(2), Color.WHITE)
         }
         badge.visibility = View.GONE
+        // A count that changes silently is a count only sighted users have.
+        badge.accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         val badgeSize = dp(22)
         root.addView(
             badge,
@@ -337,6 +358,57 @@ class OverlayBubbleService : Service() {
         )
         gripView = grip
 
+        // Accessibility first: a View with a touch listener and no click
+        // handler is read aloud but cannot be *activated* by TalkBack, which
+        // made the bubble an unopenable picture for anyone using a screen
+        // reader. Clickable + performClick + a named long-press action is what
+        // makes "Double-tap to activate" and "Actions available" both true.
+        root.isClickable = true
+        root.isFocusable = true
+        root.setOnClickListener {
+            if (collapsed) expand() else openPanel()
+        }
+        root.setOnLongClickListener {
+            if (collapsed) {
+                expand()
+                true
+            } else if (panelOpen) {
+                false
+            } else {
+                // Haptic feedback is part of the gesture for sighted users; for
+                // an accessibility activation it is just as useful.
+                it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                showMenu()
+                true
+            }
+        }
+        root.accessibilityDelegate = object : View.AccessibilityDelegate() {
+            override fun onInitializeAccessibilityNodeInfo(
+                host: View,
+                info: android.view.accessibility.AccessibilityNodeInfo,
+            ) {
+                super.onInitializeAccessibilityNodeInfo(host, info)
+                info.className = "android.widget.Button"
+                // The menu is the bubble's second door; a screen-reader user
+                // should be able to reach it without discovering long-press.
+                if (!collapsed && !panelOpen) {
+                    // ACTION_LONG_CLICK is a plain action id, not an
+                    // AccessibilityAction: it is the one TalkBack exposes as
+                    // "Actions available", and the label above explains it.
+                    info.addAction(
+                        android.view.accessibility.AccessibilityNodeInfo.ACTION_LONG_CLICK,
+                    )
+                }
+                if (collapsed) {
+                    info.addAction(
+                        android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(
+                            android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK,
+                            getString(R.string.overlay_bubble_expand),
+                        ),
+                    )
+                }
+            }
+        }
         root.setOnTouchListener(DragToTapListener())
         return root
     }
@@ -700,6 +772,94 @@ class OverlayBubbleService : Service() {
         }
     }
 
+    /**
+     * The area the bubble is allowed to occupy.
+     *
+     * `displayMetrics.heightPixels` is the whole panel, which on a device with a
+     * navigation bar, a status bar or a display cutout is not where the bubble
+     * can live: a bubble parked at the bottom used to sit under the nav bar, and
+     * one at the top under the notch. Since API 30 the window metrics answer
+     * this properly; before that, the safe insets are subtracted by hand.
+     */
+    private fun usableBounds(): android.graphics.Rect {
+        val area = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            windowManager?.currentWindowMetrics?.bounds
+                ?: android.graphics.Rect(
+                    0,
+                    0,
+                    resources.displayMetrics.widthPixels,
+                    resources.displayMetrics.heightPixels,
+                )
+        } else {
+            @Suppress("DEPRECATION")
+            val legacy = android.graphics.Rect(
+                0,
+                0,
+                resources.displayMetrics.widthPixels,
+                resources.displayMetrics.heightPixels,
+            )
+            legacy
+        }
+        val insets = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            windowManager?.currentWindowMetrics?.windowInsets
+                ?.getInsetsIgnoringVisibility(
+                    android.view.WindowInsets.Type.systemBars() or
+                        android.view.WindowInsets.Type.displayCutout(),
+                )
+        } else {
+            null
+        }
+        if (insets != null) {
+            area.inset(insets.left, maxOf(insets.top, dp(8)), insets.right, insets.bottom)
+        }
+        return area
+    }
+
+    /**
+     * Keeps a window position inside [usableBounds]. Applied to the remembered
+     * position and, after a configuration change, to the live window: a bubble
+     * at the bottom edge in portrait is off-screen once the device rotates, and
+     * the user reads that as a crash.
+     */
+    private fun clampToBounds(params: WindowManager.LayoutParams) {
+        val area = usableBounds()
+        val maxX = maxOf(area.left, area.right - params.width)
+        val maxY = maxOf(area.top, area.bottom - params.height)
+        params.x = params.x.coerceIn(area.left, maxX)
+        params.y = params.y.coerceIn(area.top, maxY)
+    }
+
+    /**
+     * A rotation or a window resize moves the goalposts, not just the pixels.
+     * The bubble re-clamps, keeps its edge, and drops the cached menu (which is
+     * positioned in the old orientation) instead of leaving it floating in the
+     * wrong place.
+     */
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        hideMenu()
+        val params = layoutParams ?: return
+        val view = bubbleView ?: return
+        if (collapsed) {
+            // Recompute the tab's edge from the new width rather than trusting
+            // the old x, which now points somewhere in the middle of the screen.
+            val onRight = params.x + params.width / 2 > usableBounds().centerX()
+            params.x = if (onRight) {
+                usableBounds().right - params.width
+            } else {
+                usableBounds().left
+            }
+        } else {
+            clampToBounds(params)
+        }
+        try {
+            windowManager?.updateViewLayout(view, params)
+        } catch (error: Exception) {
+            // The window went away with the configuration change.
+        }
+        rememberPosition(params)
+    }
+
     private fun createLayoutParams(): WindowManager.LayoutParams {
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -726,12 +886,12 @@ class OverlayBubbleService : Service() {
             x = defaults.getInt(
                 KEY_BUBBLE_X,
                 resources.getDimensionPixelSize(R.dimen.overlay_bubble_default_x),
-            ).coerceIn(0, maxOf(0, metrics.widthPixels - size))
+            )
             y = defaults.getInt(
                 KEY_BUBBLE_Y,
                 resources.getDimensionPixelSize(R.dimen.overlay_bubble_default_y),
-            ).coerceIn(0, maxOf(0, metrics.heightPixels - size))
-        }
+            )
+        }.also { clampToBounds(it) }
     }
 
     /**
@@ -780,13 +940,26 @@ class OverlayBubbleService : Service() {
         } else {
             0f
         }
+        // ACTION_OUTSIDE arrives because the window asked to watch for it. It
+        // carries coordinates outside our own view, so no row can have been
+        // touched: closing is the only honest response.
+        card.setOnTouchListener { _, event ->
+            if (event.actionMasked == MotionEvent.ACTION_OUTSIDE) {
+                hideMenu()
+                true
+            } else {
+                false
+            }
+        }
         val actions = listOf(
             Triple(R.string.overlay_bubble_menu_reply, R.drawable.overlay_ic_reply) { openPanel() },
             Triple(R.string.overlay_bubble_menu_hide, R.drawable.overlay_ic_hide) {
                 collapse(toRight = anchor.x > resources.displayMetrics.widthPixels / 2)
             },
             Triple(R.string.overlay_bubble_menu_dismiss, R.drawable.overlay_ic_dismiss) {
-                dismissBubble()
+                // The same path as a swipe, so the menu's dismiss also offers
+                // the five-second undo instead of being final.
+                dismissBySwipe()
             },
         )
         actions.forEachIndexed { index, item ->
@@ -814,7 +987,13 @@ class OverlayBubbleService : Service() {
             width,
             WindowManager.LayoutParams.WRAP_CONTENT,
             type,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            // NOT_FOCUSABLE keeps the app underneath usable, which is the point
+            // of a bubble. WATCH_OUTSIDE_TOUCH is what makes the *first* tap
+            // elsewhere close the menu: without it that tap went straight to the
+            // other app and the menu sat there until its six-second timeout,
+            // which reads as a stuck menu.
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.START
@@ -828,9 +1007,18 @@ class OverlayBubbleService : Service() {
                 maxOf(dp(8), metrics.heightPixels - estimatedHeight - dp(8)),
             )
         }
+        // The menu is a second window with no activity behind it, so nothing
+        // announces that it appeared. A polite live region on the card, plus a
+        // heading for the first row, is what tells a screen-reader user the
+        // menu is there and what is in it.
+        card.accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        card.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
         try {
             manager.addView(card, params)
             menuView = card
+            // Move accessibility focus onto the menu instead of leaving it on a
+            // bubble that is now partly covered.
+            card.announceForAccessibility(getString(R.string.overlay_bubble_menu_description))
             if (motionEnabled()) {
                 card.alpha = 0f
                 card.scaleX = 0.96f
@@ -857,6 +1045,19 @@ class OverlayBubbleService : Service() {
     private fun menuRow(labelRes: Int, iconRes: Int, action: () -> Unit): View {
         val row = TextView(this)
         row.text = getString(labelRes)
+        // A TextView with a click listener is fine for touch and invisible as a
+        // control to TalkBack; the role, not the class, is what is missing.
+        row.isClickable = true
+        row.isFocusable = true
+        row.accessibilityDelegate = object : View.AccessibilityDelegate() {
+            override fun onInitializeAccessibilityNodeInfo(
+                host: View,
+                info: android.view.accessibility.AccessibilityNodeInfo,
+            ) {
+                super.onInitializeAccessibilityNodeInfo(host, info)
+                info.className = "android.widget.Button"
+            }
+        }
         row.setTextColor(Color.rgb(238, 244, 255))
         row.textSize = 14f
         row.gravity = Gravity.CENTER_VERTICAL
@@ -890,15 +1091,6 @@ class OverlayBubbleService : Service() {
         }
     }
 
-    /** Dismiss is the user saying "not now" - it means the bubble and its
-     *  pending message both go (docs/FLOATING_OVERLAY.md §5.3). */
-    private fun dismissBubble() {
-        hideMenu()
-        OverlayBubbleController.clear()
-        removeBubble()
-        stopSelf()
-    }
-
     private inner class DragToTapListener : View.OnTouchListener {
         private val touchSlop = ViewConfiguration.get(this@OverlayBubbleService)
             .scaledTouchSlop
@@ -914,14 +1106,28 @@ class OverlayBubbleService : Service() {
          */
         private var longPressFired = false
 
+        /**
+         * Where and when this gesture started, kept for [isFlick]: by ACTION_UP
+         * the touch slop has already let a slow drag through, and a flick is the
+         * opposite - fast and short.
+         */
+        private var downRawXForGesture = 0f
+        private var downRawYForGesture = 0f
+        private var downTimeForGesture = 0L
+
         override fun onTouch(view: View, event: MotionEvent): Boolean {
             val params = layoutParams ?: return false
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     downRawX = event.rawX
                     downRawY = event.rawY
+                    downRawXForGesture = event.rawX
+                    downRawYForGesture = event.rawY
+                    downTimeForGesture = event.eventTime
                     startX = params.x
                     startY = params.y
+                    gestureOriginX = params.x
+                    gestureOriginY = params.y
                     dragging = false
                     longPressFired = false
                     settleAnimator?.cancel()
@@ -969,6 +1175,13 @@ class OverlayBubbleService : Service() {
                 MotionEvent.ACTION_UP -> {
                     cancelLongPress()
                     releaseBubble(view)
+                    // A quick flick counts as "get rid of this", the gesture
+                    // people already try on anything that floats. It is checked
+                    // before the tap branch because a flick also ends in UP.
+                    if (!longPressFired && !collapsed && isFlick(event)) {
+                        dismissBySwipe()
+                        return true
+                    }
                     if (longPressFired) {
                         // The press already did its work; this is its release.
                         longPressFired = false
@@ -990,11 +1203,163 @@ class OverlayBubbleService : Service() {
                 MotionEvent.ACTION_CANCEL -> {
                     cancelLongPress()
                     releaseBubble(view)
+                    // The window going away mid-drag must not leave the bubble
+                    // half-way to nowhere: put it back where the gesture
+                    // started, which is the last position the user chose.
+                    if (dragging) {
+                        params.x = gestureOriginX
+                        params.y = gestureOriginY
+                        try {
+                            windowManager?.updateViewLayout(view, params)
+                        } catch (error: Exception) {
+                            // Window is gone; the next show positions it again.
+                        }
+                    }
                     if (!collapsed && !panelOpen) startIdleAnimation()
                     return true
                 }
             }
             return false
+        }
+    }
+
+    /**
+     * A fast, short flick: far enough to be deliberate, finished quickly enough
+     * that nobody who was only moving the bubble can trip it. A slow drag is a
+     * move, which is the gesture the bubble was built around.
+     */
+    private fun isFlick(event: MotionEvent): Boolean {
+        val distance = Math.hypot(
+            (event.rawX - downRawXForGesture).toDouble(),
+            (event.rawY - downRawYForGesture).toDouble(),
+        )
+        val duration = event.eventTime - downTimeForGesture
+        return distance > dp(FLICK_DISTANCE_DP) && duration < FLICK_DURATION_MILLIS
+    }
+
+    /**
+     * Swipe-to-dismiss, with an undo window the long-press menu never had.
+     *
+     * The bubble and its pending message both go - that is what dismissing
+     * means (docs/FLOATING_OVERLAY.md §5.3) - but the context is kept in a small
+     * native pill for a few seconds instead of being destroyed. A snackbar in the
+     * app would be the obvious place for it and the wrong one: a swipe happens
+     * over *another* app, where no Flutter engine is alive and nothing of ours is
+     * on screen. So the pill is drawn by this service, like everything else here.
+     */
+    private fun dismissBySwipe() {
+        val snapshot = OverlayBubbleController.peekAll()
+        bubbleView?.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+        val view = bubbleView
+        val manager = windowManager
+        val anchorX = layoutParams?.x ?: 0
+        val anchorY = layoutParams?.y ?: 0
+        val finish = {
+            removeBubble()
+            if (snapshot.isEmpty()) {
+                stopSelf()
+            } else {
+                showUndoPill(snapshot, anchorX, anchorY)
+            }
+        }
+        if (view != null && manager != null && motionEnabled()) {
+            view.animate().alpha(0f).scaleX(0.7f).scaleY(0.7f)
+                .setDuration(140L)
+                .withEndAction { finish() }
+                .start()
+        } else {
+            finish()
+        }
+    }
+
+    /**
+     * "Dismissed - Undo", in the bubble's own place, for [UNDO_SECONDS].
+     *
+     * It carries no message text and no sender: the pill says what happened, not
+     * what it was about, so a glance at the screen over someone's shoulder still
+     * learns nothing. Tapping it puts the contexts back and redraws the bubble;
+     * ignoring it lets the timer drop them.
+     */
+    private fun showUndoPill(
+        snapshot: List<Map<String, Any?>>,
+        anchorX: Int,
+        anchorY: Int,
+    ) {
+        val manager = windowManager ?: return
+        val pill = TextView(this)
+        pill.text = getString(R.string.overlay_bubble_undo)
+        pill.setTextColor(Color.WHITE)
+        pill.textSize = 14f
+        pill.gravity = Gravity.CENTER
+        pill.setPadding(dp(16), dp(10), dp(16), dp(10))
+        pill.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(22).toFloat()
+            setColor(menuBackgroundColor())
+            setStroke(dp(1), Color.argb(48, 255, 255, 255))
+        }
+        // Same accessibility contract as the bubble: a real button, not a
+        // picture with a touch listener.
+        pill.isClickable = true
+        pill.isFocusable = true
+        pill.accessibilityDelegate = object : View.AccessibilityDelegate() {
+            override fun onInitializeAccessibilityNodeInfo(
+                host: View,
+                info: android.view.accessibility.AccessibilityNodeInfo,
+            ) {
+                super.onInitializeAccessibilityNodeInfo(host, info)
+                info.className = "android.widget.Button"
+            }
+        }
+        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+        val area = usableBounds()
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            type,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            PixelFormat.TRANSLUCENT,
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = anchorX.coerceIn(area.left, maxOf(area.left, area.right - dp(140)))
+            y = anchorY.coerceIn(area.top, maxOf(area.top, area.bottom - dp(48)))
+        }
+        pill.setOnClickListener {
+            hideUndoPill()
+            // Oldest first, so the newest message ends up back on top exactly as
+            // it was before the swipe.
+            snapshot.asReversed().forEach { OverlayBubbleController.hold(it) }
+            show()
+        }
+        try {
+            manager.addView(pill, params)
+            undoPill = pill
+            pill.announceForAccessibility(getString(R.string.overlay_bubble_dismissed))
+            handler.postDelayed(removeUndoPill, UNDO_SECONDS * 1_000L)
+        } catch (error: Exception) {
+            // A refused pill window costs the undo, never the dismissal.
+            undoPill = null
+            stopSelf()
+        }
+    }
+
+    private val removeUndoPill = Runnable { hideUndoPill() }
+
+    private fun hideUndoPill() {
+        handler.removeCallbacks(removeUndoPill)
+        val view = undoPill
+        undoPill = null
+        if (view != null) {
+            try {
+                windowManager?.removeView(view)
+            } catch (error: Exception) {
+                // Already gone.
+            }
         }
     }
 
@@ -1258,6 +1623,13 @@ class OverlayBubbleService : Service() {
 
         /** The menu closes itself if it is ignored. */
         private const val MENU_TIMEOUT_MILLIS = 6_000L
+
+        /** A flick: at least this far, in this little time. Otherwise it is a drag. */
+        private const val FLICK_DISTANCE_DP = 72
+        private const val FLICK_DURATION_MILLIS = 260L
+
+        /** How long the app offers to bring a dismissed message back. */
+        private const val UNDO_SECONDS = 5
 
         /** App-private: the panel broadcasts this when it is destroyed. */
         const val ACTION_PANEL_CLOSED = "com.keshabstudios.replymate.action.PANEL_CLOSED"

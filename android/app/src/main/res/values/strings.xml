@@ -8,6 +8,12 @@
     <string name="overlay_bubble_menu_hide">Hide at the edge</string>
     <string name="overlay_bubble_menu_dismiss">Dismiss until the next message</string>
     <string name="overlay_bubble_description_collapsed">ReplyMate bubble, hidden at the screen edge. Tap to bring it back.</string>
+    <string name="overlay_bubble_expand">Bring the bubble back</string>
+    <string name="overlay_bubble_menu_description">Bubble actions: draft a reply, hide at the edge, or dismiss</string>
+    <!-- Shown by the app (not by the bubble) after a swipe dismissal. Names no
+         sender and no message, so the undo window stays content-free. -->
+    <string name="overlay_bubble_dismissed">Bubble dismissed. The message is still waiting.</string>
+    <string name="overlay_bubble_undo">Undo</string>
     <string name="overlay_channel_name">Reply bubble</string>
     <string name="overlay_channel_description">Keeps the floating reply bubble available while you use other apps.</string>
     <string name="overlay_notification_title">Reply bubble active</string>
