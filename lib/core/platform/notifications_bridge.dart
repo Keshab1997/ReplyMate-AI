@@ -16,8 +16,7 @@ class CandidateApp {
 /// Dart half of the single platform channel. Every method degrades to a safe
 /// empty answer when the plugin is missing (tests, web preview, desktop) so
 /// the UI can render and explain instead of crashing.
-///
-/// Contract: docs/PLATFORM_CHANNELS.md.
+/// Contract:.
 class NotificationsBridge {
   NotificationsBridge({MethodChannel? channel})
     : _channel = channel ?? const MethodChannel(AppConstants.channelName);
@@ -28,7 +27,7 @@ class NotificationsBridge {
 
   /// Native -> Dart events: `listener_connected`, `listener_disconnected`,
   /// `notification_captured` (a notification arrived) and `screen_captured`
-  /// (a message was read off the screen, docs/SCREEN_READING.md). Both carry
+  /// (a message was read off the screen,). Both carry
   /// the same `notification` payload, so both are parsed by
   /// `CapturedNotification`.
   Stream<Map<String, Object?>> get events => _events.stream;
@@ -96,8 +95,7 @@ class NotificationsBridge {
   /// by [notificationKey] (its `StatusBarNotification.key`). False means "no
   /// valid action, the action is no longer live, or the notification is not
   /// the one being replied to" - the UI must then offer copy / open-app
-  /// (docs/USER_FLOWS flow 3).
-  ///
+
   /// The key travels with the call on purpose: a reply must only ever reach
   /// the conversation it was written for.
   Future<bool> sendQuickReply(
@@ -144,7 +142,7 @@ class NotificationsBridge {
 
   /// True when Android lets this app draw over other apps. Overlay access is
   /// optional and never implied by notification access
-  /// (docs/PRIVACY_AND_PERMISSIONS.md).
+
   Future<bool> isOverlayEnabled() async {
     try {
       return await _channel.invokeMethod<bool>('isOverlayEnabled') ?? false;
@@ -186,7 +184,6 @@ class NotificationsBridge {
   }
 
   /// Persists the bubble switch natively and starts/stops the bubble service.
-  ///
   /// Persisted rather than held in memory because the notification listener
   /// reads it with no Flutter engine alive. Starting the service can be
   /// refused by Android 12+ when the app is in the background; that is caught
@@ -237,7 +234,7 @@ class NotificationsBridge {
   /// the only way the screen reader can run at all. False on a device that
   /// refuses it - Android 16+ Advanced Protection does exactly that for an app
   /// it does not classify as an accessibility tool, and ReplyMate does not
-  /// claim to be one (docs/SCREEN_READING.md).
+  /// claim to be one.
   Future<bool> isScreenReadingAvailable() async {
     try {
       return await _channel.invokeMethod<bool>('isScreenReadingAvailable') ??
@@ -250,7 +247,6 @@ class NotificationsBridge {
   }
 
   /// What the screen reader did on its last look at the screen.
-  ///
   /// Null when there is nothing to report - no native layer, or a build with no
   /// screen reader at all. Every field inside is allowed to be empty: a reader
   /// that has never run is a normal state, not an error.
@@ -271,7 +267,6 @@ class NotificationsBridge {
   /// Opens Android's accessibility settings, on ReplyMate's own page when the
   /// device supports it. Like every permission here, this opens a screen and
   /// grants nothing by itself.
-  ///
   /// Returns which screen actually opened: `details` (ReplyMate's own toggle),
   /// `list` (the general accessibility list), or `none` (this device has no
   /// such screen). The UI says which, so a phone that cannot open the page is
@@ -304,8 +299,7 @@ class NotificationsBridge {
   /// The pending overlay context - `{source, packageName, key, title, text, ...}`
   /// - consumed once. `source` is `bubble` or `fallback`; every other field is
   /// the `notification_captured` wire format, so `CapturedNotification` parses
-  /// it unchanged (docs/PLATFORM_CHANNELS.md).
-  ///
+  /// it unchanged.
   /// One-shot by contract, not by convention: the native side clears the
   /// pending map as it answers, so a second call returns null rather than
   /// handing the same message out twice.
@@ -322,7 +316,6 @@ class NotificationsBridge {
   }
 
   /// Asks the native layer to close the panel activity.
-  ///
   /// The panel cannot close itself with a Navigator pop: it is the only route
   /// in its own activity, and popping it used to reveal the main app behind
   /// it. Finishing the activity puts the user back in the chat they came from.
@@ -339,7 +332,6 @@ class NotificationsBridge {
   }
 
   /// Every message currently waiting behind the bubble, newest first.
-  ///
   /// Read-only: unlike [consumeOverlayContext] this removes nothing, so the
   /// panel's chat switcher can name the other conversations without eating the
   /// one the bubble is already showing. A native layer that does not know the

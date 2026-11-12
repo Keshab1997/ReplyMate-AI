@@ -20,16 +20,14 @@ import '../../settings/settings_screen.dart';
 import '../models/overlay_context.dart';
 import '../providers/overlay_providers.dart';
 
-/// Screen 10 of docs/SCREEN_SPECIFICATIONS.md: the panel behind the floating
+/// Screen 10 of: the panel behind the floating
 /// reply bubble.
-///
 /// Design rule for this screen: **the bubble is a shortcut, not a second app.**
 /// The reply style (language, tone, length) is whatever the user already chose
 /// in Settings - it is *not* re-asked here. The panel therefore has exactly one
 /// job: show the message, generate, hand back the reply. Anything that needs a
 /// decision opens Settings through the tune icon instead of duplicating the
-/// controls (docs/FLOATING_OVERLAY.md §1).
-///
+/// controls.
 /// What it must never do: keep the message after it closes, show message text
 /// in a log, offer quick reply without a live RemoteInput action, or claim AI
 /// is configured when it is not.
@@ -101,7 +99,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     final preferences = ref.read(preferencesProvider);
     // Conversation memory, when the user switched it on: this both files the
     // message being answered and hands back the window including it
-    // (docs/CONVERSATION_MEMORY.md §7). Null means "no memory applies here",
+    // Null means "no memory applies here",
     // and the capture's own history is what the prompt gets instead - exactly
     // what the app did before memory existed.
     final memory = await ref
@@ -212,7 +210,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
   }
 
   /// A reply the user copies or shares is a reply they accepted, and the only
-  /// reliable source of the user's own voice (docs/CONVERSATION_MEMORY.md §8).
+  /// reliable source of the user's own voice.
   /// Fire and forget: memory must never make sending a reply wait.
   void _rememberAccepted(String text) {
     final target = _draftingFor;
@@ -441,7 +439,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
 
   /// The honest dead end: the pending message was consumed by another launch
   /// or lost with the process. Saying so beats an empty panel that looks
-  /// broken (docs/FLOATING_OVERLAY.md §11).
+  /// broken.
   Widget _buildNothing() {
     final theme = Theme.of(context);
     return Padding(

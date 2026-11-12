@@ -7,14 +7,12 @@ import '../../../shared/widgets/brand_icon.dart';
 import '../domain/conversation_memory.dart';
 import '../providers/conversation_memory_provider.dart';
 
-/// The consent surface for conversation memory (docs/CONVERSATION_MEMORY.md §3).
-///
+/// The consent surface for conversation memory.
 /// This card is the feature's first wall made visible: the switch starts off,
 /// the copy says in plain words what is stored and where, and everything stored
 /// is listed here by name so it can be deleted one line at a time. A memory the
 /// user cannot see is not a memory they consented to - it is a leak with a
 /// toggle.
-///
 /// The list reads a provider, not a `initState` snapshot: the shell keeps
 /// Settings alive in an `IndexedStack`, so a one-off read would keep showing
 /// "nothing remembered yet" long after something was remembered. A device found

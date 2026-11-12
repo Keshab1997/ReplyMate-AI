@@ -38,7 +38,7 @@ import android.widget.TextView
  * The Flutter engine only exists while one of our activities is alive, which is
  * exactly the case this feature has to cover, so the bubble is a plain
  * `WindowManager` view owned by a foreground service
- * (docs/FLOATING_OVERLAY.md §4.1).
+ * md §4.1).
  *
  * What this service deliberately does **not** do:
  *  - read the screen, the app underneath, or any accessibility node (it only
@@ -50,7 +50,7 @@ import android.widget.TextView
  *
  * Android 12+ forbids starting a foreground service from the background, so
  * [start] reports failure instead of crashing and the caller posts the
- * documented fallback notification (docs/FLOATING_OVERLAY.md §7).
+ * documented fallback notification.md §7).
  */
 class OverlayBubbleService : Service() {
 
@@ -425,7 +425,7 @@ class OverlayBubbleService : Service() {
      *
      * This is the one place where message text reaches the screen outside the
      * panel, and it is a deliberate, user-owned choice, not a default
-     * (docs/FLOATING_OVERLAY.md §5.6): a bubble over a chat is read by whoever is
+     * md §5.6): a bubble over a chat is read by whoever is
      * next to you, and for plenty of people that is the whole problem. So:
      *
      *  - only when *Show a preview* is on, stored natively like every other
@@ -1429,7 +1429,7 @@ class OverlayBubbleService : Service() {
      * Swipe-to-dismiss, with an undo window the long-press menu never had.
      *
      * The bubble and its pending message both go - that is what dismissing
-     * means (docs/FLOATING_OVERLAY.md §5.3) - but the context is kept in a small
+     * means.md §5.3) - but the context is kept in a small
      * native pill for a few seconds instead of being destroyed. A snackbar in the
      * app would be the obvious place for it and the wrong one: a swipe happens
      * over *another* app, where no Flutter engine is alive and nothing of ours is
@@ -1572,7 +1572,7 @@ class OverlayBubbleService : Service() {
      * Remembers where the bubble was dropped, so the next one appears where the
      * user expects it instead of jumping back to the default corner. Position
      * only: two integers, no message, no sender
-     * (docs/FLOATING_OVERLAY.md §5.2).
+     * md §5.2).
      */
     private fun rememberPosition(params: WindowManager.LayoutParams) {
         try {
@@ -1599,7 +1599,7 @@ class OverlayBubbleService : Service() {
      *
      * The bubble no longer stops itself here: it steps aside for the panel and
      * comes back when the panel closes, so the reply flow can run twice in a
-     * row (docs/FLOATING_OVERLAY.md §5.3).
+     * row.md §5.3).
      */
     private fun openPanel() {
         val intent = OverlayPanelActivity.createIntent(this)
@@ -1794,7 +1794,7 @@ class OverlayBubbleService : Service() {
 
     companion object {
         /**
-         * docs/FLOATING_OVERLAY.md §5.4: a bubble nobody uses goes away. The
+         * md §5.4: a bubble nobody uses goes away. The
          * default is ten minutes; the user can choose 5, 10, 30 or never.
          */
         private const val DEFAULT_AUTO_HIDE_MINUTES = 10

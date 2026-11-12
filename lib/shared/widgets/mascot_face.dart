@@ -23,7 +23,6 @@ enum MascotMood {
 }
 
 /// The ReplyMate face.
-///
 /// All motion is **finite on purpose**. An infinite ticker would keep
 /// `pumpAndSettle` from ever settling (and would keep the GPU awake on a static
 /// screen); the bubble - the thing the user actually watches over another app -
@@ -304,7 +303,6 @@ class _MascotFaceState extends State<MascotFace> with TickerProviderStateMixin {
 }
 
 /// Three dots that breathe in sequence under the face.
-///
 /// This is the app's only "the helper is working" cue, and it is deliberately
 /// wordless: it says *something is happening* without pretending to know how
 /// long it will take or what the answer will be. Finite like every other

@@ -1,12 +1,11 @@
 import '../../notifications/models/captured_notification.dart';
 
 /// Which entry point produced the context the user is looking at.
-///
 /// `bubble` — the floating reply bubble was tapped, so the panel opens over the
 /// messaging app. `fallback` — the bubble could not be shown (no overlay
 /// permission, bubble switched off, or the process was cold-started in the
 /// background), so the user tapped ReplyMate's own notification and the full
-/// composer opens instead (docs/FLOATING_OVERLAY.md §4.3).
+/// composer opens instead.
 enum OverlaySource {
   bubble('bubble'),
   fallback('fallback');
@@ -14,7 +13,7 @@ enum OverlaySource {
   const OverlaySource(this.wireName);
 
   /// The value the native layer puts on the wire
-  /// (docs/PLATFORM_CHANNELS.md, `consumeOverlayContext`).
+
   final String wireName;
 
   /// An unknown source is read as [fallback] on purpose: the conservative path
@@ -28,10 +27,9 @@ enum OverlaySource {
 
 /// One pending overlay context: the same notification wire format the listener
 /// already emits, plus the `source` that tells the UI which screen to open.
-///
 /// Both the bubble path and the fallback path end here, so there is exactly one
 /// model for "a message the user may want to reply to"
-/// (docs/FLOATING_OVERLAY.md §4.3). It is never persisted: the map it is built
+/// It is never persisted: the map it is built
 /// from exists in process memory only.
 class OverlayContext {
   const OverlayContext({required this.source, required this.notification});

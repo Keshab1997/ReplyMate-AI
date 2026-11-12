@@ -5,7 +5,6 @@ import '../../app/theme/app_theme.dart';
 /// The header every inner screen shares: a real [BackButton] in a soft chip,
 /// the title, an optional second line, and an optional trailing widget (the
 /// mascot, a state pill).
-///
 /// It exists so the app has **one** back affordance. The chips it replaces
 /// were copies of each other, and a copy is how a design system rots.
 class ScreenHeader extends StatelessWidget {

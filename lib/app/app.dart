@@ -31,7 +31,6 @@ class ReplyMateApp extends StatelessWidget {
       initialRoute: initialRoute,
       onGenerateRoute: _routeFor,
       // Exactly one route for whatever the platform asked for.
-      //
       // Flutter's default behaviour builds the whole path: an initial route of
       // `/overlay` pushed `/` first, so the transparent panel activity had the
       // main app sitting underneath it in the same Navigator. Tapping the empty
@@ -52,7 +51,7 @@ class ReplyMateApp extends StatelessWidget {
     switch (settings.name) {
       case AppRoutes.overlay:
         // The reply panel: translucent, sheet-like, and only reachable from
-        // the bubble (docs/FLOATING_OVERLAY.md §4.2).
+        // the bubble.
         return MaterialPageRoute<void>(
           settings: settings,
           builder: (_) => const OverlayPanelScreen(),
@@ -71,7 +70,6 @@ class ReplyMateApp extends StatelessWidget {
 
 /// Sends first-run users through onboarding (FR-01), a fallback-notification
 /// tap straight to the prefilled composer, and everyone else home.
-///
 /// Both reads are local and cheap, and neither is allowed to hold the first
 /// frame hostage (the invariant docify taught us):
 ///  - the onboarding flag is one boolean from SharedPreferences;

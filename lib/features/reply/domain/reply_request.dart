@@ -2,7 +2,6 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/reply_options.dart';
 
 /// A validated request for reply suggestions (FR-05 to FR-07).
-///
 /// Validation lives in the domain layer so every entry point - composer,
 /// PROCESS_TEXT, share sheet - gets the same guarantees, and so the rules are
 /// unit-testable without widgets.
@@ -29,13 +28,10 @@ class ReplyRequest {
   final List<String> priorMessages;
 
   /// Verbatim lines the user themelves sent in this conversation, newest first
-  /// (docs/CONVERSATION_MEMORY.md §6-§7).
-  ///
   /// These are examples of a voice, never content to answer. They are stored
   /// and shown as the user's own words rather than as an inferred profile of
   /// "how this person writes", because a profile is a claim the user cannot
   /// read back and delete.
-  ///
   /// Notification capture alone can never fill this: it only sees arrivals, so
   /// an empty list is the normal state with screen reading off.
   final List<String> styleExamples;
@@ -69,7 +65,7 @@ class ReplyRequest {
   bool get isValid => validate().isEmpty;
 
   /// Wire shape for the future backend / key-manager call
-  /// (docs/AI_INTEGRATION.md example request).
+
   Map<String, Object?> toJson() => {
     'message': trimmedMessage,
     'language': language.label,

@@ -16,12 +16,12 @@ exact test steps were not recorded; this is not a full Phase 1 sign-off.
 The current AI path is the documented client-side Firestore key-pool design,
 not a server-side proxy. The remaining device checks, architecture/security
 hardening and release tasks are listed below and in
-[`docs/PHASE1_DEVICE_TESTS.md`](docs/PHASE1_DEVICE_TESTS.md).
+``.
 
 The floating reply bubble — the answer to "nothing appears when a WhatsApp
 message arrives" — is specified in
-[`docs/FLOATING_OVERLAY.md`](docs/FLOATING_OVERLAY.md), broken into batches in
-[`docs/OVERLAY_TASKS.md`](docs/OVERLAY_TASKS.md), and **implemented in code**.
+``, broken into batches in
+``, and **implemented in code**.
 It is not device-verified: rows 17–24 of the device checklist are still
 pending.
 
@@ -62,7 +62,7 @@ pending.
 
 - [x] Implement the Firestore key-pool/provider client path, request validation, reply parsing and user-visible failures.
 - [x] Confirm by owner report that API access and reply generation work on a real device.
-- [ ] Implement or explicitly defer the server-side proxy, authentication and rate limiting. The current client-readable key-pool trade-off is documented in [`docs/API_SECURITY.md`](docs/API_SECURITY.md).
+- [ ] Implement or explicitly defer the server-side proxy, authentication and rate limiting. The current client-readable key-pool trade-off is documented in ``.
 
 ## Phase 4 — Android Integration
 
@@ -80,8 +80,8 @@ pending.
 
 ## Phase 6 — Floating reply bubble (implemented, device verification pending)
 
-Spec: [`docs/FLOATING_OVERLAY.md`](docs/FLOATING_OVERLAY.md). Batches:
-[`docs/OVERLAY_TASKS.md`](docs/OVERLAY_TASKS.md).
+Spec: ``. Batches:
+``.
 
 - [x] Batch 0 — honest empty state when nothing was captured.
 - [x] Batch 1 — native overlay bubble + foreground service.
@@ -93,7 +93,7 @@ Spec: [`docs/FLOATING_OVERLAY.md`](docs/FLOATING_OVERLAY.md). Batches:
 
 Non-negotiable: no message text on disk, no automatic send, no claim that the
 bubble survives every OEM's battery manager, and **no screen reading without
-the user's explicit switch** - docs/SCREEN_READING.md. Exactly one component
+the user's explicit switch** -. Exactly one component
 reads the screen (`ReplyMateScreenReaderService`), and it only ever reads: it
 never types, never clicks and never sends.
 

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/reply_request.dart';
 
 /// Outcome of a generation attempt. Never throws: every failure mode in
-/// docs/AI_INTEGRATION.md ("Failure handling") becomes a [ReplyFailure] the
+/// ("Failure handling") becomes a [ReplyFailure] the
 /// UI can show honestly.
 sealed class ReplyResult {
   const ReplyResult();
@@ -32,7 +32,7 @@ abstract interface class ReplyRepository {
 
 /// Honest guest-mode fallback: when Firebase/key-pool configuration is
 /// unavailable, generation explains that state instead of showing a fabricated
-/// reply (docs/AI_INTEGRATION.md: "Never display a fabricated reply as a
+/// reply (: "Never display a fabricated reply as a
 /// successful AI result").
 class NotConfiguredReplyRepository implements ReplyRepository {
   const NotConfiguredReplyRepository();

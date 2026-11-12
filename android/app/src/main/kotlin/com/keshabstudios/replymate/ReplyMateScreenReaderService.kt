@@ -11,7 +11,7 @@ import android.view.accessibility.AccessibilityEvent
  * A messaging app posts no notification for the conversation the user is
  * already looking at, so the notification listener sees nothing exactly when
  * the user is most likely to want a reply. This service closes that gap by
- * reading the visible conversation (docs/SCREEN_READING.md).
+ * reading the visible conversation.md).
  *
  * Everything here is bounded by the project's rules, and they are the reason
  * this is safe to ship at all:
@@ -20,7 +20,7 @@ import android.view.accessibility.AccessibilityEvent
  *    and it is not switched on behind the user's back.
  *  - **Nothing is stored.** A short, bounded memory of recent texts per package
  *    lives in this process's heap and dies with it: no SharedPreferences, no
- *    file, no database, no log (docs/PRIVACY_AND_PERMISSIONS.md).
+ *    file, no database, no log.md).
  *  - **Scrolling is not an arrival.** Reading the newest visible bubble would
  *    otherwise report an old message every time the user scrolled back through
  *    a chat, so [ScreenReadingGate] decides what is actually new.
@@ -265,7 +265,7 @@ class ReplyMateScreenReaderService : AccessibilityService() {
             // The visible thread around the message, oldest first, with the side
             // each line came from. This is the only capture path that knows a
             // line's author, so it is the only one whose history may be stored
-            // (docs/CONVERSATION_MEMORY.md §8). Notification history stays
+            // md §8). Notification history stays
             // authorless and is still thrown away rather than guessed at.
             "priorMessages" to history.map { it.text },
             "priorAuthors" to history.map { if (it.isOutgoing) "me" else "them" },

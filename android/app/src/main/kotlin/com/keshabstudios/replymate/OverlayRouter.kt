@@ -18,14 +18,14 @@ import android.provider.Settings
  * other sees the chat the user is already looking at, where no notification is
  * ever posted. The moment the message is known, the rest of the decision is
  * identical, and two copies of it would drift the first time either one was
- * fixed (docs/FLOATING_OVERLAY.md §5.3).
+ * fixed.md §5.3).
  *
  * The user's bubble switch governs both surfaces: switched off means neither
- * appears - the app does not nag (docs/FLOATING_OVERLAY.md §8).
+ * appears - the app does not nag.md §8).
  */
 object OverlayRouter {
 
-    /** The `source` values the Dart side reads (docs/PLATFORM_CHANNELS.md). */
+    /** The `source` values the Dart side reads. */
     const val SOURCE_BUBBLE = "bubble"
     const val SOURCE_FALLBACK = "fallback"
 
@@ -43,7 +43,7 @@ object OverlayRouter {
      * Degraded path 1: no overlay permission.
      * Degraded path 2: Android 12+ refused a foreground-service start because
      * this process is in the background - documented, not a bug
-     * (docs/FLOATING_OVERLAY.md §7).
+     * md §7).
      */
     fun route(context: Context, parsed: Map<String, Any?>) {
         if (!OverlayBubbleService.isEnabledByUser(context)) return
@@ -82,7 +82,7 @@ object OverlayRouter {
     /**
      * One notification per package, replaced rather than stacked, and it never
      * carries the message text - the app name is the whole promise
-     * (docs/PRIVACY_AND_PERMISSIONS.md).
+     * md).
      */
     private fun postFallbackNotification(context: Context, packageName: String) {
         val manager =

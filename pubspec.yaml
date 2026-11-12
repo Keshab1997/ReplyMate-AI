@@ -37,7 +37,7 @@ dependencies:
   # State management: Riverpod, one provider per feature (lib/features/*/providers).
   flutter_riverpod: ^2.5.1
   # Local preferences only (selected apps, defaults, onboarding flag).
-  # No message content is ever persisted (docs/PRIVACY_AND_PERMISSIONS.md).
+  # No message content is ever persisted.
   shared_preferences: ^2.3.3
   # Firebase: guest-mode invariant applies - without google-services.json the
   # app runs fully, AI generation and the admin section explain themselves

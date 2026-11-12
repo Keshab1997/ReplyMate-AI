@@ -1,6 +1,5 @@
 /// Names shared between the Dart and native layers, and preference keys.
-///
-/// The channel contract itself is documented in docs/PLATFORM_CHANNELS.md.
+/// The channel contract itself is documented in.
 class AppConstants {
   AppConstants._();
 
@@ -26,7 +25,7 @@ class AppConstants {
 
   /// The user's bubble switch. Mirrored natively (same meaning, native prefs)
   /// because the notification listener must read it while no Flutter engine is
-  /// alive (docs/FLOATING_OVERLAY.md §5.3).
+  /// alive.
   static const String prefBubbleEnabled = 'replymate.bubble_enabled';
 
   /// How long the bubble waits before hiding itself, in minutes, mirrored
@@ -34,14 +33,14 @@ class AppConstants {
   /// while no engine is alive. `0` means it never hides itself, and a value the
   /// service does not recognise falls back to the documented default rather
   /// than to "never" - the quieter of the two honest answers
-  /// (docs/FLOATING_OVERLAY.md §5.4).
+
   static const String prefBubbleAutoHideMinutes =
       'replymate.bubble_auto_hide_minutes';
 
   /// The user's "Show a preview" switch: the sender and first line, beside the
   /// bubble. Mirrored natively like the bubble switch, and **off by default** -
   /// a bubble over a chat is read by whoever is next to you
-  /// (docs/FLOATING_OVERLAY.md §5.6).
+
   static const String prefBubblePreviewEnabled =
       'replymate.bubble_preview_enabled';
 
@@ -53,7 +52,7 @@ class AppConstants {
   /// short enough that a forgotten bubble does not sit there all afternoon.
   static const int defaultBubbleAutoHideMinutes = 10;
 
-  /// The user's screen-reading switch (docs/SCREEN_READING.md). Mirrored
+  /// The user's screen-reading switch. Mirrored
   /// natively for the same reason as the bubble switch: the accessibility
   /// service must read it at a moment when no Flutter engine is alive.
   static const String prefScreenReadingEnabled =

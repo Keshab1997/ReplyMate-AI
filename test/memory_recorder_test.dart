@@ -3,7 +3,7 @@ import 'package:replymate/features/memory/domain/conversation_memory.dart';
 import 'package:replymate/features/memory/domain/memory_recorder.dart';
 import 'package:replymate/features/notifications/models/captured_notification.dart';
 
-/// The consent and honesty rules of docs/CONVERSATION_MEMORY.md, proven without
+/// The consent and honesty rules of, proven without
 /// a store: what may be remembered, what must be refused, and as whose line.
 void main() {
   const recorder = MemoryRecorder();

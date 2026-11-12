@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:replymate/features/overlay/models/overlay_context.dart';
 
 /// One row of the `consumeOverlayContext` wire format
-/// (docs/PLATFORM_CHANNELS.md) with every field set.
+/// with every field set.
 Map<Object?, Object?> _fullWire({String source = 'bubble'}) =>
     <Object?, Object?>{
       'source': source,

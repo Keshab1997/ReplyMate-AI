@@ -1,8 +1,7 @@
 rules_version = '2';
 
 // ReplyMate AI — Firestore security rules.
-//
-// Deployed model: the one written down in docs/FIREBASE_SETUP.md §3. That
+// Deployed model: the one written down in That
 // document is the source of truth; edit it and this file together, then
 // `firebase deploy --only firestore:rules`.
 service cloud.firestore {
@@ -31,7 +30,7 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // ARCHITECTURE A TRADE-OFF (see docs/API_SECURITY.md "Key-pool
+    // ARCHITECTURE A TRADE-OFF (see "Key-pool
     // decision"): the client must read keys to call providers directly, so
     // every signed-in user can read the pool. Treat pooled keys as
     // disposable free-tier consumables, never as production credentials.

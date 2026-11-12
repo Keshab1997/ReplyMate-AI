@@ -34,7 +34,6 @@ enum AppTab {
 }
 
 /// Which tab the shell is showing.
-///
 /// A provider rather than a callback threaded down the tree: Home's
 /// "Generate a reply" and the app-selection shortcut both sit several widgets
 /// below the shell, and passing a callback to each is how a tab bar ends up

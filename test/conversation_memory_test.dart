@@ -1,11 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:replymate/features/memory/domain/conversation_memory.dart';
 
-/// Proves the four numbered promises of docs/CONVERSATION_MEMORY.md §4 that can
+/// Proves the four numbered promises of that can
 /// be proven without a device: the cap evicts the *oldest*, age expiry drops the
 /// stale, a long paste cannot eat the budget, and the voice examples really do
 /// come from the user's own lines only.
-///
 /// A tiny policy keeps each rule visible instead of building forty lines to
 /// discover what happens at forty-one.
 void main() {

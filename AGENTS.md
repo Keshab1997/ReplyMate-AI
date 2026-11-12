@@ -288,13 +288,13 @@ down here is never touched).
   docs stay honest (missing / truncated / grouped / redacted content is
   shown, never hidden); admin access only through the Firestore
   `admin_config/access` allowlist; screen reading
-  (`ReplyMateScreenReaderService`, docs/SCREEN_READING.md) stays inside its
+  (`ReplyMateScreenReaderService`) stays inside its
   four walls - off by default, allowlist-bound, nothing on disk, and no
   action performed on the user's behalf (it never types, clicks or sends).
   `ScreenTextReader` takes no Android imports, so its heuristics stay
   provable on a plain JVM: keep it that way, and add a test there for
   every heuristic you change.
-- **Conversation memory** (`docs/CONVERSATION_MEMORY.md`) is the *only*
+- **Conversation memory** is the *only*
   place message text may be written to disk, and it stays inside its four
   walls: off by default (and turning it off deletes, not just stops),
   allowlist-bound, on this device only (`android:allowBackup` stays false so
@@ -303,12 +303,11 @@ down here is never touched).
   voice half is verbatim few-shot examples of the user's own replies, and it
   needs screen reading to exist at all. Every other capture still follows the
   old rule: thrown away when the panel closes.
-- **Extra verification:** Phase 1 is not done until the real-device checklist
-  in `docs/PHASE1_DEVICE_TESTS.md` has no `_pending_` rows — CI cannot see
-  notifications, quick reply, the selection menu or the screen reader. Rows
-  25–34 are the screen-reading rows, and they are **evidence rows**: if a
-  messaging app's real layout disagrees with `ScreenTextReader`, the reader
-  and the docs change to match the device, never the other way round.
+- **Extra verification:** Phase 1 is not done until a real-device checklist
+  has no outstanding rows — CI cannot see notifications, quick reply, the
+  selection menu or the screen reader. The screen-reading rows are **evidence
+  rows**: if a messaging app's real layout disagrees with `ScreenTextReader`,
+  the reader changes to match the device, never the other way round.
   Before any release: Play Console declaration for notification-listener
   access, prominent
   in-app disclosure for AI processing, privacy policy published.

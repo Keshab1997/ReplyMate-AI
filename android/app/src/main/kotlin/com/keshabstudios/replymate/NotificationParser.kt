@@ -11,7 +11,7 @@ import android.service.notification.StatusBarNotification
  * grouped or redacted (FR-04).
  *
  * The produced map is the wire format of the `notification_captured` event;
- * the contract is documented in docs/PLATFORM_CHANNELS.md and mirrored by
+ * the contract is documented in.md and mirrored by
  * `CapturedNotification.fromMap` on the Dart side.
  *
  * Pure function of the notification: no I/O, no state, so it can be reasoned

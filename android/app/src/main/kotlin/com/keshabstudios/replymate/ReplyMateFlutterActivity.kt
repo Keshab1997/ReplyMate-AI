@@ -20,7 +20,7 @@ import io.flutter.plugin.common.MethodChannel
  * with no channel at all - `consumeOverlayContext` answered
  * `MissingPluginException`, the panel fell back to "Nothing to reply to", and
  * tapping the bubble looked like a broken feature. One host class, one
- * contract (docs/PLATFORM_CHANNELS.md), no drift between the two activities.
+ * contract.md), no drift between the two activities.
  */
 abstract class ReplyMateFlutterActivity : FlutterActivity() {
 
@@ -181,7 +181,7 @@ abstract class ReplyMateFlutterActivity : FlutterActivity() {
      * Starts the bubble service while the app is visible. Android 12+ forbids
      * starting a foreground service from the background, so this is the one
      * moment the service may be started; from then on the listener only
-     * updates it (docs/FLOATING_OVERLAY.md §7).
+     * updates it.md §7).
      */
     override fun onStart() {
         super.onStart()
@@ -305,7 +305,7 @@ abstract class ReplyMateFlutterActivity : FlutterActivity() {
      * happens on a screen Android owns: the user can turn it off there without
      * this app ever being told. This is also how an Android 16+ device with
      * Advanced Protection Mode shows up - the grant simply is not there, and
-     * the UI says so instead of blaming the reader (docs/SCREEN_READING.md).
+     * the UI says so instead of blaming the reader.md).
      */
     private fun isScreenReadingAvailable(): Boolean {
         val expected =
@@ -352,7 +352,7 @@ abstract class ReplyMateFlutterActivity : FlutterActivity() {
     /**
      * Messaging apps ReplyMate knows how to work with. Only installed apps are
      * offered: the app must never claim support for something it cannot see
-     * (docs/SCREEN_SPECIFICATIONS.md, screen 5).
+     * md, screen 5).
      */
     private fun candidateApps(): List<Map<String, Any?>> {
         return CANDIDATE_PACKAGES.mapNotNull { packageName ->

@@ -6,7 +6,7 @@ package com.keshabstudios.replymate
  * **Memory only, never persisted.** The map is held in the process heap and is
  * gone the moment the process dies. It is never written to SharedPreferences,
  * a file, a database, a cache, or a log - not on the way in, not on the way
- * out (docs/FLOATING_OVERLAY.md §5.2, docs/PRIVACY_AND_PERMISSIONS.md).
+ * out.md §5.2,.md).
  *
  * Up to [MAX_PENDING] messages are kept, because three chats can ping you while
  * the bubble is on screen and collapsing them into one meant the panel could
@@ -22,7 +22,7 @@ object OverlayBubbleController {
 
     /**
      * The pending context, or null when nothing is waiting. The map uses the
-     * wire format of docs/PLATFORM_CHANNELS.md plus a `source` key
+     * wire format of.md plus a `source` key
      * (`bubble` / `fallback`).
      */
     const val MAX_PENDING = 5

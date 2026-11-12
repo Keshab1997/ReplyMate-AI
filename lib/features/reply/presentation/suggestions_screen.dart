@@ -12,7 +12,7 @@ import '../../notifications/providers/notification_providers.dart';
 import '../domain/reply_request.dart';
 import 'widgets/suggestion_card.dart';
 
-/// Screen 7 of docs/SCREEN_SPECIFICATIONS.md: generated replies as separate
+/// Screen 7 of: generated replies as separate
 /// cards with copy, edit and - only when a valid RemoteInput action exists -
 /// quick reply (FR-08, USER_FLOWS flows 2 and 3).
 class SuggestionsScreen extends ConsumerStatefulWidget {

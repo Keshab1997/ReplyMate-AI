@@ -9,8 +9,7 @@ import '../domain/reply_request.dart';
 /// The production [ReplyRepository]: pulls a healthy key from the
 /// admin-managed Firestore pool and calls the provider's
 /// `/chat/completions` endpoint directly (architecture A, recorded in
-/// docs/API_SECURITY.md "Key-pool decision").
-///
+/// "Key-pool decision").
 /// Every failure path returns a [ReplyFailure] with an honest message and a
 /// correct retryable flag; a key that misbehaved is reported back to the pool
 /// so its cooldown / deactivation logic can act.

@@ -5,13 +5,11 @@ import '../../../core/constants/app_constants.dart';
 import '../../notifications/providers/notification_providers.dart';
 import '../models/screen_reading_status.dart';
 
-/// The user's "Read the open chat" switch (docs/SCREEN_READING.md).
-///
+/// The user's "Read the open chat" switch.
 /// Default **off**, and off is a real answer. Screen reading is a bigger ask
 /// than notification access: it is the one feature here that can see text the
 /// platform never hands us, so it is never implied by another permission and
 /// never switched on unless the user says so on this switch.
-///
 /// The switch and the Android setting are two separate things and the UI says
 /// so: Android grants accessibility access in its own Settings screen, and
 /// this switch then decides whether ReplyMate uses it. With Android 16+
@@ -59,7 +57,6 @@ class ScreenReadingNotifier extends Notifier<bool> {
 }
 
 /// Whether Android has actually granted accessibility access.
-///
 /// Re-read on resume: the user grants it on a system screen that covers the
 /// app, so the value the switch was built with is stale the moment they come
 /// back - the same fix the overlay switch needed.
@@ -91,7 +88,6 @@ class ScreenReadingAvailabilityNotifier extends Notifier<bool> {
 }
 
 /// What the reader did the last time it looked at a screen.
-///
 /// A [FutureProvider] rather than a notifier holding state: the truth lives on
 /// the native side and changes while the user is in another app, so every read
 /// here is a fresh ask. The card's Refresh button invalidates this.

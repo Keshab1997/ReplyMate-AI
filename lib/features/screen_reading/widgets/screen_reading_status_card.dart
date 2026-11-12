@@ -8,7 +8,6 @@ import '../providers/screen_reading_provider.dart';
 
 /// What the screen reader is actually doing, in words - and, when it is not
 /// working, the way to the one screen that can fix it.
-///
 /// "It does not work" is not a bug report: it is five different failures that
 /// look identical from the outside. This card names the one that happened, so
 /// the difference between a missing permission, an empty allowlist and a bad

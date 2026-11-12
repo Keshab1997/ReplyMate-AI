@@ -21,7 +21,7 @@ package com.keshabstudios.replymate
  * (`ScreenReadingGateTest.kt`).
  *
  * Nothing here is persisted: the remembered texts live in this object's heap,
- * which dies with the service (docs/SCREEN_READING.md §3 rule 5).
+ * which dies with the service.md §3 rule 5).
  */
 class ScreenReadingGate {
 
@@ -88,7 +88,7 @@ class ScreenReadingGate {
      * Exposed so the memory bound is asserted rather than assumed: this gate
      * is the one object in the feature that holds message text over time, and
      * "it stays bounded" is a promise worth a test
-     * (docs/SCREEN_READING.md §3 rule 5).
+     * md §3 rule 5).
      */
     fun rememberedCount(packageName: String): Int =
         remembered[packageName]?.size ?: 0

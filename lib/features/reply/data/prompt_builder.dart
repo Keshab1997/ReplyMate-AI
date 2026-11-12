@@ -2,8 +2,7 @@ import '../../../core/constants/reply_options.dart';
 import '../domain/reply_request.dart';
 
 /// Builds the two prompts for a generation request.
-///
-/// The system prompt carries the prompt rules from docs/AI_INTEGRATION.md
+/// The system prompt carries the prompt rules from
 /// verbatim in spirit: preserve meaning, invent nothing, respect language /
 /// tone / length, and return machine-readable output the app can validate -
 /// because a reply the app cannot parse must never be shown as a success.
@@ -31,7 +30,6 @@ Return ONLY a JSON object of this exact shape, with exactly $count replies:
 ''';
 
   /// The one rule the partner voices have to answer for.
-  ///
   /// "Do not assume a relationship" is a rule with teeth: a reply that assumes
   /// an intimacy the user never asked for is the kind of thing that makes a
   /// messaging app embarrassing to hand to someone. These two tones are the
@@ -47,7 +45,6 @@ Return ONLY a JSON object of this exact shape, with exactly $count replies:
   }
 
   /// Shows the model how this user actually writes.
-  ///
   /// Examples beat adjectives: "casual" gets a model to write *a* casual reply,
   /// while two lines the user really sent get it to write *their* casual reply.
   /// The block is fenced and labelled so the model copies the register and not
@@ -64,7 +61,6 @@ $lines
   }
 
   /// What a partner voice needs said out loud.
-  ///
   /// A label alone does not tell a model to use তুমি instead of আপনি, or to
   /// keep the emojis to two. Left unsaid it writes the Bengali equivalent of a
   /// greetings card, which is worse than useless - it reads as copy-pasted.

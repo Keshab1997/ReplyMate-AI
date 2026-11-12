@@ -15,7 +15,7 @@
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
-    <!-- Floating reply panel (docs/FLOATING_OVERLAY.md §6): a translucent
+    <!-- Floating reply panel: a translucent
          activity so the panel floats over the app the user was in, rather than
          replacing it. Declared here (and in values-night) even before the
          activity exists so the manifest and the theme land together. -->

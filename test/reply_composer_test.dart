@@ -101,7 +101,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // No captured notification, no PROCESS_TEXT/SEND text: the composer says
-    // why the box is empty (docs/OVERLAY_TASKS.md Batch 0).
+    // why the box is empty.
     expect(find.textContaining('No message was captured'), findsOneWidget);
 
     // Generate stays tappable on purpose: validation, not a dead button,

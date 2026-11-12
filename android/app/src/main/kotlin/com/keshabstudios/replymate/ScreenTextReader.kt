@@ -11,7 +11,7 @@ package com.keshabstudios.replymate
  * `android/app/src/test/kotlin/.../ScreenTextReaderTest.kt` builds fake trees
  * and runs the real code, with no device, no emulator and no Android SDK.
  *
- * It is a **heuristic**, and the docs say so (docs/SCREEN_READING.md). Messaging
+ * It is a **heuristic**, and the docs say so.md). Messaging
  * apps give message bubbles no stable resource id, so the tree is read by
  * shape: the message list is the scrolling container with the most children,
  * the newest message is among its last rows, and an incoming bubble is the one
@@ -83,7 +83,7 @@ enum class ReadOutcome {
  * [isOutgoing] is the whole reason this type exists: it is the only place in
  * this app where a line's *author* is known, and conversation memory needs the
  * author to tell "what they said" from "how the user writes"
- * (docs/CONVERSATION_MEMORY.md §8). The notification path cannot say this -
+ * md §8). The notification path cannot say this -
  * a notification only ever carries arrivals.
  */
 data class ScreenHistoryLine(

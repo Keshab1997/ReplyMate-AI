@@ -1,8 +1,7 @@
 /// One notification's worth of message context, exactly as the native parser
 /// delivered it.
-///
 /// Mirrors the `notification_captured` wire format in
-/// docs/PLATFORM_CHANNELS.md. The constructor is deliberately strict about
+/// The constructor is deliberately strict about
 /// structure (a missing packageName or key means the event is not from our
 /// native layer and must not be trusted) and deliberately lenient about
 /// content (FR-04: missing, truncated, grouped or redacted text is a normal
@@ -71,13 +70,12 @@ class CapturedNotification {
   final List<String> priorMessages;
 
   /// Who said each entry of [priorMessages], oldest first: `me` or `them`.
-  ///
   /// Empty means **unknown**, not "them". Only the screen reader knows a line's
   /// author, because only the screen shows which side a bubble sits on; a
   /// notification carries arrivals and nothing else. Callers that need the
   /// author must check [hasTaggedHistory] and refuse the history otherwise -
   /// guessing would label the user's own words as the sender's
-  /// (docs/CONVERSATION_MEMORY.md §8).
+
   final List<String> priorAuthors;
 
   final bool isTruncated;
@@ -89,7 +87,7 @@ class CapturedNotification {
   final int postedAtMillis;
 
   /// True when this text was read off the screen rather than delivered by a
-  /// notification (docs/SCREEN_READING.md). It is not a warning and not a
+  /// notification. It is not a warning and not a
   /// problem - it is a fact the UI says out loud, because "where did this
   /// message come from" is exactly the question a privacy-first app owes an
   /// answer to.
@@ -133,7 +131,6 @@ class CapturedNotification {
 
   /// Honest one-line summary of why this context may be incomplete; empty
   /// when nothing is wrong.
-  ///
   /// The flags on the wire are literal facts about the notification; this list
   /// is the *judgement* about which ones the user can act on. Two of them are
   /// noisy on their own:
@@ -142,9 +139,8 @@ class CapturedNotification {
   ///    (stacked messages, where the text really is a digest) is reported;
   ///  - `mayBeRedacted` only matters when no text arrived - if the text is
   ///    here, nothing was hidden from us.
-  ///
   /// Warning about everything all the time trains the user to ignore the
-  /// warning that does matter (docs/FLOATING_OVERLAY.md §3 rule 7).
+  /// warning that does matter.
   List<String> get contextWarnings {
     final warnings = <String>[];
     if (!hasText) {

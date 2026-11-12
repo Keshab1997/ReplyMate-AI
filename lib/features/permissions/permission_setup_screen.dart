@@ -203,11 +203,9 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen>
   }
 }
 
-/// The overlay card (screen 4 of docs/SCREEN_SPECIFICATIONS.md, docs/
-/// FLOATING_OVERLAY.md §6): what "display over other apps" is for here, what it
+/// The overlay card (screen 4 of, FLOATING_OVERLAY.md §6): what "display over other apps" is for here, what it
 /// is emphatically *not* for, its current state, and the two things Android 13+
 /// additionally requires.
-///
 /// Written as an explanation, not a sales pitch: declining it is a supported,
 /// explained outcome - the fallback notification is the degraded path, not a
 /// broken app.

@@ -1,10 +1,8 @@
 /// What the screen reader did the last time it looked at the screen.
-///
 /// "It reads nothing" is five different failures, and from outside the phone
 /// they are impossible to tell apart: the window belonged to another app, no
 /// message list was found, every row was rejected, or the newest message was
 /// one the user had already sent. Each one has a different fix.
-///
 /// This is the difference between guessing and knowing, and Settings shows it -
 /// so a problem can be named without adb on a laptop.
 class ScreenReadingStatus {
@@ -76,7 +74,6 @@ class ScreenReadingStatus {
   bool get hasScanned => lastOutcome != null;
 
   /// Whether the reader is doing its job.
-  ///
   /// `outgoing` and `not_new` are not failures - they are the reader correctly
   /// deciding there is nothing to answer - so they must not be offered as
   /// something to fix. Null is not healthy either: a reader that has never
@@ -87,7 +84,6 @@ class ScreenReadingStatus {
       lastOutcome == 'outgoing';
 
   /// Whether there is something the user can act on.
-  ///
   /// Deliberately not true before the first scan: a reader that has never been
   /// given a screen is not broken, and pointing at Android's settings would be
   /// the wrong advice for somebody who simply has not opened a chat yet.

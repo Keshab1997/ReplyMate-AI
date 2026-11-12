@@ -11,12 +11,10 @@ import '../features/reply/presentation/reply_composer_screen.dart';
 import '../features/settings/settings_screen.dart';
 
 /// The app's one screen, with the four destinations along the bottom.
-///
 /// The children are built with `embedded: true`, which drops their own
 /// `Scaffold`: a Scaffold inside a Scaffold stacks two `SafeArea`s and leaves
 /// a dead band above the tab bar. The shell owns the chrome; each tab owns
 /// only its content.
-///
 /// All four are kept alive by `IndexedStack` rather than rebuilt on switch, so
 /// a half-typed reply survives a trip to Settings and back - the same reason
 /// a native tab bar keeps its fragments.

@@ -16,7 +16,6 @@ final Provider<MemoryRecorder> memoryRecorderProvider =
     Provider<MemoryRecorder>((ref) => const MemoryRecorder());
 
 /// The chats that have memory, for the Settings list.
-///
 /// A provider rather than a one-off read, because the list is the feature's
 /// proof: every remembered chat has to appear without the user wondering
 /// whether it saved. The shell keeps Settings alive in an `IndexedStack`, so a
@@ -27,9 +26,8 @@ final FutureProvider<List<ConversationKey>> conversationMemoryContactsProvider =
       (ref) => ref.watch(conversationMemoryStoreProvider).contacts(),
     );
 
-/// The master switch of docs/CONVERSATION_MEMORY.md — off until the user says
+/// The master switch of — off until the user says
 /// otherwise, and turning it off deletes what it stored.
-///
 /// Default `false` is not a placeholder: it is the feature's first wall. Until
 /// the user reads what it does and turns it on, this app writes no message text
 /// anywhere.
@@ -45,7 +43,6 @@ class ConversationMemorySwitch extends Notifier<bool> {
   bool _alive = true;
 
   /// Completes when the stored value has been read.
-  ///
   /// The reply panel is a **separate Flutter engine**, so it boots cold and
   /// reads these preferences again. Answering from [build]'s initial `false`
   /// before the read lands would mean "the user turned memory on, generated a
@@ -90,7 +87,6 @@ class ConversationMemorySwitch extends Notifier<bool> {
 }
 
 /// The one place the app writes conversation memory.
-///
 /// Reading and writing are deliberately separate: [windowFor] never writes, and
 /// [rememberCapture] never answers. A read that quietly wrote would make the
 /// Settings list and the device checklist both lie about when things are
@@ -128,7 +124,6 @@ class ConversationMemoryController {
       );
 
   /// What the app already knows about this conversation, for the prompt.
-  ///
   /// Null means "no memory applies here" - the switch is off, the app is not
   /// allowlisted, or the contact cannot be filed. Callers fall back to whatever
   /// the capture itself carried, which is exactly what the app did before this
@@ -143,7 +138,6 @@ class ConversationMemoryController {
   }
 
   /// Stores the incoming message, then returns the window *including* it.
-  ///
   /// Called when the user **asks for a draft** - the Generate button in the
   /// bubble and in the composer - not when a notification arrives and not when
   /// a panel opens. Two reasons, and both matter: a message nobody asked about

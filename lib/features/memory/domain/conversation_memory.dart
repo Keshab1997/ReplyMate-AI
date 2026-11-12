@@ -1,8 +1,7 @@
 import 'dart:math' as math;
 
 /// The caps and expiry that keep conversation memory a window instead of a
-/// record (docs/CONVERSATION_MEMORY.md §4).
-///
+/// record.
 /// They live in one object so a test can hand in a tiny policy and prove the
 /// eviction rules in milliseconds, instead of building forty lines to find out
 /// what happens at forty-one. Nothing here reads the clock: `now` is passed in,
@@ -19,7 +18,7 @@ class MemoryPolicy {
   });
 
   /// The shipped limits. Changing a number here is a doc change too - §4 of
-  /// docs/CONVERSATION_MEMORY.md is the table the user is promised.
+  /// is the table the user is promised.
   static const MemoryPolicy standard = MemoryPolicy();
 
   /// Oldest lines are evicted past this; the newest always survive.
@@ -98,9 +97,8 @@ class MemoryLine {
 }
 
 /// What a memory is filed under.
-///
 /// A notification's sender name is a **display name, not a contact identity**
-/// (docs/CONVERSATION_MEMORY.md §5): a rename starts a new memory, a group chat
+/// : a rename starts a new memory, a group chat
 /// files under the group, and two contacts sharing a display name share one
 /// memory. That is a known, documented weakness - not something this class
 /// papers over with a fingerprint that would still be guessing.
@@ -142,7 +140,6 @@ class ConversationKey {
 
 /// A bounded, per-contact window of a conversation plus the voice examples
 /// drawn from the user's own lines.
-///
 /// Immutable: [append] and [fromStored] return a new window with the policy
 /// applied. That is what makes every eviction rule in §4 a one-line unit test
 /// instead of an integration test against a database.
@@ -187,11 +184,10 @@ class ConversationMemory {
 
   /// True when this window can say anything about how the user writes. False is
   /// the honest answer with screen reading off: notification capture only ever
-  /// sees arrivals (docs/CONVERSATION_MEMORY.md §8).
+  /// sees arrivals.
   bool get hasVoiceEvidence => styleExamples().isNotEmpty;
 
   /// Adds one line to the newest end and re-applies the window.
-  ///
   /// Appending to the past is a caller bug, not something to silently repair,
   /// but it must not corrupt the order either - [fromStored] sorts, so an
   /// out-of-order line lands where its timestamp says it belongs.
@@ -218,7 +214,6 @@ class ConversationMemory {
 
   /// At most [MemoryPolicy.styleExampleCount] of the user's own lines, shortest
   /// path to "write it the way I write it".
-  ///
   /// Newest first: the most recent thing someone typed is the closest thing
   /// there is to how they talk today, and a year-old register is a trap.
   List<String> styleExamples() {

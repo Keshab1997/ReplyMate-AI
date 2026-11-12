@@ -1,5 +1,4 @@
 /// How the current reply session started.
-///
 /// `processText` = the user selected text in another app and chose ReplyMate
 /// from the floating selection menu; `share` = the share sheet handed us
 /// text; `manual` = nothing arrived, the user types or pastes.
@@ -11,7 +10,7 @@ enum LaunchSource {
   const LaunchSource(this.wireName, this.label);
 
   /// The value the native layer puts on the wire (snake_case, matching the
-  /// intent actions); see docs/PLATFORM_CHANNELS.md.
+  /// intent actions); see.
   final String wireName;
   final String label;
 

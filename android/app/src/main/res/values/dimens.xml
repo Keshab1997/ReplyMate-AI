@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Floating reply bubble (docs/FLOATING_OVERLAY.md).
+    <!-- Floating reply bubble.
          56dp is the smallest circle that is still comfortably tappable at
          large font scales and bold display settings. -->
     <dimen name="overlay_bubble_size">56dp</dimen>

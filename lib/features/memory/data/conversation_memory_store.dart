@@ -7,7 +7,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../domain/conversation_memory.dart';
 
 /// The raw storage a [ConversationMemoryStore] sits on.
-///
 /// An interface, for the same reason `KeySource` is one: the store's rules -
 /// the per-contact cap, eviction when there are too many contacts, "a broken
 /// record costs nobody their reply" - are the parts worth testing, and none of
@@ -25,16 +24,14 @@ abstract interface class MemoryBackend {
 }
 
 /// The real backend: one Hive box under the app's own documents directory.
-///
 /// Two things here are deliberate and easy to get wrong.
-///
 /// 1. It initialises Hive itself instead of assuming someone else did. Hive is
 ///    normally started by `bootstrapFirebase`, which returns early when
 ///    `google-services.json` is missing - and the guest-mode invariant says the
 ///    app must work fully without Firebase. A store that silently stopped
 ///    working in guest mode would be the exact bug that invariant exists to
 ///    prevent.
-/// 2. Every failure is swallowed into "no memory". docs/CONVERSATION_MEMORY.md
+/// 2. Every failure is swallowed into "no memory".
 ///    §9: memory is never allowed to break generation.
 class HiveMemoryBackend implements MemoryBackend {
   HiveMemoryBackend({this.boxName = defaultBoxName});
@@ -46,7 +43,6 @@ class HiveMemoryBackend implements MemoryBackend {
   final String boxName;
 
   /// Operations run one at a time.
-  ///
   /// Not caution: the box is opened and closed by every operation, so two
   /// overlapping calls in this isolate could have one closing the box the other
   /// is still reading. Serialising is cheap here (the store holds at most 50
@@ -55,7 +51,6 @@ class HiveMemoryBackend implements MemoryBackend {
   Future<void> _tail = Future<void>.value();
 
   /// Runs one operation against the box, then **closes it again**.
-  ///
   /// The close is the whole point, and it is not tidiness. The reply panel runs
   /// in its own Flutter engine, which means its own Dart isolate, which means
   /// its own Hive instance holding its own in-memory copy of every box it has
@@ -77,7 +72,7 @@ class HiveMemoryBackend implements MemoryBackend {
       box = await _open();
       return await action(box);
     } catch (error) {
-      // Memory is never allowed to break generation (docs/CONVERSATION_MEMORY.md
+      // Memory is never allowed to break generation
       // §9), and one bad open must not poison every later attempt.
       debugPrint('ReplyMate: conversation memory unavailable ($error)');
       return fallback;
@@ -149,8 +144,7 @@ class HiveMemoryBackend implements MemoryBackend {
 }
 
 /// The store proper: per-contact windows with the cap from
-/// docs/CONVERSATION_MEMORY.md §4, over any [MemoryBackend].
-///
+/// over any [MemoryBackend].
 /// Nothing in here decides *whether* memory is allowed - that is the switch and
 /// the recorder's job. This class answers "what do we have" and "keep this".
 class ConversationMemoryStore {
@@ -187,7 +181,6 @@ class ConversationMemoryStore {
 
   /// Writes the window back and keeps the number of contacts inside
   /// [MemoryPolicy.maxContacts].
-  ///
   /// An empty window deletes instead of storing an empty husk, so "forget this
   /// contact" and "everything in it aged out" end in the same place: nothing on
   /// disk.
@@ -216,7 +209,7 @@ class ConversationMemoryStore {
   }
 
   /// Turning the switch off calls this: gone, not frozen
-  /// (docs/CONVERSATION_MEMORY.md §3, wall 1).
+
   Future<void> forgetAll() async {
     try {
       await _backend.clearAll();

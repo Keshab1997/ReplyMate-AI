@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
 
 /// The language of the *interface*.
-///
 /// This is deliberately separate from [ReplyLanguage] (the language a reply is
 /// written in): a Bengali speaker talking to an English-speaking colleague
 /// wants a Bengali app that drafts English replies. The docs already treat the
@@ -26,7 +25,6 @@ enum AppLanguage {
 }
 
 /// Every string the redesigned screens show, in one place.
-///
 /// Deliberately a plain abstract class instead of generated ARB files: the app
 /// has two languages and one translator, and a compile error on a missing
 /// string is worth more here than a build step. Migrating to `flutter_localizations`

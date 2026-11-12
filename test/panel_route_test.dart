@@ -9,7 +9,6 @@ import 'package:replymate/features/home/home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// The panel must never be a door into the main app.
-///
 /// Flutter's default initial-route handling built `/` underneath `/overlay`, so
 /// the transparent panel activity had ReplyMate sitting behind its barrier:
 /// tapping the empty space around the panel popped the panel and showed the app

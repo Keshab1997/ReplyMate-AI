@@ -1,10 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- ReplyMate AI's own notifications (status / all-keys-failed alerts).
          Separate from notification-listener access: one never implies the
-         other (docs/ANDROID_NATIVE_SERVICES.md). -->
+         other. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
-    <!-- Floating reply bubble (docs/FLOATING_OVERLAY.md §6). All three are
+    <!-- Floating reply bubble. All three are
          optional: without SYSTEM_ALERT_WINDOW the bubble simply never shows and
          the fallback notification takes over. Granting overlay access never
          implies - and is never treated as - notification access. -->
@@ -14,7 +14,7 @@
 
     <!--
         allowBackup is false on purpose, and it is a privacy rule, not a
-        default left alone. Conversation memory (docs/CONVERSATION_MEMORY.md)
+        default left alone. Conversation memory
         is the one place this app writes message text to storage, and it
         promises that text never leaves the device. Android Auto Backup would
         quietly upload app-private files to the user's Drive - a promise kept
@@ -94,7 +94,7 @@
             android:windowSoftInputMode="adjustResize" />
 
         <!-- Entry point 2: the screen itself. Off by default, allowlist-bound
-             and read-only - see docs/SCREEN_READING.md. The binding permission
+             and read-only - see. The binding permission
              is Android's own; the user grants access in Settings, and only
              after the in-app disclosure explained what it means. Android shows
              its own warning for any service that can read window content, and

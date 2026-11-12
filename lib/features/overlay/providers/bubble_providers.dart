@@ -5,11 +5,10 @@ import '../../../core/constants/app_constants.dart';
 import '../../notifications/providers/notification_providers.dart';
 
 /// The user's "Reply bubble" switch (screen 8 of
-/// docs/SCREEN_SPECIFICATIONS.md).
-///
+/// ).
 /// Default **off**, and off is a real answer: with the switch off neither the
 /// bubble nor the fallback notification appears, so the app never nags
-/// (docs/FLOATING_OVERLAY.md §8). The switch only becomes usable once overlay
+/// The switch only becomes usable once overlay
 /// access is granted; the paid-for consequence of turning it on is a
 /// foreground service, which is why it is never implied by another permission.
 final NotifierProvider<BubbleEnabledNotifier, bool> bubbleEnabledProvider =
@@ -51,14 +50,12 @@ class BubbleEnabledNotifier extends Notifier<bool> {
 }
 
 /// How long the bubble waits before hiding itself, in minutes; `0` means it
-/// never does (docs/FLOATING_OVERLAY.md §5.4).
-///
+/// never does.
 /// A setting rather than a constant because the fixed ten minutes was wrong in
 /// both directions: too long for someone who wants the bubble gone the moment
 /// they have answered, too short for a long conversation. Default **10
 /// minutes**, which is the value the service used to hard-code, so nobody's
 /// bubble changes behaviour on update.
-///
 /// Mirrored natively exactly like [bubbleEnabledProvider] - the service answers
 /// this question while no Flutter engine exists, so the number has to live on
 /// the native side too.
@@ -107,12 +104,10 @@ class BubbleAutoHideNotifier extends Notifier<int> {
 }
 
 /// The bubble's opt-in preview: sender + first line, drawn beside the bubble.
-///
 /// **Off by default, and the default is the point.** This is the only place
 /// where message text reaches the screen outside the panel, and a bubble sitting
 /// over a chat is read by whoever is next to you. People who want it can have it;
-/// nobody gets it by accident (docs/FLOATING_OVERLAY.md §5.6).
-///
+/// nobody gets it by accident.
 /// What it never does, whatever this switch says: show redacted, truncated or
 /// group-summary text as if it were the message (the pill says what it actually
 /// has), appear on the lock screen, or write anything to disk.

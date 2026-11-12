@@ -5,7 +5,6 @@ import '../../../core/constants/app_constants.dart';
 import '../../notifications/providers/notification_providers.dart';
 
 /// The user's messaging-app allowlist (FR-03).
-///
 /// The selection is the privacy boundary: the native listener processes only
 /// these packages. Every change is mirrored down to the native layer
 /// immediately, so a revoke takes effect without a restart.

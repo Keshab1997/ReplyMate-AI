@@ -12,7 +12,7 @@ import io.flutter.embedding.android.FlutterActivityLaunchConfigs
  * cannot be started by anything else (`exported="false"`). Everything the user
  * sees is Dart - `OverlayPanelScreen` at [ROUTE_OVERLAY] - which means the
  * panel reuses the real reply flow instead of a Kotlin reimplementation
- * (docs/FLOATING_OVERLAY.md §4.1).
+ * md §4.1).
  *
  * The pending message is read once through `consumeOverlayContext` and is never
  * written to disk or a log by this activity.

@@ -25,7 +25,6 @@ import 'providers/preferences_provider.dart';
 
 /// Screen 8 plus the privacy screen (9): defaults, permission state, and the
 /// privacy explanation with a working "clear local preferences" control.
-///
 /// Stateful and lifecycle-aware for one reason: the overlay grant can be given
 /// or taken away in Android Settings while this screen is alive. Without a
 /// resume re-read the "Reply bubble" switch would stay greyed out after the
@@ -98,7 +97,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   }
 
   /// Turns the floating reply bubble on or off (default off).
-  ///
   /// Enabling asks for the Android 13+ notification permission first, because
   /// without it the bubble's own notification and the fallback notification
   /// cannot appear - and the user deserves to know that before wondering why
@@ -129,12 +127,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   }
 
   /// Turns screen reading on or off (default off).
-  ///
   /// Turning it **on** shows the disclosure first and waits for a real
   /// confirmation: this is the one feature that reads text off the screen
   /// rather than out of a notification, and "I agreed to that" has to be an
   /// answer the user gave, not a side effect of tapping a switch. A refusal
-  /// leaves the switch exactly where it was (docs/SCREEN_READING.md).
+  /// leaves the switch exactly where it was.
   /// Opens Android's accessibility screen. Always available, not only when the
   /// grant is missing: the toggle has to be turned off and on again after a
   /// config change, which is something you do while the grant is still there.
@@ -484,7 +481,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                               // with the bubble switch: this is the only place
                               // message text reaches the screen outside the
                               // panel, so it is a separate yes
-                              // (docs/FLOATING_OVERLAY.md §5.6).
+
                               SwitchListTile(
                                 value: bubblePreview,
                                 secondary: AppSurfaces.iconBadge(

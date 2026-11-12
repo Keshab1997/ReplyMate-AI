@@ -5,11 +5,11 @@ Thank you for your interest in contributing.
 ## Before You Start
 
 Read:
-- README.md
+-
 - AGENTS.md
 - PROJECT_OVERVIEW.md
 - PRODUCT_REQUIREMENTS.md
-- Relevant documentation in `docs/`
+- A short note in the pull-request description on what changed and why
 
 ## Contribution Guidelines
 
@@ -37,7 +37,7 @@ Read:
 - `feat: implement reply generation`
 - `fix: handle missing notification text`
 - `test: add RemoteInput validation tests`
-- `docs: update Android integration guide`
+- `docs: explain the bubble hand-off`
 
 ## Privacy
 

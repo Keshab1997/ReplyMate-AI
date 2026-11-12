@@ -10,7 +10,6 @@ import '../../core/firebase/firebase_providers.dart';
 import '../../shared/widgets/screen_header.dart';
 
 /// The admin section gate (FR: admin section, batch 2).
-///
 /// Four honest states: Firebase not configured on this install; signed out;
 /// signed in but not on the allowlist; admin. The allowlist itself lives in
 /// Firestore (`admin_config/access`), so adding an admin never needs a

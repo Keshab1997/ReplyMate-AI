@@ -3,10 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../notifications/providers/notification_providers.dart';
 
 /// Notification-listener access state (FR-02).
-///
 /// Starts at false and refreshes from the native layer; native events keep it
 /// honest while the app is open (Android can revoke access from Settings at
-/// any time, docs/USER_FLOWS flow 4).
+/// any time,.
 final NotifierProvider<PermissionNotifier, bool> listenerPermissionProvider =
     NotifierProvider<PermissionNotifier, bool>(PermissionNotifier.new);
 
@@ -40,8 +39,6 @@ class PermissionNotifier extends Notifier<bool> {
 }
 
 /// "Display over other apps" state, for the floating reply bubble
-/// (docs/FLOATING_OVERLAY.md §6).
-///
 /// A separate provider on purpose: overlay access is its own grant, is
 /// revocable on its own, and must never be inferred from - or imply -
 /// notification access.

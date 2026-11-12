@@ -6,7 +6,6 @@ import '../../../../app/theme/app_icons.dart';
 import '../../../../app/theme/app_theme.dart';
 
 /// One generated reply: editable text, and copy/share to hand it over.
-///
 /// There is no send button, and there never was one that worked. A reply is
 /// handed to the messaging app only when the user pastes it, which is the one
 /// route that works in every app on the allowlist.

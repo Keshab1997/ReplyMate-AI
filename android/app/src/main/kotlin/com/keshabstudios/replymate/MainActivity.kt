@@ -18,7 +18,7 @@ class MainActivity : ReplyMateFlutterActivity() {
          * composer opens prefilled instead of Home.
          *
          * The bubble itself does not use this any more - it launches
-         * [OverlayPanelActivity] directly (docs/OVERLAY_TASKS.md, Batch 2).
+         * [OverlayPanelActivity] directly.md, Batch 2).
          */
         const val ACTION_OVERLAY_PANEL =
             "com.keshabstudios.replymate.action.OVERLAY_PANEL"

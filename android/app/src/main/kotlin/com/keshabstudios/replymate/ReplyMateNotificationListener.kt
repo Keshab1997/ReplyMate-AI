@@ -13,8 +13,8 @@ import android.service.notification.StatusBarNotification
 /**
  * The MVP's only message-context source: notifications the user chose to share.
  *
- * Rules this service lives by (docs/NOTIFICATION_LISTENER.md,
- * docs/PRIVACY_AND_PERMISSIONS.md):
+ * Rules this service lives by.md,
+ * md):
  *  - Processes only packages the user selected on the app-selection screen.
  *  - Never retains message content: events are forwarded once and forgotten;
  *    the only things kept are the last notification that exposed a reply
@@ -24,10 +24,10 @@ import android.service.notification.StatusBarNotification
  *  - Quick reply is attempted only when a valid RemoteInput action exists;
  *    every failure returns false and the Flutter side offers copy / open-app.
  *
- * Since the floating bubble exists (docs/FLOATING_OVERLAY.md) this service also
+ * Since the floating bubble exists.md) this service also
  * decides, per notification, whether the bubble is raised or the fallback
  * notification is posted. That decision is `routeToOverlay` below; the filter
- * it applies is docs/FLOATING_OVERLAY.md §5.3.
+ * it applies is.md §5.3.
  */
 class ReplyMateNotificationListener : NotificationListenerService() {
 
@@ -52,7 +52,7 @@ class ReplyMateNotificationListener : NotificationListenerService() {
          * How long the bubble survives its notification being retracted. Long
          * enough for a finger already moving towards it, short enough that a
          * genuinely dismissed message does not linger
-         * (docs/FLOATING_OVERLAY.md §5.3).
+         * md §5.3).
          */
         private const val BUBBLE_RETRACTION_GRACE_MILLIS = 6_000L
     }
@@ -144,7 +144,7 @@ class ReplyMateNotificationListener : NotificationListenerService() {
      * summaries, media controls); the "can we draw, and what if we cannot"
      * half of the decision lives in [OverlayRouter], because the screen reader
      * reaches the same question from a different direction and must get the
-     * same answer (docs/FLOATING_OVERLAY.md §5.3).
+     * same answer.md §5.3).
      */
     private fun routeToOverlay(sbn: StatusBarNotification, parsed: Map<String, Any?>) {
         if (!qualifiesForBubble(sbn, parsed)) return
@@ -152,7 +152,7 @@ class ReplyMateNotificationListener : NotificationListenerService() {
     }
 
     /**
-     * The docs/FLOATING_OVERLAY.md §5.3 filter: has text, is not a group
+     * The.md §5.3 filter: has text, is not a group
      * summary, is not ongoing, and is not a media transport. The allowlist is
      * checked by the caller and the user's switch by the router.
      */

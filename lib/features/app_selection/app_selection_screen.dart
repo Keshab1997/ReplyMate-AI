@@ -162,8 +162,7 @@ class AppSelectionScreen extends ConsumerWidget {
                             child: Text(
                               'An app appears here only after it has been seen '
                               'installed on this device. Support is claimed only '
-                              'for what has been tested '
-                              '(docs/SCREEN_SPECIFICATIONS.md, screen 5).',
+                              'for what has been tested.',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 fontSize: 12,
                                 height: 1.5,

@@ -2,7 +2,6 @@ import '../../notifications/models/captured_notification.dart';
 import 'conversation_memory.dart';
 
 /// Decides *whether* something may enter conversation memory, and as whose line.
-///
 /// Kept apart from the store and from Riverpod so the rules are provable without
 /// a box, a widget or a platform channel - the store is about persistence, this
 /// is about consent and honesty.
@@ -12,18 +11,15 @@ class MemoryRecorder {
   final MemoryPolicy policy;
 
   /// Every line a capture contributes, oldest first - possibly none.
-  ///
   /// [allowedPackages] is the user's app allowlist. The native layer already
   /// filters by it; memory checks again because a *persistence* decision
   /// deserves its own gate rather than trusting an upstream one to stay correct
-  /// forever (docs/CONVERSATION_MEMORY.md §3, wall 2).
-  ///
+  /// forever.
   /// History is stored **only when the capture tagged it**. A notification's
   /// priorMessages carry no author, so writing them would label the user's own
   /// words as the other person's; only the screen reader can say which bubble
-  /// was whose (`priorAuthors`, docs/CONVERSATION_MEMORY.md §8). Untagged
+  /// was whose (`priorAuthors`,). Untagged
   /// history is therefore dropped, not guessed at.
-  ///
   /// The newest line is always [MemoryAuthor.them], a claim this method can back
   /// up: a capture only exists when there is something to answer, and both
   /// sources suppress the case where the newest message is the user's own.
@@ -92,11 +88,10 @@ class MemoryRecorder {
   }
 
   /// The line a reply the user accepted contributes: their own voice, verbatim.
-  ///
   /// This is the only reliable source of `me` lines today. Screen reading can
   /// see sent bubbles, but the wire format does not say which line is whose, so
   /// voice examples come from what this app composed and the user chose to send
-  /// (docs/CONVERSATION_MEMORY.md §8).
+
   MemoryLine? lineForAcceptedReply(String? text, {required DateTime now}) {
     final trimmed = (text ?? '').trim();
     if (trimmed.isEmpty) return null;

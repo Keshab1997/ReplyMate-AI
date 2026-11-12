@@ -11,7 +11,6 @@ import 'package:replymate/features/memory/domain/conversation_memory.dart';
 
 /// The one property of the real backend that a fake cannot prove: after another
 /// isolate writes to the box, this one must see it.
-///
 /// This is not a hypothetical. The reply panel is a second Flutter engine, so a
 /// second Dart isolate with its own Hive instance. A box left open in the main
 /// app served its stale in-memory copy and the Settings list stayed empty while

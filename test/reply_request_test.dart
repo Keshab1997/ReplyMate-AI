@@ -101,7 +101,7 @@ void main() {
   });
 
   test('the wire shape carries the voice examples', () {
-    // docs/AI_INTEGRATION.md: the request JSON is the contract. Style examples
+    // : the request JSON is the contract. Style examples
     // are prompt input, and an empty list is the normal state - not a field
     // that should go missing.
     const request = ReplyRequest(

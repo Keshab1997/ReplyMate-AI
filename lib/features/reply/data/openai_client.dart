@@ -4,7 +4,7 @@ import 'package:admin_api_key_manager/admin_api_key_manager.dart';
 import 'package:http/http.dart' as http;
 
 /// Every way an AI call can fail, typed so the repository can map each one to
-/// an honest, retryable-or-not user message (docs/AI_INTEGRATION.md
+/// an honest, retryable-or-not user message
 /// "Failure handling").
 sealed class AiCallException implements Exception {
   const AiCallException();
@@ -66,7 +66,6 @@ class MalformedResponse extends AiCallException {
 
 /// Minimal OpenAI-compatible `/chat/completions` client - the wire format
 /// every provider in the key pool speaks (Gemini proxy, OpenRouter, custom).
-///
 /// The HTTP client is injectable so tests can serve canned responses without
 /// a socket.
 class OpenAiCompatibleClient {

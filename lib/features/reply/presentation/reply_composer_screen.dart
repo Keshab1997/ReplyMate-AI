@@ -20,7 +20,7 @@ import '../data/reply_repository.dart';
 import '../domain/reply_request.dart';
 import 'suggestions_screen.dart';
 
-/// Screen 6 of docs/SCREEN_SPECIFICATIONS.md. Context arrives from one of
+/// Screen 6 of. Context arrives from one of
 /// four user-initiated routes: a captured notification, the text-selection
 /// action, the share sheet, or plain paste/type (FR-04, FR-08).
 class ReplyComposerScreen extends ConsumerStatefulWidget {
@@ -33,7 +33,7 @@ class ReplyComposerScreen extends ConsumerStatefulWidget {
   /// Context handed in directly, for a launch that already consumed it: the
   /// fallback notification path opens this screen with the message prefilled
   /// instead of relying on the in-memory capture buffer
-  /// (docs/FLOATING_OVERLAY.md §4.3).
+
   final CapturedNotification? initialNotification;
 
   /// See `HomeScreen.embedded`. When true the BackButton is dropped as well:
@@ -51,7 +51,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
   /// Shown when the session has no context at all: no captured notification,
   /// no launch text. Silence is the symptom users report ("nothing happened"),
   /// so the composer says why the box is empty instead of looking broken
-  /// (docs/OVERLAY_TASKS.md, Batch 0). The wording lives in [AppStrings] so a
+  /// The wording lives in [AppStrings] so a
   /// Bengali or Hindi session gets it in its own language.
 
   final TextEditingController _messageController = TextEditingController();
@@ -74,7 +74,6 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
 
   /// One-time setup: defaults from preferences, context from the launch
   /// intent (PROCESS_TEXT / SEND) or the newest captured notification.
-  ///
   /// Runs inside build *without* setState: the values assigned here are read
   /// by the same frame, and calling setState during build is an error. It
   /// waits until the one-shot launch-context read has resolved so that text

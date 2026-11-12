@@ -4,12 +4,10 @@ import '../../notifications/providers/notification_providers.dart';
 import '../models/overlay_context.dart';
 
 /// The pending overlay context, read exactly once.
-///
 /// `null` means "there is nothing waiting": the native side had no pending
 /// message (already consumed by another launch, or the process died between
 /// posting the notification and the tap). The panel says that out loud instead
-/// of rendering an empty shell (docs/FLOATING_OVERLAY.md §11).
-///
+/// of rendering an empty shell.
 /// Deliberately not auto-disposed: one panel activity, one read. Re-reading
 /// would return null anyway, because the native map is cleared on read.
 final FutureProvider<OverlayContext?> overlayContextProvider =

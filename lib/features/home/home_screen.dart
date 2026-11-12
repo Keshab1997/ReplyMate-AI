@@ -15,8 +15,7 @@ import '../permissions/providers/permission_provider.dart';
 import '../settings/providers/preferences_provider.dart';
 import '../settings/settings_screen.dart';
 
-/// Screen 3 of docs/SCREEN_SPECIFICATIONS.md, and the app's front door.
-///
+/// Screen 3 of, and the app's front door.
 /// One glance should answer three questions: is the helper listening, what
 /// style will my replies be in, and where do I go to write one. Everything
 /// that is not one of those three lives behind a tile or the settings icon.

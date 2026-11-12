@@ -9,7 +9,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 /// `google_sign_in` 7.x requires `initialize()` exactly once, and every other
 /// call must wait for that future: `authenticate()` without it is documented
 /// as undefined behaviour, and in practice the sign-in sheet never resolves.
-///
 /// Memoised so the bootstrap and the admin gate share one call — initializing
 /// twice is just as undefined as not initializing at all.
 Future<bool>? _googleSignInReady;
@@ -34,13 +33,11 @@ Future<bool> _initializeGoogleSignIn() async {
 }
 
 /// One-shot Firebase bootstrap with the guest-mode invariant:
-///
 /// - Web never initializes (the screenshot workflow and web preview must run
 ///   without any config file).
 /// - Android initializes only when `google-services.json` is present and the
 ///   gradle plugin processed it; any failure flips the app into guest mode
 ///   instead of crashing the first frame.
-///
 /// When Firebase is up, the key-pool package is wired immediately so the
 /// first AI call does not race the Firestore listener.
 Future<bool> bootstrapFirebase() async {

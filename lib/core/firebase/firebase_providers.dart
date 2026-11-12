@@ -15,7 +15,6 @@ final StreamProvider<User?> authUserProvider = StreamProvider<User?>((Ref ref) {
 
 /// The admin gate: a Firestore allowlist doc decides who may open the API-key
 /// manager.
-///
 /// Doc: `admin_config/access` with either (or both) of:
 ///   { "emails": ["keshab@example.com"], "uids": ["<firebase uid>"] }
 /// Emails make the list editable without knowing uids; uids survive an email
