@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// ReplyMate's small custom line-icon set. These cover product ideas that
 /// generic Material icons only approximate, while keeping the same rounded

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The app's shared Material icon language: rounded, friendly and consistent.
 /// Feature-specific line icons live in `shared/widgets/brand_icon.dart`.

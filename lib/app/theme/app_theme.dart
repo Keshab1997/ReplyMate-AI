@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Centralized design tokens: one brand blue, one spacing scale, one corner
 /// radius family and one gradient. Screens take their visual language from

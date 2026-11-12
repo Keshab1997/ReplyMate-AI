@@ -54,7 +54,11 @@ dependencies:
       ref: master
   hive_flutter: ^1.1.0
   http: ^1.2.0
-
+  # Material as a package: Flutter 3.50 formally deprecated the SDK copy
+  # (package:flutter/material.dart), and `dart fix --code=migrate_design_widgets`
+  # rewrote every import. `dart fix` writes `any`; a real constraint is used
+  # instead so a future breaking release cannot arrive unannounced.
+  material_ui: ^1.11.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
