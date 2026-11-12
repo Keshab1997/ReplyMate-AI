@@ -38,6 +38,13 @@ class AppConstants {
   static const String prefBubbleAutoHideMinutes =
       'replymate.bubble_auto_hide_minutes';
 
+  /// The user's "Show a preview" switch: the sender and first line, beside the
+  /// bubble. Mirrored natively like the bubble switch, and **off by default** -
+  /// a bubble over a chat is read by whoever is next to you
+  /// (docs/FLOATING_OVERLAY.md §5.6).
+  static const String prefBubblePreviewEnabled =
+      'replymate.bubble_preview_enabled';
+
   /// The auto-hide choices the settings screen offers, in minutes. Ten is the
   /// original fixed value, so an existing user is not moved by the update.
   static const List<int> bubbleAutoHideOptions = <int>[5, 10, 30, 0];

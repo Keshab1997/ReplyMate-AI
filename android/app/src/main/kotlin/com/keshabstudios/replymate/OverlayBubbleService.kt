@@ -90,6 +90,10 @@ class OverlayBubbleService : Service() {
     /** The "dismissed - undo" pill, while its few seconds are running. */
     private var undoPill: View? = null
 
+    /** The sender + first line pill, when the user has opted into it. */
+    private var previewView: View? = null
+    private var previewText: TextView? = null
+
     /**
      * Fires when a finger stays still on the bubble. Dragging cancels it, so a
      * slow drag never opens the menu by accident.
@@ -207,6 +211,7 @@ class OverlayBubbleService : Service() {
                     showMessageMood()
                 }
                 updateBadge(animate = true)
+                showPreview()
             }
             return
         }
@@ -222,6 +227,7 @@ class OverlayBubbleService : Service() {
             messagesWhileShowing = maxOf(1, OverlayBubbleController.size())
             updateBadge()
             startIdleAnimation()
+            showPreview()
             scheduleAutoHide()
         } catch (error: Exception) {
             // A refused window (permission race, OEM quirk) must not take the
@@ -234,6 +240,7 @@ class OverlayBubbleService : Service() {
     override fun onDestroy() {
         handler.removeCallbacks(autoHide)
         hideUndoPill()
+        hidePreview()
         stopIdleAnimation()
         settleAnimator?.cancel()
         unregisterScreenReceiver()
@@ -412,6 +419,181 @@ class OverlayBubbleService : Service() {
         root.setOnTouchListener(DragToTapListener())
         return root
     }
+
+    /**
+     * The sender and the first line, beside the bubble - **off by default**.
+     *
+     * This is the one place where message text reaches the screen outside the
+     * panel, and it is a deliberate, user-owned choice, not a default
+     * (docs/FLOATING_OVERLAY.md §5.6): a bubble over a chat is read by whoever is
+     * next to you, and for plenty of people that is the whole problem. So:
+     *
+     *  - only when *Show a preview* is on, stored natively like every other
+     *    bubble preference;
+     *  - never for redacted, truncated or group-summary context - it shows the
+     *    same honest state the panel would, instead of guessing at words the
+     *    notification never gave us;
+     *  - **never on the lock screen or while the screen is off** (the bubble is
+     *    already removed there, and this honours the same rule);
+     *  - two lines, ellipsised: a sender and a first line, never a transcript;
+     *  - still nothing on disk. The pill reads the in-memory context and is gone
+     *    when the bubble is.
+     */
+    private fun showPreview() {
+        if (!previewEnabledByUser()) {
+            hidePreview()
+            return
+        }
+        val pending = OverlayBubbleController.peek()
+        if (pending == null || collapsed || panelOpen) {
+            hidePreview()
+            return
+        }
+        val redacted = pending["mayBeRedacted"] == true
+        val truncated = pending["isTruncated"] == true
+        val groupSummary = pending["isGroupSummary"] == true
+        val sender = (pending["title"] as? String)?.trim().orEmpty()
+        val body = (pending["text"] as? String)?.trim().orEmpty()
+        // Honest beats pretty: when the notification did not give us clean text,
+        // the pill says so in words rather than inventing a line.
+        val shown = when {
+            redacted -> getString(R.string.overlay_preview_redacted)
+            groupSummary -> getString(R.string.overlay_preview_group)
+            body.isEmpty() -> getString(R.string.overlay_preview_empty)
+            truncated -> body.take(PREVIEW_MAX_CHARS) + "…"
+            else -> body.take(PREVIEW_MAX_CHARS)
+        }
+        val headline = if (sender.isEmpty()) {
+            shown
+        } else {
+            // One string, two lines: the sender on top, the message under it.
+            "$sender\n$shown"
+        }
+        val view = previewView ?: createPreviewView().also { previewView = it }
+        previewText?.text = headline
+        // The whole point of a preview is that it is *quiet*: nothing in it is
+        // clickable, so a tap anywhere on the pill goes to the app underneath
+        // rather than opening anything by accident.
+        val manager = windowManager ?: return
+        if (view.parent == null) {
+            val params = previewLayoutParams()
+            try {
+                manager.addView(view, params)
+                previewView = view
+                if (motionEnabled()) {
+                    view.alpha = 0f
+                    view.animate().alpha(1f).setDuration(160L).start()
+                }
+            } catch (error: Exception) {
+                previewView = null
+                return
+            }
+        } else {
+            try {
+                manager.updateViewLayout(view, previewLayoutParams())
+            } catch (error: Exception) {
+                // Window is going away; the bubble's own removal clears it.
+            }
+        }
+        view.announceForAccessibility(headline)
+    }
+
+    private fun createPreviewView(): View {
+        val card = TextView(this)
+        card.maxLines = 2
+        card.ellipsize = android.text.TextUtils.TruncateAt.END
+        card.setTextColor(Color.rgb(240, 246, 255))
+        card.textSize = 12.5f
+        card.setLineSpacing(dp(1).toFloat(), 1f)
+        card.setPadding(dp(12), dp(8), dp(12), dp(8))
+        card.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(14).toFloat()
+            setColor(menuBackgroundColor())
+            setStroke(dp(1), Color.argb(40, 255, 255, 255))
+        }
+        card.elevation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            dp(8).toFloat()
+        } else {
+            0f
+        }
+        // Not focusable and not clickable: it is information, and the bubble one
+        // thumb away is the control. Touch passes straight through to whatever is
+        // underneath.
+        card.isClickable = false
+        card.isFocusable = false
+        card.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
+        previewText = card
+        return card
+    }
+
+    /** Sits beside the bubble, flipping side at the screen edge, kept in bounds. */
+    private fun previewLayoutParams(): WindowManager.LayoutParams {
+        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+        val area = usableBounds()
+        val bubble = layoutParams
+        val maxWidth = minOf(dp(PREVIEW_MAX_WIDTH_DP), area.width() - dp(16))
+        val onRight = bubble != null && bubble.x + bubble.width / 2 > area.centerX()
+        val params = WindowManager.LayoutParams(
+            maxWidth,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            type,
+            // NOT_TOUCHABLE as well as NOT_FOCUSABLE: the pill must never eat a
+            // tap meant for the chat behind it.
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+            PixelFormat.TRANSLUCENT,
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = if (bubble == null) {
+                area.left
+            } else if (onRight) {
+                (bubble.x - maxWidth - dp(10)).coerceAtLeast(area.left)
+            } else {
+                (bubble.x + bubble.width + dp(10)).coerceAtMost(area.right - maxWidth)
+            }
+            y = if (bubble == null) {
+                area.top
+            } else {
+                (bubble.y + bubble.height / 2 - dp(24))
+                    .coerceIn(area.top, maxOf(area.top, area.bottom - dp(52)))
+            }
+        }
+        return params
+    }
+
+    /** Re-aligns the pill after a drag or a window animation. */
+    private fun layoutPreview() {
+        val view = previewView ?: return
+        if (view.parent == null) return
+        try {
+            windowManager?.updateViewLayout(view, previewLayoutParams())
+        } catch (error: Exception) {
+            // Gone with the bubble.
+        }
+    }
+
+    private fun hidePreview() {
+        val view = previewView
+        previewView = null
+        previewText = null
+        if (view != null) {
+            try {
+                windowManager?.removeView(view)
+            } catch (error: Exception) {
+                // Already gone.
+            }
+        }
+    }
+
+    /** Native mirror of the Settings switch; absent means off. */
+    private fun previewEnabledByUser(): Boolean =
+        prefs().getBoolean(KEY_BUBBLE_PREVIEW_ENABLED, false)
 
     /**
      * The face bobs gently and blinks now and then. Both are ordinary property
@@ -658,6 +840,7 @@ class OverlayBubbleService : Service() {
         val metrics = resources.displayMetrics
         collapsed = true
         stopIdleAnimation()
+        hidePreview()
         applyBubbleAppearance(view, collapsed = true)
         animateWindowLayout(
             view,
@@ -688,6 +871,7 @@ class OverlayBubbleService : Service() {
         ) {
             updateBadge()
             startIdleAnimation()
+            showPreview()
             if (showMoodAfterExpand) {
                 showMoodAfterExpand = false
                 showMessageMood()
@@ -857,6 +1041,7 @@ class OverlayBubbleService : Service() {
         } catch (error: Exception) {
             // The window went away with the configuration change.
         }
+        layoutPreview()
         rememberPosition(params)
     }
 
@@ -1169,6 +1354,9 @@ class OverlayBubbleService : Service() {
                         } catch (error: Exception) {
                             // The window went away mid-drag; nothing to save.
                         }
+                        // The preview follows the bubble under the finger; a pill
+                        // left at the old position would point at nothing.
+                        layoutPreview()
                     }
                     return true
                 }
@@ -1444,6 +1632,7 @@ class OverlayBubbleService : Service() {
     private fun hideForPanel() {
         panelOpen = true
         hideMenu()
+        hidePreview()
         stopIdleAnimation()
         bubbleView?.visibility = View.GONE
         // The auto-hide timer keeps running on purpose: if the panel never
@@ -1471,11 +1660,13 @@ class OverlayBubbleService : Service() {
         }
         view.visibility = View.VISIBLE
         startIdleAnimation()
+        showPreview()
         scheduleAutoHide()
     }
 
     private fun removeBubble() {
         hideMenu()
+        hidePreview()
         cancelLongPress()
         val view = bubbleView
         val manager = windowManager
@@ -1719,6 +1910,38 @@ class OverlayBubbleService : Service() {
 
         /** The user's hide-after choice, in minutes; 0 means never. */
         private const val KEY_BUBBLE_AUTO_HIDE_MINUTES = "bubble_auto_hide_minutes"
+
+        /** "Show a preview" - off unless the user turned it on. */
+        private const val KEY_BUBBLE_PREVIEW_ENABLED = "bubble_preview_enabled"
+
+        /** Two lines is a preview; three is a transcript. */
+        private const val PREVIEW_MAX_CHARS = 90
+        private const val PREVIEW_MAX_WIDTH_DP = 220
+
+        /**
+         * Records the user's preview choice natively and applies it to a live
+         * bubble immediately: turning it off has to make the text on screen go
+         * away now, not at the next message.
+         */
+        fun setPreviewEnabledByUser(context: Context, enabled: Boolean) {
+            try {
+                context.getSharedPreferences(ReplyMateNotificationListener.PREFS_NAME, MODE_PRIVATE)
+                    .edit()
+                    .putBoolean(KEY_BUBBLE_PREVIEW_ENABLED, enabled)
+                    .apply()
+            } catch (error: Exception) {
+                // Losing a preference is not worth a crash.
+            }
+            instance?.handler?.post {
+                val service = instance ?: return@post
+                service.layoutPreview()
+                if (!enabled) {
+                    service.hidePreview()
+                } else {
+                    service.showPreview()
+                }
+            }
+        }
 
         /**
          * Records the user's hide-after choice natively, where the service can

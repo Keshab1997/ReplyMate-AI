@@ -218,6 +218,21 @@ class NotificationsBridge {
     }
   }
 
+  /// The bubble's opt-in preview: the sender and first line, beside the bubble.
+  /// Mirrored natively for the same reason as the switch - the service has to
+  /// answer this with no engine alive.
+  Future<void> setBubblePreviewEnabled(bool enabled) async {
+    try {
+      await _channel.invokeMethod<void>('setBubblePreviewEnabled', {
+        'enabled': enabled,
+      });
+    } on MissingPluginException {
+      // No native layer: the Dart-side preference still records the choice.
+    } on PlatformException {
+      // Surfaced by the bubble's own behaviour, never by a crash.
+    }
+  }
+
   /// True when Android has granted ReplyMate accessibility access, which is
   /// the only way the screen reader can run at all. False on a device that
   /// refuses it - Android 16+ Advanced Protection does exactly that for an app

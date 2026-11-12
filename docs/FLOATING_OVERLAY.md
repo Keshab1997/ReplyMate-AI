@@ -47,7 +47,8 @@ The bubble never reads the screen. It only knows what the notification posted.
 
 ### In scope (v1)
 
-- Overlay bubble over other apps (WhatsApp first).
+- Overlay bubble over other apps (WhatsApp first), optionally with an opt-in
+  two-line preview of the sender and first line (§5.6).
 - Panel with message context, generation, copy, edit, conditional quick reply.
 - Fallback notification when the bubble cannot be shown.
 - Overlay permission explained and requested from the existing permission
@@ -325,6 +326,34 @@ open), and clearing on the first removal made the bubble flicker out of
 existence before a finger could reach it. A tap inside the window is still
 honest: the panel opens with the message and quick reply refuses, because the
 action it would have used is gone.
+
+### 5.6 The preview is opt-in, two lines, and honest
+
+The bubble shows an icon. It can additionally show **the sender and the first
+line** in a small pill beside it — and that is the only place message text
+reaches the screen outside the panel, so it is gated on its own switch.
+
+- **Off by default**, and not bundled with the bubble switch: turning the bubble
+  on is not consent to put message text on the screen. The row lives directly
+  under the bubble switch, only while the bubble is on, and says in words what it
+  exposes (*anyone glancing at your screen can read it*).
+- **Two lines, ellipsised at 90 characters.** A preview, never a transcript.
+- **Honest over pretty:** redacted context shows *Hidden content - open to read*,
+  a group summary shows *Group message*, and missing text shows *New message*.
+  The pill never invents a line the notification did not contain. This keeps the
+  repo's capability rule (§Project notes): missing or truncated content is shown,
+  never hidden.
+- **Never on the lock screen or with the screen off** — the bubble is already
+  removed there (§5.4), and the preview follows the same rule.
+- **Never touchable.** The pill window is `NOT_TOUCHABLE` as well as
+  `NOT_FOCUSABLE`, so a tap on it reaches the chat underneath; the bubble one
+  thumb away is the control.
+- **Memory only.** The pill reads the in-memory pending context; nothing new is
+  written, and the switch being off deletes nothing because nothing was stored.
+- The choice is mirrored natively (`bubble_preview_enabled`) like every other
+  bubble preference, so the service can honour it with no engine alive, and it
+  applies to a live bubble immediately — turning it off takes the text off the
+  screen now, not at the next message.
 
 ### 5.5 The auto-hide timer is the user's, not ours
 

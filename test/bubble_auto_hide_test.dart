@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// reaches the native layer - the service reads it with no engine alive.
 class _RecordingChannel {
   final List<Map<Object?, Object?>> autoHideCalls = <Map<Object?, Object?>>[];
+  final List<Map<Object?, Object?>> previewCalls = <Map<Object?, Object?>>[];
 
   Future<Object?> handle(MethodCall call) async {
     switch (call.method) {
@@ -20,6 +21,9 @@ class _RecordingChannel {
         return true;
       case 'setBubbleAutoHideMinutes':
         autoHideCalls.add(Map<Object?, Object?>.from(call.arguments as Map));
+        return null;
+      case 'setBubblePreviewEnabled':
+        previewCalls.add(Map<Object?, Object?>.from(call.arguments as Map));
         return null;
       default:
         return null;
@@ -117,5 +121,51 @@ void main() {
     );
 
     expect(find.text('30 min'), findsWidgets);
+  });
+
+  testWidgets('the preview is off by default and asks separately', (
+    tester,
+  ) async {
+    final recorder = await pumpSettings(
+      tester,
+      prefs: <String, Object>{AppConstants.prefBubbleEnabled: true},
+    );
+
+    // A bubble switch is not consent for message text on the screen: the
+    // preview has its own row, its own default, and says what it exposes.
+    expect(find.text('Show a preview'), findsOneWidget);
+    expect(find.textContaining('anyone glancing'), findsOneWidget);
+    expect(recorder.previewCalls, isEmpty);
+
+    final tile = tester
+        .widgetList<SwitchListTile>(find.byType(SwitchListTile))
+        .firstWhere((t) => (t.title as Text?)?.data == 'Show a preview');
+    expect(tile.value, isFalse);
+  });
+
+  testWidgets('turning the preview on reaches the native layer', (
+    tester,
+  ) async {
+    final recorder = await pumpSettings(
+      tester,
+      prefs: <String, Object>{AppConstants.prefBubbleEnabled: true},
+    );
+
+    await tester.tap(find.text('Show a preview'));
+    await tester.pumpAndSettle();
+
+    // The service draws the pill with no engine alive, so the choice must be
+    // mirrored natively - and it must arrive as `true`, not as "on" by default.
+    expect(recorder.previewCalls, <Map<Object?, Object?>>[
+      <Object?, Object?>{'enabled': true},
+    ]);
+  });
+
+  testWidgets('the preview row is gone while the bubble is off', (
+    tester,
+  ) async {
+    await pumpSettings(tester);
+
+    expect(find.text('Show a preview'), findsNothing);
   });
 }

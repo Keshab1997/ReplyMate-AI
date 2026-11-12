@@ -105,3 +105,48 @@ class BubbleAutoHideNotifier extends Notifier<int> {
       ? minutes!
       : AppConstants.defaultBubbleAutoHideMinutes;
 }
+
+/// The bubble's opt-in preview: sender + first line, drawn beside the bubble.
+///
+/// **Off by default, and the default is the point.** This is the only place
+/// where message text reaches the screen outside the panel, and a bubble sitting
+/// over a chat is read by whoever is next to you. People who want it can have it;
+/// nobody gets it by accident (docs/FLOATING_OVERLAY.md §5.6).
+///
+/// What it never does, whatever this switch says: show redacted, truncated or
+/// group-summary text as if it were the message (the pill says what it actually
+/// has), appear on the lock screen, or write anything to disk.
+final NotifierProvider<BubblePreviewNotifier, bool> bubblePreviewProvider =
+    NotifierProvider<BubblePreviewNotifier, bool>(BubblePreviewNotifier.new);
+
+class BubblePreviewNotifier extends Notifier<bool> {
+  bool _alive = true;
+
+  /// See `BubbleEnabledNotifier._userChose` for why this guard exists.
+  bool _userChose = false;
+
+  @override
+  bool build() {
+    _alive = true;
+    ref.onDispose(() => _alive = false);
+    _load();
+    return false;
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored =
+        prefs.getBool(AppConstants.prefBubblePreviewEnabled) ?? false;
+    if (_alive && !_userChose) state = stored;
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    _userChose = true;
+    state = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(AppConstants.prefBubblePreviewEnabled, enabled);
+    await ref
+        .read(notificationsBridgeProvider)
+        .setBubblePreviewEnabled(enabled);
+  }
+}

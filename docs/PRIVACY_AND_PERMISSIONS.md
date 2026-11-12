@@ -37,7 +37,19 @@ enabled, the text of the message being answered does leave it.
 
 ## The floating bubble, in privacy terms
 
-- The bubble itself shows an icon only — no sender, no text.
+- The bubble itself shows an icon only — **unless the user turns on *Show a
+  preview***, which draws the sender and the first line beside the bubble. That
+  switch is **off by default**, is separate from the bubble switch (opening a
+  bubble is not consent to put message text on the screen), and exists because a
+  bubble over a chat is read by whoever is next to you. When it is on:
+  - it shows at most two lines and never a transcript;
+  - it shows an honest label rather than invented text when the notification
+    handed us redacted, truncated or group-summary content;
+  - it never appears on the lock screen or while the screen is off, and it is
+    removed the moment the bubble is dismissed;
+  - it is still memory only — the same in-memory context the bubble already
+    holds, never written anywhere.
+  Turning it off removes the text from the screen immediately.
 - Tapping it opens a panel that shows the message because the user asked to
   see it, on their own screen.
 - The pending message lives in process memory only. It is cleared when the

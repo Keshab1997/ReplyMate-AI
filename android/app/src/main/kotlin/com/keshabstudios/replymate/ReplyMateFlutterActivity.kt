@@ -114,6 +114,11 @@ abstract class ReplyMateFlutterActivity : FlutterActivity() {
                     setBubbleEnabled(enabled)
                     result.success(null)
                 }
+                "setBubblePreviewEnabled" -> {
+                    val enabled = call.argument<Boolean>("enabled") == true
+                    OverlayBubbleService.setPreviewEnabledByUser(this, enabled)
+                    result.success(null)
+                }
                 "setBubbleAutoHideMinutes" -> {
                     // An int, not a Duration: the user's list is in minutes and
                     // 0 is the documented "never". The service clamps anything

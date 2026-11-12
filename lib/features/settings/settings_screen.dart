@@ -194,6 +194,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     final overlayEnabled = ref.watch(overlayProvider);
     final bubbleEnabled = ref.watch(bubbleEnabledProvider);
     final bubbleAutoHide = ref.watch(bubbleAutoHideProvider);
+    final bubblePreview = ref.watch(bubblePreviewProvider);
     final screenReading = ref.watch(screenReadingProvider);
     final screenReadingAvailable = ref.watch(screenReadingAvailableProvider);
     final strings = ref.watch(appStringsProvider);
@@ -474,9 +475,34 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                               ),
                             ),
                             // Only meaningful while the bubble exists: a
-                            // hide-timer for a bubble that is switched off
-                            // would be a setting that cannot do anything.
+                            // preview or a hide-timer for a bubble that is
+                            // switched off would be a setting that cannot do
+                            // anything.
                             if (bubbleEnabled) ...[
+                              const Divider(height: 1),
+                              // Off by default, and deliberately not bundled
+                              // with the bubble switch: this is the only place
+                              // message text reaches the screen outside the
+                              // panel, so it is a separate yes
+                              // (docs/FLOATING_OVERLAY.md §5.6).
+                              SwitchListTile(
+                                value: bubblePreview,
+                                secondary: AppSurfaces.iconBadge(
+                                  context,
+                                  icon: AppIcons.edit,
+                                  size: 36,
+                                ),
+                                onChanged: (value) => ref
+                                    .read(bubblePreviewProvider.notifier)
+                                    .setEnabled(value),
+                                title: const Text('Show a preview'),
+                                subtitle: const Text(
+                                  'Shows the sender and the first line beside '
+                                  'the bubble. Off by default: anyone glancing '
+                                  'at your screen can read it. Hidden on the '
+                                  'lock screen and never saved.',
+                                ),
+                              ),
                               const Divider(height: 1),
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(

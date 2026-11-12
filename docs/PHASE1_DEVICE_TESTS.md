@@ -83,6 +83,10 @@ them can be checked from CI.
 | 23g | With TalkBack on, focus the bubble | It is announced as a button; double-tap opens the panel; **Actions available** offers long-click, which opens the three-row menu; the badge count change is announced | _pending_ |
 | 23h | Open the long-press menu, then tap anywhere outside it | The menu closes on that first tap; the tap also reaches the app underneath | _pending_ |
 | 23i | Tuck the bubble, then rotate the phone to landscape and back | The tab stays on its edge, nothing lands off-screen or under the nav bar/notch, and the bubble is still tappable afterwards | _pending_ |
+| 23j | Settings → **Show a preview** off (default); receive a message | The bubble shows the face only — no sender, no text | _pending_ |
+| 23k | Turn *Show a preview* on; receive a message from an allowed app | Two lines beside the bubble (sender, first line), ellipsised; tapping the pill reaches the chat underneath, not ReplyMate | _pending_ |
+| 23l | With the preview on, lock the screen, then unlock | No text on the lock screen at any point; the pill comes back with the bubble on unlock | _pending_ |
+| 23m | With the preview on, receive a message whose notification is redacted or a group summary | The pill says *Hidden content - open to read* / *Group message*; it never shows a guessed line | _pending_ |
 | 25 | Tap the bubble on a chat you have not opened | Only the panel appears; Close puts you back in WhatsApp, never in ReplyMate | _pending_ |
 | 26 | Drag the bubble to the left or right screen edge and let go | It tucks itself into a slim tab on that edge; the messaging app underneath stays usable |
 | 27 | Tap the tucked tab, then drag the tab back into the middle of the screen | First tap restores the full bubble without opening the panel; releasing it mid-screen leaves a full bubble, not a stray tab |

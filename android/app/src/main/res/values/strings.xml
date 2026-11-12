@@ -14,6 +14,13 @@
          sender and no message, so the undo window stays content-free. -->
     <string name="overlay_bubble_dismissed">Bubble dismissed. The message is still waiting.</string>
     <string name="overlay_bubble_undo">Undo</string>
+
+    <!-- The bubble's opt-in preview (off by default). The honest states below
+         exist so the pill never guesses at words the notification did not give
+         us; there is no placeholder that pretends to be a message. -->
+    <string name="overlay_preview_redacted">Hidden content - open to read</string>
+    <string name="overlay_preview_group">Group message</string>
+    <string name="overlay_preview_empty">New message</string>
     <string name="overlay_channel_name">Reply bubble</string>
     <string name="overlay_channel_description">Keeps the floating reply bubble available while you use other apps.</string>
     <string name="overlay_notification_title">Reply bubble active</string>
