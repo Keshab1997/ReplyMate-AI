@@ -118,6 +118,15 @@ class OverlayBubbleService : Service() {
     private var gestureOriginY = 0
 
     /**
+     * Where and when the current gesture started, in raw screen coordinates.
+     * Service scope, not listener scope, because [isFlick] answers the question
+     * from outside the touch listener.
+     */
+    private var gestureStartRawX = 0f
+    private var gestureStartRawY = 0f
+    private var gestureStartTime = 0L
+
+    /**
      * Set by the long-press menu's dismiss row and read once, after the menu
      * window is gone: a button inside a window that is being removed cannot
      * post a snackbar, so the service reports the undo window to the app and the
@@ -1291,24 +1300,15 @@ class OverlayBubbleService : Service() {
          */
         private var longPressFired = false
 
-        /**
-         * Where and when this gesture started, kept for [isFlick]: by ACTION_UP
-         * the touch slop has already let a slow drag through, and a flick is the
-         * opposite - fast and short.
-         */
-        private var downRawXForGesture = 0f
-        private var downRawYForGesture = 0f
-        private var downTimeForGesture = 0L
-
         override fun onTouch(view: View, event: MotionEvent): Boolean {
             val params = layoutParams ?: return false
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     downRawX = event.rawX
                     downRawY = event.rawY
-                    downRawXForGesture = event.rawX
-                    downRawYForGesture = event.rawY
-                    downTimeForGesture = event.eventTime
+                    gestureStartRawX = event.rawX
+                    gestureStartRawY = event.rawY
+                    gestureStartTime = event.eventTime
                     startX = params.x
                     startY = params.y
                     gestureOriginX = params.x
@@ -1418,10 +1418,10 @@ class OverlayBubbleService : Service() {
      */
     private fun isFlick(event: MotionEvent): Boolean {
         val distance = Math.hypot(
-            (event.rawX - downRawXForGesture).toDouble(),
-            (event.rawY - downRawYForGesture).toDouble(),
+            (event.rawX - gestureStartRawX).toDouble(),
+            (event.rawY - gestureStartRawY).toDouble(),
         )
-        val duration = event.eventTime - downTimeForGesture
+        val duration = event.eventTime - gestureStartTime
         return distance > dp(FLICK_DISTANCE_DP) && duration < FLICK_DURATION_MILLIS
     }
 
@@ -1429,7 +1429,7 @@ class OverlayBubbleService : Service() {
      * Swipe-to-dismiss, with an undo window the long-press menu never had.
      *
      * The bubble and its pending message both go - that is what dismissing
-     * means.md §5.3) - but the context is kept in a small
+     * means - but the context is kept in a small
      * native pill for a few seconds instead of being destroyed. A snackbar in the
      * app would be the obvious place for it and the wrong one: a swipe happens
      * over *another* app, where no Flutter engine is alive and nothing of ours is
