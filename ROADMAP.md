@@ -15,13 +15,10 @@ exact test steps were not recorded; this is not a full Phase 1 sign-off.
 
 The current AI path is the documented client-side Firestore key-pool design,
 not a server-side proxy. The remaining device checks, architecture/security
-hardening and release tasks are listed below and in
-``.
+hardening and release tasks are listed below.
 
 The floating reply bubble — the answer to "nothing appears when a WhatsApp
-message arrives" — is specified in
-``, broken into batches in
-``, and **implemented in code**.
+message arrives" — is **implemented in code**.
 It is not device-verified: rows 17–24 of the device checklist are still
 pending.
 
@@ -62,7 +59,10 @@ pending.
 
 - [x] Implement the Firestore key-pool/provider client path, request validation, reply parsing and user-visible failures.
 - [x] Confirm by owner report that API access and reply generation work on a real device.
-- [ ] Implement or explicitly defer the server-side proxy, authentication and rate limiting. The current client-readable key-pool trade-off is documented in ``.
+- [ ] Implement or explicitly defer the server-side proxy, authentication and
+      rate limiting. The current client-readable key-pool trade-off is
+      documented in the README ("Read this before shipping the rules") and in
+      `admin_api_key_manager`.
 
 ## Phase 4 — Android Integration
 
@@ -80,8 +80,9 @@ pending.
 
 ## Phase 6 — Floating reply bubble (implemented, device verification pending)
 
-Spec: ``. Batches:
-``.
+Implemented across five batches (empty state, native bubble + foreground
+service, Flutter panel route and context model, listener wiring + fallback
+notification + settings toggle, auto-hide/screen-off/badge/docs).
 
 - [x] Batch 0 — honest empty state when nothing was captured.
 - [x] Batch 1 — native overlay bubble + foreground service.
