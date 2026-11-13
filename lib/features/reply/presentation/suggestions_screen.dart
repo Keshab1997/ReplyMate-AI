@@ -22,6 +22,7 @@ class SuggestionsScreen extends ConsumerStatefulWidget {
     required this.request,
     this.context,
     this.cachedAt,
+    this.offline = false,
     super.key,
   });
 
@@ -34,6 +35,10 @@ class SuggestionsScreen extends ConsumerStatefulWidget {
   /// same, but "this cost nothing and is a few days old" is something the user
   /// is entitled to know before sending it.
   final DateTime? cachedAt;
+
+  /// These came from the on-device rule layer, not a model. Shown plainly: the
+  /// app promises never to present something as AI output when it is not.
+  final bool offline;
 
   @override
   ConsumerState<SuggestionsScreen> createState() => _SuggestionsScreenState();
@@ -159,6 +164,10 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                 ),
                 const SizedBox(height: AppTheme.spaceMd),
 
+                if (widget.offline) ...[
+                  _OfflineNote(),
+                  const SizedBox(height: AppTheme.spaceSm),
+                ],
                 if (widget.cachedAt != null) ...[
                   _CacheBanner(
                     cachedAt: widget.cachedAt!,
@@ -286,6 +295,44 @@ class _CacheBanner extends StatelessWidget {
             ),
           ),
           TextButton(onPressed: onRegenerate, child: const Text('Regenerate')),
+        ],
+      ),
+    );
+  }
+}
+
+/// States what these suggestions are, and are not.
+class _OfflineNote extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.offline_bolt_outlined,
+            size: 18,
+            color: scheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Offline suggestions — written on this device from what the '
+              'message looks like. No AI call was made, so nothing was sent '
+              'anywhere.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
         ],
       ),
     );

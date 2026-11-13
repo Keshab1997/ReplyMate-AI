@@ -22,6 +22,13 @@ All notable project changes are recorded here.
   when the request carries none — it was the largest input block in the prompt.
 - `ReplyRepository.generate` grew `bypassCache`; `ReplySuccess` carries
   `fromCache`/`cachedAt` so no screen can present a cached reply as fresh.
+- **Offline suggestions.** When a paid call fails — no key, no network, no
+  Firebase, allowance spent — the app now offers rule-based candidates written
+  on the device (question, thanks, apology, greeting, farewell, acknowledgement,
+  plan, plus a tone line), in all three reply languages. They are labelled
+  "Offline suggestions … no AI call was made", never dressed as model output,
+  and an unrecognised message returns *nothing* rather than a confident wrong
+  reply.
 
 ### Setup path speaks Bengali and Hindi
 

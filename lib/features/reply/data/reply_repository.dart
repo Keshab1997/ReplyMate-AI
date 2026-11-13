@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/reply_request.dart';
 import 'ai_budget.dart';
+import 'offline_suggestions.dart';
 import 'reply_cache.dart';
 
 /// Outcome of a generation attempt. Never throws: every failure mode in
@@ -12,7 +13,12 @@ sealed class ReplyResult {
 }
 
 class ReplySuccess extends ReplyResult {
-  const ReplySuccess(this.replies, {this.fromCache = false, this.cachedAt});
+  const ReplySuccess(
+    this.replies, {
+    this.fromCache = false,
+    this.cachedAt,
+    this.offline = false,
+  });
 
   final List<String> replies;
 
@@ -23,6 +29,11 @@ class ReplySuccess extends ReplyResult {
 
   /// When the cached set was stored, for the "from cache" label.
   final DateTime? cachedAt;
+
+  /// True when these came from the on-device rule layer rather than a model.
+  /// They are suggestions, not AI output, and the UI says so — passing them off
+  /// as generated would be the one thing this app must never do.
+  final bool offline;
 }
 
 class ReplyFailure extends ReplyResult {
@@ -129,9 +140,36 @@ class BudgetedReplyRepository implements ReplyRepository {
     final result = await inner.generate(request, bypassCache: bypassCache);
     if (result is ReplySuccess && result.replies.isNotEmpty) {
       await _cache.store(request, result.replies);
+      return result;
+    }
+
+    // The paid path failed. Before giving up, offer what the rules can write:
+    // no key, no network, no tokens. They are labelled offline by the caller,
+    // so the user knows exactly what they are looking at.
+    final offline = OfflineSuggestions.forMessage(
+      request.trimmedMessage,
+      language: request.language,
+      tone: request.tone,
+      length: request.length,
+      count: request.count,
+    );
+    if (offline.isNotEmpty) {
+      return ReplySuccess(offline, offline: true);
     }
     return result;
   }
+
+  /// The offline candidates for a request, without attempting a paid call.
+  /// Used when the allowance is spent, so the screen can still offer something
+  /// rather than a dead end.
+  List<String> offlineOnly(ReplyRequest request) =>
+      OfflineSuggestions.forMessage(
+        request.trimmedMessage,
+        language: request.language,
+        tone: request.tone,
+        length: request.length,
+        count: request.count,
+      );
 }
 
 /// The repository the UI talks to. `main()` selects the key-pool
