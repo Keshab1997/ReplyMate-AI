@@ -4,7 +4,17 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
-_Nothing yet._
+### The admin screen stops blaming the network
+
+- Bumped `admin_api_key_manager` to `594dc3c`, which classifies a failed
+  key-pool read instead of printing raw Firestore text. `permission-denied`
+  (this account is not on the allowlist) is now a different screen from
+  `unavailable` (no connection), because they have different fixes and the old
+  copy sent both to "check your connection".
+- A build with no Firebase says so and points at the setting that works
+  without it: your own AI key. `test/admin_key_pool_errors_test.dart` asserts
+  the pin brings the behaviour, so a rollback that loses it fails a test rather
+  than a device.
 
 ## [1.5.0] - 2026-11-14
 

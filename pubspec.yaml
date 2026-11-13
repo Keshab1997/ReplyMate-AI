@@ -52,10 +52,11 @@ dependencies:
   # would otherwise land in this app unreviewed, and the admin screen grew
   # three screens in v1.4.0 that this app has never rendered. Bump this line
   # deliberately — a tag is better still, once the package cuts one.
+  # `python3 tool/dep_check.py` reports when this pin falls behind.
   admin_api_key_manager:
     git:
       url: https://github.com/Keshab1997/admin_api_key_manager
-      ref: 1f7a595e15af78c1ed85b62a062e929bbaea9d9f
+      ref: 594dc3c47ef8c497539632d389300a5a94e05bbe
   hive_flutter: ^1.1.0
   http: ^1.2.0
   # Material as a package: Flutter 3.50 formally deprecated the SDK copy
