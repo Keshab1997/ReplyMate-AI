@@ -141,7 +141,7 @@ class AdminGateScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: AppTheme.spaceMd),
-                  if (adminAccess.value == true)
+                  if (adminAccess.value == true) ...[
                     FilledButton.icon(
                       onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
@@ -151,6 +151,41 @@ class AdminGateScreen extends ConsumerWidget {
                       icon: const Icon(Icons.key_outlined),
                       label: const Text('Open API key manager'),
                     ),
+                    const SizedBox(height: AppTheme.spaceSm),
+                    // The two surfaces that answer "why did AI stop working":
+                    // which provider groups are in force, and which calls
+                    // actually failed. Both used to be Firestore-only.
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const AdminKeyGroupsScreen(),
+                              ),
+                            ),
+                            icon: const Icon(Icons.tune, size: 18),
+                            label: const Text('Provider groups'),
+                          ),
+                        ),
+                        const SizedBox(width: AppTheme.spaceSm),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const AdminErrorLogsScreen(),
+                              ),
+                            ),
+                            icon: const Icon(
+                              Icons.receipt_long_outlined,
+                              size: 18,
+                            ),
+                            label: const Text('Error log'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: AppTheme.spaceSm),
                   OutlinedButton.icon(
                     onPressed: () => _signOut(),
