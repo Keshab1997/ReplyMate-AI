@@ -6,6 +6,7 @@ import '../../core/platform/notifications_bridge.dart';
 import '../../shared/widgets/screen_header.dart';
 import '../notifications/providers/notification_providers.dart';
 import 'providers/selected_apps_provider.dart';
+import '../../core/l10n/app_strings.dart';
 
 /// Installed messaging apps ReplyMate can offer (native layer filters to
 /// installed packages only, so this list never over-promises).
@@ -36,6 +37,7 @@ class AppSelectionScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final strings = ref.watch(appStringsProvider);
     final candidates = ref.watch(candidateAppsProvider);
     final selected = ref.watch(selectedAppsProvider);
     final theme = Theme.of(context);
@@ -59,11 +61,14 @@ class AppSelectionScreen extends ConsumerWidget {
                   ),
                   children: [
                     ScreenHeader(
-                      title: 'Supported apps',
+                      title: strings.appsTitle,
                       showBack: !embedded,
                       subtitle: apps.isEmpty
-                          ? 'Nothing to choose yet'
-                          : '${selected.length} of ${apps.length} selected',
+                          ? strings.appsNothingYet
+                          : strings.appsSelectedOf(
+                              selected.length,
+                              apps.length,
+                            ),
                     ),
                     const SizedBox(height: AppTheme.spaceMd),
                     if (apps.isEmpty)
@@ -79,16 +84,14 @@ class AppSelectionScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: AppTheme.spaceMd - 4),
                               Text(
-                                'No supported messaging app is installed on '
-                                'this device.',
+                                strings.appsNoneInstalledTitle,
                                 style: theme.textTheme.titleSmall?.copyWith(
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'You can still use ReplyMate by pasting or '
-                                'selecting text.',
+                                strings.appsNoneInstalledBody,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   fontSize: 12.5,
                                   height: 1.5,
@@ -101,7 +104,7 @@ class AppSelectionScreen extends ConsumerWidget {
                       )
                     else ...[
                       Text(
-                        'APPS REPLYMATE MAY READ NOTIFICATIONS FROM',
+                        strings.appsReadFrom,
                         style: theme.textTheme.labelSmall?.copyWith(
                           letterSpacing: 1.3,
                           fontWeight: FontWeight.w700,
@@ -133,7 +136,7 @@ class AppSelectionScreen extends ConsumerWidget {
                                   ),
                                 ),
                                 subtitle: Text(
-                                  'Notifications only - never inside the app',
+                                  strings.appsNotificationsOnly,
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     fontSize: 12,
                                   ),
@@ -160,9 +163,7 @@ class AppSelectionScreen extends ConsumerWidget {
                           const SizedBox(width: AppTheme.spaceSm),
                           Expanded(
                             child: Text(
-                              'An app appears here only after it has been seen '
-                              'installed on this device. Support is claimed only '
-                              'for what has been tested.',
+                              strings.appsWhyListed,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 fontSize: 12,
                                 height: 1.5,
@@ -182,10 +183,10 @@ class AppSelectionScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(AppTheme.spaceLg),
               child: Column(
                 children: [
-                  const ScreenHeader(title: 'Supported apps'),
+                  ScreenHeader(title: strings.appsTitle),
                   const SizedBox(height: AppTheme.spaceLg),
                   Text(
-                    'Could not read the installed app list.',
+                    strings.appsReadFailed,
                     style: theme.textTheme.bodyMedium,
                   ),
                 ],

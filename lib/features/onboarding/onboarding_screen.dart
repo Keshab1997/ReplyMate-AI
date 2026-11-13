@@ -1,9 +1,11 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app/theme/app_icons.dart';
 import '../../app/theme/app_theme.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/l10n/app_strings.dart';
 import '../../shared/widgets/brand_icon.dart';
 import '../../shared/widgets/mascot_face.dart';
 import '../home/home_screen.dart';
@@ -11,34 +13,31 @@ import '../home/home_screen.dart';
 /// FR-01: explain purpose, limitations and permissions before asking for
 /// anything. Honest claims only - the same limitations the README makes, in
 /// plain language, inside one calm and readable welcome flow.
-class OnboardingScreen extends StatelessWidget {
+class OnboardingScreen extends ConsumerWidget {
   const OnboardingScreen({super.key});
 
-  static const List<(BrandIconType, String, String)> _points = [
+  /// Built from [AppStrings] rather than held as a static const: the copy is
+  /// the consent explanation, so it has to be in the language the reader chose.
+  List<(BrandIconType, String, String)> _points(AppStrings s) => [
     (
       BrandIconType.reply,
-      'Replies you approve, always',
-      'ReplyMate suggests replies. You review, edit and send - the app never '
-          'sends a message on its own.',
+      s.onboardingPointConsentTitle,
+      s.onboardingPointConsentBody,
     ),
     (
       BrandIconType.notification,
-      'Works from notifications',
-      'With your permission it reads notifications from apps you select. '
-          'Some apps hide or shorten notification text; when that happens '
-          'ReplyMate says so instead of guessing.',
+      s.onboardingPointNotificationsTitle,
+      s.onboardingPointNotificationsBody,
     ),
     (
       BrandIconType.language,
-      'Bengali, Hindi and English',
-      'Pick the language and tone for every reply - friendly, casual, '
-          'professional, polite, funny, short and direct, Premika or Premik.',
+      s.onboardingPointLanguagesTitle,
+      s.onboardingPointLanguagesBody,
     ),
     (
       BrandIconType.privacy,
-      'Privacy first',
-      'Message text is sent to an AI service only when you ask for '
-          'suggestions. Nothing is stored as conversation history.',
+      s.onboardingPointPrivacyTitle,
+      s.onboardingPointPrivacyBody,
     ),
   ];
 
@@ -53,7 +52,9 @@ class OnboardingScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final strings = ref.watch(appStringsProvider);
+    final points = _points(strings);
     final theme = Theme.of(context);
     final compact = MediaQuery.sizeOf(context).height < 900;
     return Scaffold(
@@ -88,17 +89,17 @@ class OnboardingScreen extends StatelessWidget {
                     child: AppSurfaces.pill(
                       context,
                       accent: true,
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
+                          const Icon(
                             AppIcons.generate,
                             size: 14,
                             color: AppTheme.brandBright,
                           ),
-                          SizedBox(width: 6),
+                          const SizedBox(width: 6),
                           Text(
-                            'YOUR AI REPLY ASSISTANT',
+                            strings.onboardingBadge,
                             style: TextStyle(
                               fontSize: 10.5,
                               fontWeight: FontWeight.w800,
@@ -113,7 +114,7 @@ class OnboardingScreen extends StatelessWidget {
                     height: compact ? AppTheme.spaceMd - 4 : AppTheme.spaceMd,
                   ),
                   Text(
-                    'ReplyMate AI',
+                    strings.onboardingTitle,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.headlineMedium?.copyWith(
                       fontSize: compact ? 30 : 32,
@@ -121,7 +122,7 @@ class OnboardingScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: AppTheme.spaceSm),
                   Text(
-                    'Thoughtful replies in your language,\nwith you always in control.',
+                    strings.onboardingSubtitle,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontSize: 14,
@@ -142,11 +143,11 @@ class OnboardingScreen extends StatelessWidget {
                           children: [
                             for (
                               var index = 0;
-                              index < _points.length;
+                              index < points.length;
                               index++
                             ) ...[
                               if (index > 0) const Divider(height: 1),
-                              _OnboardingPoint(point: _points[index]),
+                              _OnboardingPoint(point: points[index]),
                             ],
                           ],
                         ),
@@ -156,13 +157,13 @@ class OnboardingScreen extends StatelessWidget {
                   const SizedBox(height: AppTheme.spaceMd),
                   AppSurfaces.primaryAction(
                     context,
-                    label: 'Get started',
+                    label: strings.onboardingGetStarted,
                     onPressed: () => _complete(context),
                     icon: const Icon(AppIcons.forward, size: 19),
                   ),
                   const SizedBox(height: AppTheme.spaceMd - 4),
                   Text(
-                    'You choose what ReplyMate can access.',
+                    strings.onboardingFooter,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontSize: 12,

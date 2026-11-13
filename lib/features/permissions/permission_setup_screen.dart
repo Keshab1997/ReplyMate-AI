@@ -6,6 +6,7 @@ import '../../shared/widgets/permission_status_card.dart';
 import '../../shared/widgets/mascot_face.dart';
 import '../../shared/widgets/screen_header.dart';
 import 'providers/permission_provider.dart';
+import '../../core/l10n/app_strings.dart';
 
 /// FR-02: explain why notification access is needed, open the right Settings
 /// page, and re-check the state when the user comes back (Android keeps the
@@ -46,6 +47,7 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen>
 
   @override
   Widget build(BuildContext context) {
+    final strings = ref.watch(appStringsProvider);
     final enabled = ref.watch(listenerPermissionProvider);
     final overlayEnabled = ref.watch(overlayProvider);
     final theme = Theme.of(context);
@@ -105,8 +107,10 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen>
               ),
               children: [
                 ScreenHeader(
-                  title: 'Notification access',
-                  subtitle: enabled ? 'Granted' : 'Needed for the bubble',
+                  title: strings.permissionTitle,
+                  subtitle: enabled
+                      ? strings.permissionGranted
+                      : strings.permissionNeeded,
                   trailing: MascotFace(
                     size: 34,
                     glow: false,
@@ -131,7 +135,7 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'What this access allows',
+                          strings.permissionWhatAllows,
                           style: theme.textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
@@ -139,20 +143,14 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen>
                         const SizedBox(height: AppTheme.spaceSm + 2),
                         bullet(
                           icon: Icons.check_rounded,
-                          title: 'Notifications from apps you pick',
-                          body:
-                              'ReplyMate processes only the apps you select on '
-                              'the next screen, uses the text solely to draft '
-                              'replies, and never stores conversations.',
+                          title: strings.permissionAllowsTitle,
+                          body: strings.permissionAllowsBody,
                           tint: AppTheme.mint,
                         ),
                         bullet(
                           icon: Icons.block_rounded,
-                          title: 'No reading inside apps',
-                          body:
-                              'No screen capture, no accessibility service, no '
-                              'sending messages. You can revoke the access here '
-                              'or in Android Settings at any time.',
+                          title: strings.permissionNoReadTitle,
+                          body: strings.permissionNoReadBody,
                           tint: AppTheme.brandBright,
                         ),
                       ],
@@ -163,7 +161,7 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen>
                 const SizedBox(height: AppTheme.spaceMd),
                 AppSurfaces.primaryAction(
                   context,
-                  label: 'Open Android Settings',
+                  label: strings.permissionOpenSettings,
                   onPressed: () => ref
                       .read(listenerPermissionProvider.notifier)
                       .openSettings(),
@@ -172,7 +170,7 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen>
                 const SizedBox(height: AppTheme.spaceSm),
                 OutlinedButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Later - I will paste text manually'),
+                  child: Text(strings.permissionLater),
                 ),
 
                 // The optional part comes after the required one, so the manual
@@ -180,7 +178,7 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen>
                 Padding(
                   padding: const EdgeInsets.only(top: AppTheme.spaceLg),
                   child: Text(
-                    'OPTIONAL · FLOATING REPLY BUBBLE',
+                    strings.permissionOptionalBubble,
                     style: theme.textTheme.labelSmall?.copyWith(
                       letterSpacing: 1.3,
                       fontWeight: FontWeight.w700,
@@ -190,6 +188,7 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen>
                 ),
                 const SizedBox(height: AppTheme.spaceSm),
                 _OverlayAccessCard(
+                  strings: strings,
                   granted: overlayEnabled,
                   onOpenSettings: () =>
                       ref.read(overlayProvider.notifier).openSettings(),
@@ -211,10 +210,12 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen>
 /// broken app.
 class _OverlayAccessCard extends StatelessWidget {
   const _OverlayAccessCard({
+    required this.strings,
     required this.granted,
     required this.onOpenSettings,
   });
 
+  final AppStrings strings;
   final bool granted;
   final VoidCallback onOpenSettings;
 
@@ -241,8 +242,8 @@ class _OverlayAccessCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     granted
-                        ? 'Overlay access granted'
-                        : 'Overlay access not granted',
+                        ? strings.permissionOverlayGranted
+                        : strings.permissionOverlayNotGranted,
                     style: Theme.of(context).textTheme.titleMedium
                         ?.copyWith(fontWeight: FontWeight.w600),
                   ),
@@ -250,41 +251,27 @@ class _OverlayAccessCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppTheme.spaceSm),
-            const Text(
-              'A small ReplyMate bubble can float over the app you are in when '
-              'a message arrives from an app you selected. Tapping it opens a '
-              'panel to draft a reply without leaving the conversation. It is '
-              'optional, and off by default.',
-            ),
+            Text(strings.permissionOverlayBody),
             const SizedBox(height: AppTheme.spaceMd),
             Text(
-              'What it does not do',
+              strings.permissionOverlayNotDoTitle,
               style: Theme.of(context).textTheme.titleSmall
                   ?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: AppTheme.spaceXs),
-            const Text(
-              'It never reads the screen, the app underneath, or anything '
-              'another app displays. It only knows what the notification '
-              'already posted. It never sends a message by itself, and it keeps '
-              'no message after the panel closes.',
-            ),
+            Text(strings.permissionOverlayNotDoBody),
             const SizedBox(height: AppTheme.spaceMd),
-            const Text(
-              'On Android 13 and later, notifications must also be allowed, so '
-              'the bubble can show its own silent notification and the fallback '
-              '"New message from …" notification can appear.',
-            ),
+            Text(strings.permissionOverlayAndroid13),
             const SizedBox(height: AppTheme.spaceMd),
             if (!granted)
               OutlinedButton(
                 onPressed: onOpenSettings,
-                child: const Text('Open "Display over other apps"'),
+                child: Text(strings.permissionOpenOverlay),
               )
             else
               OutlinedButton(
                 onPressed: onOpenSettings,
-                child: const Text('Manage overlay access'),
+                child: Text(strings.permissionManageOverlay),
               ),
           ],
         ),

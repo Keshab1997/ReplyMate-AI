@@ -43,17 +43,21 @@ pending.
 - [x] Implement onboarding, home, permission setup and supported-app selection.
 - [x] Implement AI reply-language, tone, length and suggestion-count preferences.
 - [x] Implement the reply composer, suggestions, edit/copy/share actions and conditional quick reply.
-- [ ] Add independent Bengali/Hindi/English app-interface localization.
-      Progress: all three languages exist (`EnglishStrings`, `BengaliStrings`,
+- [x] Add independent Bengali/Hindi/English app-interface localization.
+      All three languages exist (`EnglishStrings`, `BengaliStrings`,
       `HindiStrings`) and the compiler refuses a language with a missing string.
-      The **heavily used surfaces are swept** — the bubble panel, the composer,
-      the suggestions screen and card, the conversation-memory card and the
-      Settings section labels all read from `AppStrings`, and widget tests render
-      them in Bengali and Hindi.
-      What is left is the setup path: onboarding, permission setup, app
-      selection, the permission/screen-reading status cards and the admin gate
-      still hold ~57 literal English strings. The box closes when walking those
-      screens in a Bengali session finds no English left.
+      The setup path was the last English island and is now swept: onboarding,
+      permission setup, app selection and the screen-reading status card read
+      from `AppStrings`, and `test/setup_path_localization_test.dart` walks those
+      screens in Bengali and Hindi and fails if an English original is still on
+      screen. The admin gate stays English on purpose — see below.
+
+      Translation quality is the open item, not coverage: the Bengali is the
+      owner's own, the Hindi needs a speaker's review before release (`hi` here
+      means the *interface* language, exactly like `bn`). The admin gate is
+      deliberately not translated: it is an allowlisted operator screen, its
+      audience is one person, and machine-translating "add its email or uid to
+      `admin_config/access`" would make a precise instruction ambiguous.
 
 ## Phase 3 — AI Integration
 

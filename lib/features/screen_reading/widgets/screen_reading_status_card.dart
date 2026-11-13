@@ -5,6 +5,7 @@ import '../../../app/theme/app_theme.dart';
 import '../../notifications/providers/notification_providers.dart';
 import '../models/screen_reading_status.dart';
 import '../providers/screen_reading_provider.dart';
+import '../../../core/l10n/app_strings.dart';
 
 /// What the screen reader is actually doing, in words - and, when it is not
 /// working, the way to the one screen that can fix it.
@@ -19,6 +20,7 @@ class ScreenReadingStatusCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final strings = ref.watch(appStringsProvider);
     final status = ref.watch(screenReadingStatusProvider).value;
 
     return Padding(
@@ -35,7 +37,7 @@ class ScreenReadingStatusCard extends ConsumerWidget {
             children: [
               Expanded(
                 child: Text(
-                  'What the reader is doing',
+                  strings.readerWhatDoing,
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
@@ -46,12 +48,12 @@ class ScreenReadingStatusCard extends ConsumerWidget {
                 // user is in another app, so refreshing is a fresh ask.
                 onPressed: () => ref.invalidate(screenReadingStatusProvider),
                 icon: const Icon(Icons.refresh, size: 15),
-                label: const Text('Refresh'),
+                label: Text(strings.readerRefresh),
               ),
             ],
           ),
           const SizedBox(height: 6),
-          for (final line in _lines(status))
+          for (final line in _lines(strings, status))
             Padding(
               padding: const EdgeInsets.only(bottom: 2),
               child: Text(
@@ -70,9 +72,9 @@ class ScreenReadingStatusCard extends ConsumerWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: OutlinedButton.icon(
-                onPressed: () => _openAndroidSettings(context, ref),
+                onPressed: () => _openAndroidSettings(context, ref, strings),
                 icon: const Icon(Icons.settings_applications_outlined),
-                label: const Text('Open Android settings'),
+                label: Text(strings.readerOpenSettings),
               ),
             ),
           ],
@@ -81,40 +83,37 @@ class ScreenReadingStatusCard extends ConsumerWidget {
     );
   }
 
-  Future<void> _openAndroidSettings(BuildContext context, WidgetRef ref) async {
+  Future<void> _openAndroidSettings(
+    BuildContext context,
+    WidgetRef ref,
+    AppStrings strings,
+  ) async {
     final opened = await ref
         .read(notificationsBridgeProvider)
         .openAccessibilitySettings();
     if (!context.mounted) return;
     if (opened == 'none') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'This phone has no accessibility screen to open. '
-            'Look for it under Settings → Accessibility.',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(strings.readerNoAccessibility)));
     }
   }
 
-  List<String> _lines(ScreenReadingStatus? status) {
-    if (status == null) return const ['No answer from the native side yet.'];
+  List<String> _lines(AppStrings strings, ScreenReadingStatus? status) {
+    if (status == null) return [strings.readerNoAnswer];
     return <String>[
-      if (!status.connected) 'Service: not running',
-      if (!status.enabledByUser) 'Switch: off',
+      if (!status.connected) strings.readerServiceStopped,
+      if (!status.enabledByUser) strings.readerSwitchOff,
       status.allowlist.isEmpty
-          ? 'Watching: nothing selected'
-          : 'Watching: ${status.allowlist.join(', ')}',
-      'Scans: ${status.scanCount}',
-      'Last scan: ${status.summary}',
+          ? strings.readerWatchingNothing
+          : strings.readerWatching(status.allowlist.join(', ')),
+      strings.readerScans(status.scanCount),
+      strings.readerLastScan(status.summary),
       // The one case where the advice is not a setting: the reader is fine and
       // has simply never been shown a conversation.
-      if (!status.hasScanned)
-        'Nothing to read yet - open a chat in a watched app.',
+      if (!status.hasScanned) strings.readerNothingYet,
       // Shown only when something was read: it is the fastest way to see the
       // reader picked the wrong bubble.
-      if (status.lastText != null) 'Seen: "${status.lastText}"',
+      if (status.lastText != null) strings.readerSeen(status.lastText!),
     ];
   }
 }

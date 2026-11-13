@@ -138,6 +138,68 @@ abstract class AppStrings {
   String forgotConversation(String name);
 
   String get appLanguageNote;
+
+  // ------------------------------------------------- setup path: onboarding,
+  // permissions, app selection, screen reading.
+  //
+  // One block rather than sprinkled per screen: these were the strings still
+  // rendered as literal English inside a Bengali session, so keeping them
+  // adjacent makes "is the setup path localised?" answerable in one place.
+  String get onboardingBadge;
+  String get onboardingTitle;
+  String get onboardingSubtitle;
+  String get onboardingPointConsentTitle;
+  String get onboardingPointConsentBody;
+  String get onboardingPointNotificationsTitle;
+  String get onboardingPointNotificationsBody;
+  String get onboardingPointLanguagesTitle;
+  String get onboardingPointLanguagesBody;
+  String get onboardingPointPrivacyTitle;
+  String get onboardingPointPrivacyBody;
+  String get onboardingGetStarted;
+  String get onboardingFooter;
+  String get permissionTitle;
+  String get permissionGranted;
+  String get permissionNeeded;
+  String get permissionWhatAllows;
+  String get permissionAllowsTitle;
+  String get permissionAllowsBody;
+  String get permissionNoReadTitle;
+  String get permissionNoReadBody;
+  String get permissionOpenSettings;
+  String get permissionLater;
+  String get permissionOptionalBubble;
+  String get permissionOverlayGranted;
+  String get permissionOverlayNotGranted;
+  String get permissionOverlayBody;
+  String get permissionOverlayNotDoTitle;
+  String get permissionOverlayNotDoBody;
+  String get permissionOverlayAndroid13;
+  String get permissionOpenOverlay;
+  String get permissionManageOverlay;
+  String get appsTitle;
+  String get appsNothingYet;
+  String appsSelectedOf(int selected, int total);
+  String get appsNoneInstalledTitle;
+  String get appsNoneInstalledBody;
+  String get appsReadFrom;
+  String get appsNotificationsOnly;
+  String get appsWhyListed;
+  String get appsReadFailed;
+  String get readerTitle;
+  String get readerWhatDoing;
+  String get readerRefresh;
+  String get readerOpenSettings;
+  String get readerNoAccessibility;
+  String get readerNoAnswer;
+  String get readerServiceStopped;
+  String get readerSwitchOff;
+  String get readerWatchingNothing;
+  String readerWatching(String apps);
+  String readerScans(int count);
+  String readerLastScan(String summary);
+  String get readerNothingYet;
+  String readerSeen(String text);
 }
 
 class EnglishStrings extends AppStrings {
@@ -375,6 +437,198 @@ class EnglishStrings extends AppStrings {
   @override
   String get appLanguageNote =>
       'The app speaks Bengali. Replies still follow the reply language above.';
+  // ------------------------------------------------------- setup path
+
+  @override
+  String get onboardingBadge => 'YOUR AI REPLY ASSISTANT';
+
+  @override
+  String get onboardingTitle => 'ReplyMate AI';
+
+  @override
+  String get onboardingSubtitle =>
+      'Thoughtful replies in your language,\\nwith you always in control.';
+
+  @override
+  String get onboardingPointConsentTitle => 'Replies you approve, always';
+
+  @override
+  String get onboardingPointConsentBody =>
+      'ReplyMate suggests replies. You review, edit and send - the app never sends anything on its own.';
+
+  @override
+  String get onboardingPointNotificationsTitle => 'Works from notifications';
+
+  @override
+  String get onboardingPointNotificationsBody =>
+      'With your permission it reads notifications from apps you select. Some apps hide or shorten notification text; when that happens ReplyMate says so instead of guessing.';
+
+  @override
+  String get onboardingPointLanguagesTitle => 'Bengali, Hindi and English';
+
+  @override
+  String get onboardingPointLanguagesBody =>
+      'Pick the language and tone for every reply - friendly, casual, professional, polite, funny or short.';
+
+  @override
+  String get onboardingPointPrivacyTitle => 'Privacy first';
+
+  @override
+  String get onboardingPointPrivacyBody =>
+      'Message text is sent to an AI service only when you ask for a reply, and nothing is stored on this device.';
+
+  @override
+  String get onboardingGetStarted => 'Get started';
+
+  @override
+  String get onboardingFooter => 'You choose what ReplyMate can access.';
+
+  @override
+  String get permissionTitle => 'Notification access';
+
+  @override
+  String get permissionGranted => 'Granted';
+
+  @override
+  String get permissionNeeded => 'Needed for the bubble';
+
+  @override
+  String get permissionWhatAllows => 'What this access allows';
+
+  @override
+  String get permissionAllowsTitle => 'Notifications from apps you pick';
+
+  @override
+  String get permissionAllowsBody =>
+      'ReplyMate processes only the apps you select on the next screen, uses the text solely to draft replies, and never stores conversations.';
+
+  @override
+  String get permissionNoReadTitle => 'No reading inside apps';
+
+  @override
+  String get permissionNoReadBody =>
+      'No screen capture, no accessibility service, no sending messages. You can revoke the access here or in Android Settings at any time.';
+
+  @override
+  String get permissionOpenSettings => 'Open Android Settings';
+
+  @override
+  String get permissionLater => 'Later - I will paste text manually';
+
+  @override
+  String get permissionOptionalBubble => 'OPTIONAL · FLOATING REPLY BUBBLE';
+
+  @override
+  String get permissionOverlayGranted => 'Overlay access granted';
+
+  @override
+  String get permissionOverlayNotGranted => 'Overlay access not granted';
+
+  @override
+  String get permissionOverlayBody =>
+      'A small ReplyMate bubble can float over the app you are in when a '
+      'message arrives from an app you selected. Tapping it opens a panel to '
+      'draft a reply without leaving the conversation. It is optional, and off '
+      'by default.';
+
+  @override
+  String get permissionOverlayNotDoTitle => 'What it does not do';
+
+  @override
+  String get permissionOverlayNotDoBody =>
+      'It never reads the screen, the app underneath, or anything another app '
+      'displays. It only knows what the notification already posted. It never '
+      'sends a message by itself, and it keeps no message after the panel '
+      'closes.';
+
+  @override
+  String get permissionOverlayAndroid13 =>
+      'On Android 13 and later, notifications must also be allowed, so the '
+      'bubble can show its own silent notification and the fallback "New '
+      'message from …" notification can appear.';
+
+  @override
+  String get permissionOpenOverlay => 'Open "Display over other apps"';
+
+  @override
+  String get permissionManageOverlay => 'Manage overlay access';
+
+  @override
+  String get appsTitle => 'Supported apps';
+
+  @override
+  String get appsNothingYet => 'Nothing to choose yet';
+
+  @override
+  String appsSelectedOf(int selected, int total) =>
+      '$selected of $total selected';
+
+  @override
+  String get appsNoneInstalledTitle =>
+      'No supported messaging app is installed on this device.';
+
+  @override
+  String get appsNoneInstalledBody =>
+      'You can still use ReplyMate by pasting or selecting text.';
+
+  @override
+  String get appsReadFrom => 'APPS REPLYMATE MAY READ NOTIFICATIONS FROM';
+
+  @override
+  String get appsNotificationsOnly =>
+      'Notifications only - never inside the app';
+
+  @override
+  String get appsWhyListed =>
+      'An app appears here only after it has been seen installed on this '
+      'device. Support is claimed only for what has been tested.';
+
+  @override
+  String get appsReadFailed => 'Could not read the installed app list.';
+
+  @override
+  String get readerTitle => 'Screen reading';
+
+  @override
+  String get readerWhatDoing => 'What the reader is doing';
+
+  @override
+  String get readerRefresh => 'Refresh';
+
+  @override
+  String get readerOpenSettings => 'Open Android settings';
+
+  @override
+  String get readerNoAccessibility =>
+      'This phone has no accessibility screen to open. Look for it under Settings → Accessibility.';
+
+  @override
+  String get readerNoAnswer => 'No answer from the native side yet.';
+
+  @override
+  String get readerServiceStopped => 'Service: not running';
+
+  @override
+  String get readerSwitchOff => 'Switch: off';
+
+  @override
+  String get readerWatchingNothing => 'Watching: nothing selected';
+
+  @override
+  String readerWatching(String apps) => 'Watching: $apps';
+
+  @override
+  String readerScans(int count) => 'Scans: $count';
+
+  @override
+  String readerLastScan(String summary) => 'Last scan: $summary';
+
+  @override
+  String get readerNothingYet =>
+      'Nothing to read yet - open a chat in a watched app.';
+
+  @override
+  String readerSeen(String text) => 'Seen: "$text"';
 }
 
 class BengaliStrings extends AppStrings {
@@ -609,6 +863,191 @@ class BengaliStrings extends AppStrings {
   @override
   String get appLanguageNote =>
       'অ্যাপ বাংলায় চলবে। রিপ্লাই কিন্তু উপরের ভাষা অনুযায়ীই তৈরি হবে।';
+  // ------------------------------------------------------- setup path
+
+  @override
+  String get onboardingBadge => 'আপনার এআই রিপ্লাই সহায়ক';
+
+  @override
+  String get onboardingTitle => 'ReplyMate AI';
+
+  @override
+  String get onboardingSubtitle =>
+      'আপনার ভাষায় ভেবেচিন্তে লেখা উত্তর,\\nনিয়ন্ত্রণ সবসময় আপনার হাতে।';
+
+  @override
+  String get onboardingPointConsentTitle =>
+      'যে উত্তর আপনি অনুমোদন করবেন, সবসময়';
+
+  @override
+  String get onboardingPointConsentBody =>
+      'ReplyMate উত্তর সাজেশন দেয়। আপনি দেখে, সম্পাদনা করে পাঠান - অ্যাপ নিজে থেকে কিছু পাঠায় না।';
+
+  @override
+  String get onboardingPointNotificationsTitle => 'নোটিফিকেশন থেকেই কাজ করে';
+
+  @override
+  String get onboardingPointNotificationsBody =>
+      'আপনার অনুমতি নিয়ে এটি শুধু সেই অ্যাপগুলোর নোটিফিকেশন পড়ে যেগুলো আপনি বেছে নেন। কিছু অ্যাপ নোটিফিকেশনের লেখা লুকায় বা ছোট করে; তখন ReplyMate অনুমান না করে সেটা জানিয়ে দেয়।';
+
+  @override
+  String get onboardingPointLanguagesTitle => 'বাংলা, হিন্দি আর ইংরেজি';
+
+  @override
+  String get onboardingPointLanguagesBody =>
+      'প্রতিটি উত্তরের ভাষা আর সুর বেছে নিন - বন্ধুত্বপূর্ণ, সহজ, পেশাদার, ভদ্র, মজার বা ছোট।';
+
+  @override
+  String get onboardingPointPrivacyTitle => 'গোপনীয়তা আগে';
+
+  @override
+  String get onboardingPointPrivacyBody =>
+      'আপনি উত্তর চাইলে তবেই লেখাটি এআই সেবায় যায়, আর এই ফোনে কিছুই জমা থাকে না।';
+
+  @override
+  String get onboardingGetStarted => 'শুরু করুন';
+
+  @override
+  String get onboardingFooter =>
+      'ReplyMate কী কী দেখতে পাবে, তা আপনি ঠিক করবেন।';
+
+  @override
+  String get permissionTitle => 'নোটিফিকেশন অ্যাক্সেস';
+
+  @override
+  String get permissionGranted => 'অনুমতি দেওয়া হয়েছে';
+
+  @override
+  String get permissionNeeded => 'বাবলের জন্য দরকার';
+
+  @override
+  String get permissionWhatAllows => 'এই অ্যাক্সেস কী কী করতে দেয়';
+
+  @override
+  String get permissionAllowsTitle => 'আপনি যে অ্যাপ বাছেন, তার নোটিফিকেশন';
+
+  @override
+  String get permissionAllowsBody =>
+      'ReplyMate শুধু পরের স্ক্রিনে আপনি যে অ্যাপগুলো বাছবেন সেগুলোই প্রসেস করে, লেখাটি কেবল উত্তর লেখার জন্য ব্যবহার করে, আর কথোপকথন কখনো জমা রাখে না।';
+
+  @override
+  String get permissionNoReadTitle => 'অ্যাপের ভেতরে কিছু পড়ে না';
+
+  @override
+  String get permissionNoReadBody =>
+      'স্ক্রিন ক্যাপচার নেই, অ্যাক্সেসিবিলিটি সার্ভিস নেই, মেসেজ পাঠানো নেই। যেকোনো সময় এখান থেকে বা Android সেটিংস থেকে অনুমতি বাতিল করতে পারেন।';
+
+  @override
+  String get permissionOpenSettings => 'Android সেটিংস খুলুন';
+
+  @override
+  String get permissionLater => 'পরে - আমি নিজে লেখা পেস্ট করব';
+
+  @override
+  String get permissionOptionalBubble => 'ঐচ্ছিক · ভাসমান রিপ্লাই বাবল';
+
+  @override
+  String get permissionOverlayGranted => 'ওভারলে অ্যাক্সেস দেওয়া হয়েছে';
+
+  @override
+  String get permissionOverlayNotGranted => 'ওভারলে অ্যাক্সেস দেওয়া হয়নি';
+
+  @override
+  String get permissionOverlayBody =>
+      'মেসেজ এলে আপনি যে অ্যাপে আছেন তার উপরে একটি ছোট ReplyMate বাবল ভেসে থাকতে পারে, ফলে উত্তর এক ট্যাপ দূরত্বে।';
+
+  @override
+  String get permissionOverlayNotDoTitle => 'এটি যা করে না';
+
+  @override
+  String get permissionOverlayNotDoBody =>
+      'এটি কখনো স্ক্রিন, নিচের অ্যাপ বা আপনার অনুরোধ ছাড়া অন্য কিছু পড়ে না।';
+
+  @override
+  String get permissionOverlayAndroid13 =>
+      'Android 13 বা তার পরে নোটিফিকেশনও অনুমোদিত থাকতে হবে, যাতে "নতুন মেসেজ …" ফলব্যাক নোটিফিকেশনটি দেখা যায়।';
+
+  @override
+  String get permissionOpenOverlay => '"অন্য অ্যাপের উপরে দেখান" খুলুন';
+
+  @override
+  String get permissionManageOverlay => 'ওভারলে অ্যাক্সেস সামলান';
+
+  @override
+  String get appsTitle => 'সমর্থিত অ্যাপ';
+
+  @override
+  String get appsNothingYet => 'এখনো বেছে নেওয়ার কিছু নেই';
+
+  @override
+  String appsSelectedOf(int selected, int total) =>
+      '$total-এর মধ্যে $selected বেছে নেওয়া হয়েছে';
+
+  @override
+  String get appsNoneInstalledTitle =>
+      'এই ডিভাইসে সমর্থিত কোনো মেসেজিং অ্যাপ নেই।';
+
+  @override
+  String get appsNoneInstalledBody =>
+      'লেখা পেস্ট করে বা বেছে নিয়ে আপনি তবুও ReplyMate ব্যবহার করতে পারেন।';
+
+  @override
+  String get appsReadFrom => 'যে অ্যাপগুলোর নোটিফিকেশন ReplyMate পড়তে পারে';
+
+  @override
+  String get appsNotificationsOnly =>
+      'শুধু নোটিফিকেশন - অ্যাপের ভেতরে কখনো নয়';
+
+  @override
+  String get appsWhyListed =>
+      'কোনো অ্যাপ এখানে আসে কেবল তখনই, যখন সেটি নোটিফিকেশন পাঠাতে দেখা গেছে।';
+
+  @override
+  String get appsReadFailed => 'ইনস্টল করা অ্যাপের তালিকা পড়া যায়নি।';
+
+  @override
+  String get readerTitle => 'স্ক্রিন রিডিং';
+
+  @override
+  String get readerWhatDoing => 'রিডার এখন কী করছে';
+
+  @override
+  String get readerRefresh => 'রিফ্রেশ';
+
+  @override
+  String get readerOpenSettings => 'Android সেটিংস খুলুন';
+
+  @override
+  String get readerNoAccessibility =>
+      'এই ফোনে খোলার মতো অ্যাক্সেসিবিলিটি স্ক্রিন নেই। সেটিংস → অ্যাক্সেসিবিলিটি-তে দেখুন।';
+
+  @override
+  String get readerNoAnswer => 'নেটিভ দিক থেকে এখনো কোনো উত্তর আসেনি।';
+
+  @override
+  String get readerServiceStopped => 'সার্ভিস: চলছে না';
+
+  @override
+  String get readerSwitchOff => 'সুইচ: বন্ধ';
+
+  @override
+  String get readerWatchingNothing => 'দেখছে: কিছু বেছে নেওয়া হয়নি';
+
+  @override
+  String readerWatching(String apps) => 'দেখছে: $apps';
+
+  @override
+  String readerScans(int count) => 'স্ক্যান: $count';
+
+  @override
+  String readerLastScan(String summary) => 'শেষ স্ক্যান: $summary';
+
+  @override
+  String get readerNothingYet =>
+      'এখনো পড়ার কিছু নেই - যে অ্যাপ দেখছেন সেখানে একটি চ্যাট খুলুন।';
+
+  @override
+  String readerSeen(String text) => 'দেখা গেছে: "$text"';
 }
 
 final NotifierProvider<AppLanguageNotifier, AppLanguage> appLanguageProvider =
@@ -847,6 +1286,190 @@ class HindiStrings extends AppStrings {
   @override
   String get appLanguageNote =>
       'ऐप हिंदी में चलेगा। जवाब फिर भी ऊपर चुनी गई जवाब की भाषा में बनेंगे।';
+  // ------------------------------------------------------- setup path
+
+  @override
+  String get onboardingBadge => 'आपका एआई रिप्लाई सहायक';
+
+  @override
+  String get onboardingTitle => 'ReplyMate AI';
+
+  @override
+  String get onboardingSubtitle =>
+      'आपकी भाषा में सोच-समझकर लिखा जवाब,\\nनियंत्रण हमेशा आपके पास।';
+
+  @override
+  String get onboardingPointConsentTitle => 'जवाब जिसे आप मंज़ूर करें, हमेशा';
+
+  @override
+  String get onboardingPointConsentBody =>
+      'ReplyMate जवाब सुझाता है। आप देखकर, बदलकर भेजते हैं - ऐप खुद कुछ नहीं भेजता।';
+
+  @override
+  String get onboardingPointNotificationsTitle =>
+      'नोटिफिकेशन से ही काम करता है';
+
+  @override
+  String get onboardingPointNotificationsBody =>
+      'आपकी अनुमति से यह सिर्फ़ उन्हीं ऐप्स के नोटिफिकेशन पढ़ता है जिन्हें आप चुनते हैं। कुछ ऐप्स नोटिफिकेशन का टेक्स्ट छिपाते या छोटा करते हैं; तब ReplyMate अनुमान लगाने के बजाय बता देता है।';
+
+  @override
+  String get onboardingPointLanguagesTitle => 'बांग्ला, हिंदी और अंग्रेज़ी';
+
+  @override
+  String get onboardingPointLanguagesBody =>
+      'हर जवाब की भाषा और लहजा चुनें - दोस्ताना, सहज, पेशेवर, विनम्र, मज़ेदार या छोटा।';
+
+  @override
+  String get onboardingPointPrivacyTitle => 'निजता पहले';
+
+  @override
+  String get onboardingPointPrivacyBody =>
+      'टेक्स्ट एआई सेवा को सिर्फ़ तब जाता है जब आप जवाब मांगते हैं, और इस फ़ोन पर कुछ भी सेव नहीं होता।';
+
+  @override
+  String get onboardingGetStarted => 'शुरू करें';
+
+  @override
+  String get onboardingFooter =>
+      'ReplyMate क्या देख सकता है, यह आप तय करते हैं।';
+
+  @override
+  String get permissionTitle => 'नोटिफिकेशन एक्सेस';
+
+  @override
+  String get permissionGranted => 'अनुमति दी गई';
+
+  @override
+  String get permissionNeeded => 'बबल के लिए ज़रूरी';
+
+  @override
+  String get permissionWhatAllows => 'यह एक्सेस क्या-क्या करने देता है';
+
+  @override
+  String get permissionAllowsTitle => 'आपके चुने हुए ऐप्स के नोटिफिकेशन';
+
+  @override
+  String get permissionAllowsBody =>
+      'ReplyMate सिर्फ़ वही ऐप्स प्रोसेस करता है जो आप अगली स्क्रीन पर चुनते हैं, टेक्स्ट सिर्फ़ जवाब लिखने के लिए इस्तेमाल करता है, और बातचीत कभी सेव नहीं करता।';
+
+  @override
+  String get permissionNoReadTitle => 'ऐप्स के अंदर कुछ नहीं पढ़ता';
+
+  @override
+  String get permissionNoReadBody =>
+      'कोई स्क्रीन कैप्चर नहीं, कोई एक्सेसिबिलिटी सेवा नहीं, कोई मैसेज भेजना नहीं। आप कभी भी यहाँ से या Android सेटिंग्स से अनुमति हटा सकते हैं।';
+
+  @override
+  String get permissionOpenSettings => 'Android सेटिंग्स खोलें';
+
+  @override
+  String get permissionLater => 'बाद में - मैं खुद टेक्स्ट पेस्ट करूँगा';
+
+  @override
+  String get permissionOptionalBubble => 'वैकल्पिक · फ़्लोटिंग रिप्लाई बबल';
+
+  @override
+  String get permissionOverlayGranted => 'ओवरले एक्सेस मिला है';
+
+  @override
+  String get permissionOverlayNotGranted => 'ओवरले एक्सेस नहीं मिला';
+
+  @override
+  String get permissionOverlayBody =>
+      'मैसेज आने पर आप जिस ऐप में हैं उसके ऊपर एक छोटा ReplyMate बबल तैर सकता है, जिससे जवाब एक टैप दूर रहता है।';
+
+  @override
+  String get permissionOverlayNotDoTitle => 'यह क्या नहीं करता';
+
+  @override
+  String get permissionOverlayNotDoBody =>
+      'यह कभी स्क्रीन, नीचे का ऐप या आपकी मांग के बिना कुछ नहीं पढ़ता।';
+
+  @override
+  String get permissionOverlayAndroid13 =>
+      'Android 13 या बाद में नोटिफिकेशन भी अनुमत होना चाहिए, ताकि "नया मैसेज …" वाला फ़ॉलबैक नोटिफिकेशन दिख सके।';
+
+  @override
+  String get permissionOpenOverlay => '"अन्य ऐप्स के ऊपर दिखाएँ" खोलें';
+
+  @override
+  String get permissionManageOverlay => 'ओवरले एक्सेस प्रबंधित करें';
+
+  @override
+  String get appsTitle => 'समर्थित ऐप्स';
+
+  @override
+  String get appsNothingYet => 'अभी चुनने के लिए कुछ नहीं';
+
+  @override
+  String appsSelectedOf(int selected, int total) =>
+      '$total में से $selected चुने गए';
+
+  @override
+  String get appsNoneInstalledTitle =>
+      'इस डिवाइस पर कोई समर्थित मैसेजिंग ऐप नहीं है।';
+
+  @override
+  String get appsNoneInstalledBody =>
+      'टेक्स्ट पेस्ट या चुनकर भी आप ReplyMate इस्तेमाल कर सकते हैं।';
+
+  @override
+  String get appsReadFrom => 'जिन ऐप्स के नोटिफिकेशन ReplyMate पढ़ सकता है';
+
+  @override
+  String get appsNotificationsOnly => 'सिर्फ़ नोटिफिकेशन - ऐप के अंदर कभी नहीं';
+
+  @override
+  String get appsWhyListed =>
+      'कोई ऐप यहाँ सिर्फ़ तब आता है जब उसे नोटिफिकेशन भेजते देखा गया हो।';
+
+  @override
+  String get appsReadFailed => 'इंस्टॉल किए ऐप्स की सूची नहीं पढ़ी जा सकी।';
+
+  @override
+  String get readerTitle => 'स्क्रीन रीडिंग';
+
+  @override
+  String get readerWhatDoing => 'रीडर अभी क्या कर रहा है';
+
+  @override
+  String get readerRefresh => 'रिफ़्रेश';
+
+  @override
+  String get readerOpenSettings => 'Android सेटिंग्स खोलें';
+
+  @override
+  String get readerNoAccessibility =>
+      'इस फ़ोन में खोलने के लिए कोई एक्सेसिबिलिटी स्क्रीन नहीं है। सेटिंग्स → एक्सेसिबिलिटी में देखें।';
+
+  @override
+  String get readerNoAnswer => 'नेटिव साइड से अभी कोई जवाब नहीं आया।';
+
+  @override
+  String get readerServiceStopped => 'सेवा: चल नहीं रही';
+
+  @override
+  String get readerSwitchOff => 'स्विच: बंद';
+
+  @override
+  String get readerWatchingNothing => 'देख रहा है: कुछ चुना नहीं गया';
+
+  @override
+  String readerWatching(String apps) => 'देख रहा है: $apps';
+
+  @override
+  String readerScans(int count) => 'स्कैन: $count';
+
+  @override
+  String readerLastScan(String summary) => 'पिछला स्कैन: $summary';
+
+  @override
+  String get readerNothingYet =>
+      'अभी पढ़ने के लिए कुछ नहीं - जिस ऐप को देख रहे हैं वहाँ कोई चैट खोलें।';
+
+  @override
+  String readerSeen(String text) => 'देखा गया: "$text"';
 }
 
 class AppLanguageNotifier extends Notifier<AppLanguage> {

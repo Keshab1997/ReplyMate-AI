@@ -4,6 +4,19 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### Setup path speaks Bengali and Hindi
+
+- Onboarding, the permission screen, app selection and the screen-reading
+  status card now read every string from `AppStrings`; 55 new strings were
+  added in all three languages. This was the last place a Bengali session still
+  showed English.
+- `setup_path_localization_test.dart` renders those screens in Bengali and
+  Hindi and asserts the English originals are gone, plus that no new string is
+  left equal to its English text (the failure mode when a getter is added to
+  the interface and the translation is forgotten).
+- The admin gate stays English on purpose: an allowlisted operator screen whose
+  copy is an exact Firestore instruction, not prose for end users.
+
 ### Floating bubble and glass panel polish
 
 - Replaced the bottom-aligned overlay sheet with a centered, keyboard-safe
