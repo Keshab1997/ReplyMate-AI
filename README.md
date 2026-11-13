@@ -43,7 +43,7 @@ Make replying to messages faster, easier, and more natural without taking contro
 
 ## Development Status
 
-The core app prototype is implemented: Flutter onboarding, home, settings and reply flows; the Kotlin notification listener and platform bridge; and Firebase-backed admin/key-pool integration for AI reply generation. 76 Dart unit/widget tests cover the Dart side.
+The core app prototype is implemented: Flutter onboarding, home, settings and reply flows; the Kotlin notification listener and platform bridge; and Firebase-backed admin/key-pool integration for AI reply generation. 261 Dart unit/widget tests cover the Dart side.
 
 On 2026-11-06, Keshab reported a real-device smoke check confirming that the admin flow, API request and reply generation work. Device/build details and individual test steps were not recorded. This does **not** verify every notification, quick-reply, share/selection or OEM behavior; the Phase 1 device checklist has not been completed or recorded.
 

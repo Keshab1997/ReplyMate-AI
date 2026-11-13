@@ -4,6 +4,10 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [1.5.0] - 2026-11-14
+
 ### Your own AI key (BYOK)
 
 - Settings → **Your own AI key**: paste a key from OpenRouter, Google AI Studio
