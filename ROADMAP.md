@@ -102,7 +102,20 @@ the user's explicit switch** -. Exactly one component
 reads the screen (`ReplyMateScreenReaderService`), and it only ever reads: it
 never types, never clicks and never sends.
 
-## Phase 7 — Future Features
+## Phase 7 — Zero-bill smart features
+
+Constraint: no Firebase billing, so no Cloud Functions and no server-side proxy.
+Plan and ranking: [`docs/ZERO_BILL_FEATURES.md`](docs/ZERO_BILL_FEATURES.md).
+
+- [ ] Reply cache by message hash, labelled "from cache" with a bypass
+- [ ] Per-device daily AI budget, with an honest stopped state
+- [ ] Cheaper requests: one suggestion by default, capped `max_tokens`, trimmed prompt
+- [ ] On-device offline suggestions (works with no key, no Firebase, no network)
+- [ ] Local language detection + intent-based tone chips
+- [ ] BYOK — the user's own key in Hive, never in Firestore (the real fix for
+      the key-pool risk while there is no proxy)
+
+## Phase 8 — Future Features
 
 - [ ] Add more reply styles/languages and supported apps after validation.
 - [ ] Optional server-side proxy (see Phase 3).
