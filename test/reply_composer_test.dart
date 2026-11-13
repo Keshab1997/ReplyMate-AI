@@ -19,7 +19,10 @@ class _RecordingReplyRepository implements ReplyRepository {
   ReplyRequest? request;
 
   @override
-  Future<ReplyResult> generate(ReplyRequest request) async {
+  Future<ReplyResult> generate(
+    ReplyRequest request, {
+    bool bypassCache = false,
+  }) async {
     this.request = request;
     return const ReplyFailure('Recorded test request.');
   }

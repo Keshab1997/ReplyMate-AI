@@ -135,13 +135,16 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
     if (!mounted) return;
     setState(() => _generating = false);
     switch (result) {
-      case ReplySuccess(:final replies):
+      case ReplySuccess(:final replies, :final fromCache, :final cachedAt):
         await Navigator.of(context).push(
           MaterialPageRoute<void>(
             builder: (_) => SuggestionsScreen(
               replies: replies,
               request: request,
               context: _context,
+              // Null when the reply is fresh; the banner and the regenerate
+              // button only exist for a cache hit.
+              cachedAt: fromCache ? (cachedAt ?? DateTime.now()) : null,
             ),
           ),
         );

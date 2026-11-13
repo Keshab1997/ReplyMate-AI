@@ -74,6 +74,11 @@ class OpenAiCompatibleClient {
 
   final http.Client _http;
 
+  /// Enough for two or three short replies in any of the three languages;
+  /// a long Bengali reply is more characters than a long English one, which is
+  /// why this is not tighter.
+  static const int maxTokens = 300;
+
   Future<String> complete({
     required AdminApiKey key,
     required String systemPrompt,
@@ -87,6 +92,10 @@ class OpenAiCompatibleClient {
         {'role': 'user', 'content': userPrompt},
       ],
       'temperature': 0.7,
+      // A chat reply is a line or two. Without a cap, providers bill the model's
+      // default completion length even when it stops early, and one generous
+      // default is the difference between a free month and a bill.
+      'max_tokens': maxTokens,
     });
     final http.Response response;
     try {

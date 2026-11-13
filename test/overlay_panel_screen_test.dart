@@ -15,7 +15,10 @@ class _RecordingRepository implements ReplyRepository {
   int calls = 0;
 
   @override
-  Future<ReplyResult> generate(ReplyRequest request) async {
+  Future<ReplyResult> generate(
+    ReplyRequest request, {
+    bool bypassCache = false,
+  }) async {
     calls++;
     this.request = request;
     return const ReplyFailure('Recorded.');

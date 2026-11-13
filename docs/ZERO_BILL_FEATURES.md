@@ -139,9 +139,9 @@ can use the last tone the user actually picked. No new storage, no new risk.
 
 | # | Item | Why first | Rough size |
 |---|---|---|---|
-| 1 | Reply cache + "from cache" label | biggest token saving, no UI redesign | small |
-| 2 | Daily AI budget + honest limit state | the safety net for "no bill" | small |
-| 3 | One suggestion by default + `max_tokens` + prompt trim | pure saving, invisible | small |
+| 1 | ~~Reply cache + "from cache" label~~ **done** | biggest token saving, no UI redesign | small |
+| 2 | ~~Daily AI budget + honest limit state~~ **done** | the safety net for "no bill" | small |
+| 3 | ~~One suggestion by default + `max_tokens` + prompt trim~~ **done** | pure saving, invisible | small |
 | 4 | Offline suggestions | makes the app usable with no key at all | medium |
 | 5 | Language auto-detect + intent chips | the "smart" feel | small |
 | 6 | BYOK | the real security answer here | medium |

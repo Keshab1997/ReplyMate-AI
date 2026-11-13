@@ -81,6 +81,10 @@ Voice for this reply: you are $partner.
 ''';
   }
 
+  /// A request that asks for "their voice" carries style examples; one that
+  /// does not carries an empty list, and then the whole voice block — the
+  /// largest block of input tokens in the prompt — is dropped rather than sent
+  /// empty.
   static String user(ReplyRequest request) =>
       '''${_conversation(request)}Incoming message:
 ${request.trimmedMessage}

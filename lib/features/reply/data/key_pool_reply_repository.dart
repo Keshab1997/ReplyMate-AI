@@ -22,7 +22,12 @@ class KeyPoolReplyRepository implements ReplyRepository {
   final OpenAiCompatibleClient _client;
 
   @override
-  Future<ReplyResult> generate(ReplyRequest request) async {
+  Future<ReplyResult> generate(
+    ReplyRequest request, {
+    // The pool has no cache of its own; the flag is honoured by the layer that
+    // wraps it and is accepted here to keep the interface uniform.
+    bool bypassCache = false,
+  }) async {
     final problems = request.validate();
     if (problems.isNotEmpty) {
       return ReplyFailure(problems.join(' '));

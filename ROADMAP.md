@@ -107,9 +107,9 @@ never types, never clicks and never sends.
 Constraint: no Firebase billing, so no Cloud Functions and no server-side proxy.
 Plan and ranking: [`docs/ZERO_BILL_FEATURES.md`](docs/ZERO_BILL_FEATURES.md).
 
-- [ ] Reply cache by message hash, labelled "from cache" with a bypass
-- [ ] Per-device daily AI budget, with an honest stopped state
-- [ ] Cheaper requests: one suggestion by default, capped `max_tokens`, trimmed prompt
+- [x] Reply cache by message hash, labelled "from cache" with a bypass
+- [x] Per-device daily AI budget, with an honest stopped state
+- [x] Cheaper requests: one suggestion by default, capped `max_tokens`, trimmed prompt
 - [ ] On-device offline suggestions (works with no key, no Firebase, no network)
 - [ ] Local language detection + intent-based tone chips
 - [ ] BYOK — the user's own key in Hive, never in Firestore (the real fix for

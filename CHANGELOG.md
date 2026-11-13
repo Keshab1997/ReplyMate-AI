@@ -4,6 +4,25 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### Costs less to run, and says so
+
+- **Reply cache.** An identical request (same message, language, tone, length,
+  count and prior context) is served from an on-device Hive box instead of a
+  paid call. A hit is labelled **"From cache · N ago · no AI call was made"**
+  with a real *Regenerate* that bypasses it — a cache without an exit is a trap,
+  not a saving. Messages carrying a time reference (today/kal/আজ/12:30 …) are
+  never cached, because a stale answer there is wrong rather than merely old.
+- **Daily AI allowance.** 50 paid generations per device per day, shown in
+  Settings as "N of 50 used today". This is the guard `ApiKeyManager` never
+  had: it protects against dead keys, not against spending. It counts requests,
+  not tokens, is per device, and fails open — a broken counter must never be
+  the reason the app stops working.
+- **Cheaper requests.** `max_tokens` capped at 300 (providers otherwise bill
+  the model default), and the style-examples block is dropped from the prompt
+  when the request carries none — it was the largest input block in the prompt.
+- `ReplyRepository.generate` grew `bypassCache`; `ReplySuccess` carries
+  `fromCache`/`cachedAt` so no screen can present a cached reply as fresh.
+
 ### Setup path speaks Bengali and Hindi
 
 - Onboarding, the permission screen, app selection and the screen-reading
