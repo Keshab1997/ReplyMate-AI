@@ -144,7 +144,7 @@ can use the last tone the user actually picked. No new storage, no new risk.
 | 3 | ~~One suggestion by default + `max_tokens` + prompt trim~~ **done** | pure saving, invisible | small |
 | 4 | Offline suggestions | makes the app usable with no key at all | medium |
 | 5 | Language auto-detect + intent chips | the "smart" feel | small |
-| 6 | BYOK | the real security answer here | medium |
+| 6 | ~~BYOK~~ **done** | the real security answer here | medium |
 
 1–3 are one batch and can ship together. 4 is the one that changes what the app
 *is* (works with no Firebase, no key, no network), so it deserves its own

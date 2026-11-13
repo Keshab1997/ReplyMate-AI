@@ -74,6 +74,8 @@ class KeyPoolReplyRepository implements ReplyRepository {
   /// Accepts the documented JSON shape first; falls back to one reply per
   /// non-empty line so a provider that ignores the format still produces
   /// usable suggestions instead of an error.
+  /// Shared with the BYOK repository: both receive the same provider wire
+  /// format, and a second copy of this parser would be a second set of bugs.
   static List<String> parseReplies(String content, int count) {
     try {
       final decoded = jsonDecode(content);

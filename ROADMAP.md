@@ -112,7 +112,7 @@ Plan and ranking: [`docs/ZERO_BILL_FEATURES.md`](docs/ZERO_BILL_FEATURES.md).
 - [x] Cheaper requests: one suggestion by default, capped `max_tokens`, trimmed prompt
 - [x] On-device offline suggestions (works with no key, no Firebase, no network)
 - [ ] Local language detection + intent-based tone chips
-- [ ] BYOK — the user's own key in Hive, never in Firestore (the real fix for
+- [x] BYOK — the user's own key in Hive, never in Firestore (the real fix for
       the key-pool risk while there is no proxy)
 
 ## Phase 8 — Future Features

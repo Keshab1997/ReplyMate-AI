@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/app.dart';
 import 'core/firebase/firebase_bootstrap.dart';
 import 'core/firebase/firebase_providers.dart';
+
 import 'features/reply/data/ai_budget.dart';
+import 'features/reply/data/own_key_reply_repository.dart';
+import 'features/reply/data/own_key_store.dart';
 import 'features/reply/data/key_pool_reply_repository.dart';
 import 'features/reply/data/reply_cache.dart';
 import 'features/reply/data/reply_repository.dart';
@@ -23,6 +26,8 @@ void main() async {
   // served in the other unless the request is identical.
   final cache = ReplyCache(box: await _openBox(ReplyCache.openBox));
   final budget = AiBudget(box: await _openBox(AiBudget.openBox));
+  final ownKeyBox = await _openBox(OwnKeyStore.openBox);
+  final ownKeys = OwnKeyStore(box: ownKeyBox);
 
   runApp(
     ProviderScope(
@@ -30,7 +35,13 @@ void main() async {
         firebaseReadyProvider.overrideWithValue(firebaseReady),
         replyRepositoryProvider.overrideWithValue(
           BudgetedReplyRepository(
-            inner: firebaseReady
+            // A key the user pasted is tried first: it is theirs, it cannot
+            // leak from Firestore, and it is the only path that works with no
+            // Firebase project at all. `generate` returns a failure when no key
+            // is set, and the wrapper then falls back to offline suggestions.
+            inner: ownKeys.hasKey
+                ? OwnKeyReplyRepository(keys: ownKeys)
+                : firebaseReady
                 ? KeyPoolReplyRepository()
                 : const NotConfiguredReplyRepository(),
             cache: cache,

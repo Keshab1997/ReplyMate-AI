@@ -4,6 +4,24 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### Your own AI key (BYOK)
+
+- Settings → **Your own AI key**: paste a key from OpenRouter, Google AI Studio
+  or any OpenAI-compatible endpoint. It is stored in its own Hive box on this
+  phone — never in Firestore, never in a backup (`android:allowBackup` is
+  false), never logged. The card says so where the user is typing, not in a
+  README.
+- This is the security answer that fits an app with no billing: a key in the
+  user's own storage cannot leak out of a shared pool, has no Firestore rules to
+  get wrong, and burns nobody else's quota. It also removes the last Firebase
+  dependency from the reply path — with a key set, a build with no
+  `google-services.json` generates replies.
+- The saved key is never rendered back ("set" is the whole state shown), the
+  field is obscured, and "Saved" appears only after the write succeeded.
+- `OwnKeyReplyRepository` talks to both wire formats (OpenAI-compatible and
+  Gemini `generateContent`), sharing the prompt builder and reply parser with
+  the key-pool path rather than duplicating them.
+
 ### Costs less to run, and says so
 
 - **Reply cache.** An identical request (same message, language, tone, length,

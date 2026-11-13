@@ -133,7 +133,13 @@ class OpenAiCompatibleClient {
     }
   }
 
-  String _extractContent(String body) {
+  /// The `choices[0].message.content` unwrap, shared with [http]'s other
+  /// caller (the BYOK repository) so both providers are read the same way.
+  static String extractContent(String body) => _decodeContent(body);
+
+  String _extractContent(String body) => _decodeContent(body);
+
+  static String _decodeContent(String body) {
     try {
       final decoded = jsonDecode(body);
       if (decoded is Map<String, Object?>) {

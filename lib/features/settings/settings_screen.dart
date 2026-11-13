@@ -21,6 +21,7 @@ import '../app_selection/app_selection_screen.dart';
 import '../notifications/providers/notification_providers.dart';
 import '../overlay/providers/bubble_providers.dart';
 import '../reply/data/ai_budget.dart';
+import '../reply/presentation/own_key_card.dart';
 import '../reply/data/reply_cache.dart';
 import '../reply/data/reply_repository.dart';
 import '../screen_reading/providers/screen_reading_provider.dart';
@@ -694,6 +695,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                     ],
                   ),
                 ),
+
+                section('Your own AI key', const OwnKeyCard()),
 
                 section('AI usage', const _AiUsageCard()),
 
