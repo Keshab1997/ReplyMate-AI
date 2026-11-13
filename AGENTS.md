@@ -37,6 +37,31 @@ python3 tool/preflight.py     # before every push: dead code / unused params / u
 python3 tool/agent_loop.py -m "fix(scope): what changed"   # preflight + commit + push, one call
 ```
 
+### Nothing here updates itself
+
+This project depends on two repositories that most apps would get "for free":
+`admin_api_key_manager` (a `git:` dependency pinned to a **commit**) and
+`flutter-builder` (reusable workflows pinned to a **tag**). Both pins are walls:
+`flutter pub upgrade` cannot move a commit pin, and no tool bumps `@v1.15.2`.
+Neither does a `git pull` — a pinned dependency can be current at `pub get`
+time and two commits stale a week later, with nothing on screen saying so.
+
+So the only way an update reaches this repo is an edit to `pubspec.yaml` or
+`.github/workflows/*.yml`, made deliberately. `tool/dep_check.py` says when
+that edit is due:
+
+```bash
+python3 tool/dep_check.py            # ok / BEHIND, with the exact bump line
+python3 tool/dep_check.py --quiet    # exit code only, for a pre-push hook
+```
+
+It reads the pins out of the repo rather than trusting a note, and it exits
+`1` when anything is behind. Two things it deliberately does **not** do: bump
+the pin for you, and call a failed lookup "up to date" — a checker that says
+`ok` because the network was down is worse than no checker. Run it when you
+start a session on this repo, and before a release: shipping against a stale
+admin package is the kind of drift nobody notices until a screen is missing.
+
 ### What a check costs
 
 | Check | Cost | When it is the right check |
@@ -44,6 +69,7 @@ python3 tool/agent_loop.py -m "fix(scope): what changed"   # preflight + commit 
 | `python3 tool/preflight.py` | ~1 s | every change, before every push |
 | `flutter test test/<file>_test.dart` (via flutter-bootstrap) | 40 s once per session, then seconds | the Dart change that file covers |
 | `flutter analyze` or the full `flutter test` | ~20 s / 1–3 min | shared surfaces, risky diffs, or when the human asks |
+| `python3 tool/dep_check.py` | ~2 s + one API call | when a pinned dependency or a workflow `@tag` might have moved |
 | `python3 tool/see_screen.py` | one CI run | before and after a UI change |
 | The human's CI run | the human's attention + a runner | once per finished batch — never per edit |
 
