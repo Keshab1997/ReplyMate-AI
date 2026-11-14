@@ -121,6 +121,13 @@ abstract class AppStrings {
   String get bestFit;
   String get share;
   String get quickReplies;
+  String get replyHint;
+  String get copyDraft;
+  String get editDraft;
+  String get offlineDraft;
+  String get cachedDraft;
+  String get emptyComposerHint;
+  String get done;
   String get savedReplies;
   String get addSavedReply;
   String get noSavedReplies;
@@ -424,6 +431,29 @@ class EnglishStrings extends AppStrings {
   String get share => 'Share';
   @override
   String get quickReplies => 'Quick replies';
+
+  @override
+  @override
+  String get replyHint => 'Your reply';
+
+  @override
+  String get copyDraft => 'Copy';
+
+  @override
+  String get editDraft => 'Edit';
+
+  @override
+  String get offlineDraft => 'On-device suggestion';
+
+  @override
+  String get cachedDraft => 'From cache';
+
+  @override
+  String get emptyComposerHint =>
+      'Type or paste the message, then generate. Drafts appear right here.';
+
+  @override
+  String get done => 'Done';
   @override
   String get savedReplies => 'My reply templates';
   @override
@@ -915,6 +945,29 @@ class BengaliStrings extends AppStrings {
   String get share => 'শেয়ার';
   @override
   String get quickReplies => 'দ্রুত জবাব';
+
+  @override
+  @override
+  String get replyHint => 'আপনার জবাব';
+
+  @override
+  String get copyDraft => 'কপি';
+
+  @override
+  String get editDraft => 'সম্পাদনা';
+
+  @override
+  String get offlineDraft => 'ফোনেই তৈরি পরামর্শ';
+
+  @override
+  String get cachedDraft => 'ক্যাশ থেকে';
+
+  @override
+  String get emptyComposerHint =>
+      'মেসেজটা লিখুন বা পেস্ট করুন, তারপর তৈরি করুন। জবাব এখানেই দেখা যাবে।';
+
+  @override
+  String get done => 'হয়ে গেছে';
   @override
   String get savedReplies => 'আমার জবাবের টেমপ্লেট';
   @override
@@ -1400,6 +1453,29 @@ class HindiStrings extends AppStrings {
   String get share => 'शेयर';
   @override
   String get quickReplies => 'तुरंत जवाब';
+
+  @override
+  @override
+  String get replyHint => 'आपका जवाब';
+
+  @override
+  String get copyDraft => 'कॉपी';
+
+  @override
+  String get editDraft => 'संपादित करें';
+
+  @override
+  String get offlineDraft => 'फ़ोन पर ही बना सुझाव';
+
+  @override
+  String get cachedDraft => 'कैश से';
+
+  @override
+  String get emptyComposerHint =>
+      'संदेश लिखें या पेस्ट करें, फिर बनाएँ। जवाब यहीं दिखेंगे।';
+
+  @override
+  String get done => 'हो गया';
   @override
   String get savedReplies => 'मेरे जवाब टेम्पलेट';
   @override

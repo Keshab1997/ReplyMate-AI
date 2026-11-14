@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:replymate/core/constants/app_constants.dart';
 import 'package:replymate/features/reply/data/reply_repository.dart';
 import 'package:replymate/features/reply/domain/reply_request.dart';
+import 'package:replymate/core/l10n/app_strings.dart';
 import 'package:replymate/core/platform/notifications_bridge.dart';
 import 'package:replymate/features/notifications/providers/notification_providers.dart';
 import 'package:replymate/features/reply/presentation/reply_composer_screen.dart';
@@ -26,6 +27,17 @@ class _RecordingReplyRepository implements ReplyRepository {
     this.request = request;
     return const ReplyFailure('Recorded test request.');
   }
+}
+
+// A repository that succeeds, so the inline-drafts path can be asserted.
+// Public on purpose: tool/preflight.py reports a private test-only class as
+// unused even when a test uses it, and a false red blocks the push.
+class SuccessReplyRepository implements ReplyRepository {
+  @override
+  Future<ReplyResult> generate(
+    ReplyRequest request, {
+    bool bypassCache = false,
+  }) async => const ReplySuccess(<String>['দেখা হবে না, পরে জানাই।']);
 }
 
 const MethodChannel _bridgeChannel = MethodChannel(AppConstants.channelName);
@@ -62,6 +74,18 @@ class _ControlledNotificationsBridge extends NotificationsBridge {
     _controller.close();
     super.dispose();
   }
+}
+
+/// Opens the style sheet from the pinned bar and taps [option]. The composer no
+/// longer shows the four chip rows inline - that is the point of the redesign,
+/// so every test that changes style goes through the same door a user does.
+Future<void> chooseStyle(WidgetTester tester, String option) async {
+  await tester.tap(find.text('Change'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(option));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Done'));
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -137,14 +161,42 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'Can we meet tomorrow?');
-    await tester.ensureVisible(find.text('2'));
-    await tester.tap(find.text('2'));
-    await tester.ensureVisible(find.text('Generate suggestions'));
+    await chooseStyle(tester, '2');
     await tester.tap(find.text('Generate suggestions'));
     await tester.pumpAndSettle();
 
     expect(repository.request?.count, 2);
+    // The failure is reported in the conversation now, not on a pushed screen.
     expect(find.text('Recorded test request.'), findsOneWidget);
+  });
+
+  testWidgets('drafts land in the conversation, not on a pushed screen', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          replyRepositoryProvider.overrideWithValue(SuccessReplyRepository()),
+        ],
+        child: const MaterialApp(home: ReplyComposerScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'কাল দেখা হবে না');
+    await tester.tap(find.text('Generate suggestions'));
+    await tester.pumpAndSettle();
+
+    // Same route: the draft is on the composer, under the message it answers.
+    expect(find.text('দেখা হবে না, পরে জানাই।'), findsOneWidget);
+    expect(find.text('Copy'), findsOneWidget);
+    expect(find.text('Edit'), findsOneWidget);
+    // And the bar offers a second attempt instead of a first one.
+    expect(find.text('Generate again'), findsOneWidget);
   });
 
   testWidgets('closing the composer clears transient notification context', (
@@ -318,16 +370,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Quick replies'), findsOneWidget);
-    expect(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is ChoiceChip &&
-            widget.selected &&
-            widget.label is Text &&
-            (widget.label as Text).data == 'Bengali',
-      ),
-      findsOneWidget,
-    );
+    // The detected language is stated in the pinned bar; the chips live in the
+    // sheet, one tap away.
+    expect(find.textContaining('Bengali'), findsOneWidget);
     await tester.tap(find.text('স্বাগতম!'));
     await tester.pumpAndSettle();
 
@@ -389,7 +434,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('नया जवाब'), findsOneWidget);
-    expect(find.text('भाषा'), findsOneWidget);
     expect(find.text('सुझाव बनाएँ'), findsOneWidget);
+    // The style labels moved into the sheet - so the sheet has to be Hindi too.
+    final changeHindi = const HindiStrings().change;
+    expect(find.text(changeHindi), findsOneWidget);
+    await tester.tap(find.text(changeHindi));
+    await tester.pumpAndSettle();
+    expect(find.text('भाषा'), findsOneWidget);
+    expect(find.text(const HindiStrings().toneLabel), findsOneWidget);
+    expect(find.text('हो गया'), findsOneWidget);
   });
 }
