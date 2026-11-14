@@ -65,9 +65,11 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     setState(() => _refining[index] = true);
     final rewrite = widget.request.copyWith(
       count: 1,
-      tone: refinement == ReplyRefinement.shorter
-          ? widget.request.tone
-          : ReplyTone.polite,
+      tone:
+          refinement == ReplyRefinement.softer ||
+              refinement == ReplyRefinement.politeDecline
+          ? ReplyTone.polite
+          : widget.request.tone,
       length: refinement == ReplyRefinement.shorter
           ? ReplyLength.short
           : widget.request.length,

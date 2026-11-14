@@ -63,6 +63,14 @@ class SuggestionCard extends StatefulWidget {
               onTap: () =>
                   Navigator.pop(sheetContext, ReplyRefinement.politeDecline),
             ),
+            ListTile(
+              leading: const Icon(Icons.forum_outlined),
+              title: Text(strings.continueConversation),
+              onTap: () => Navigator.pop(
+                sheetContext,
+                ReplyRefinement.continueConversation,
+              ),
+            ),
             const SizedBox(height: 8),
           ],
         ),

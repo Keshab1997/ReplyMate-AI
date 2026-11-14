@@ -14,7 +14,7 @@ Make replying to messages faster, easier, and more natural without taking contro
 - Conservative on-device language detection for supported scripts and clear Latin-script phrases; uncertain text keeps the user's selected language
 - Intent-based one-tap offline replies for common message types
 - Locally saved user-authored reply templates
-- On-demand draft refinement (shorter, softer, or polite decline)
+- On-demand draft refinement (shorter, softer, or polite decline), plus an optional context-aware follow-up question
 - Bengali, Hindi, and English reply output
 - Multiple reply tones: Friendly, Professional, Casual, Polite, Funny, and Short and direct
 - Android notification-based message assistance

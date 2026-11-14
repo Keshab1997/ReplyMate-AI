@@ -59,12 +59,9 @@ class OverlayBubbleService : Service() {
     private var layoutParams: WindowManager.LayoutParams? = null
     private var badgeView: TextView? = null
     private var iconView: ImageView? = null
-    private var gripView: LinearLayout? = null
-    private var rimView: View? = null
-    private var highlightView: View? = null
+    private var gripView: View? = null
 
-    /** Drives idle and edge-settling motion; cancelled for direct manipulation. */
-    private var bobAnimator: ValueAnimator? = null
+    /** Drives edge-settling motion; cancelled for direct manipulation. */
     private var settleAnimator: ValueAnimator? = null
     private var lastBadgeCount = 0
     private var showMoodAfterExpand = false
@@ -273,20 +270,26 @@ class OverlayBubbleService : Service() {
         val root = FrameLayout(this)
         root.contentDescription = getString(R.string.overlay_bubble_description)
         root.background = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(18).toFloat()
             setColor(bubbleColor())
-            setStroke(dp(2), Color.WHITE)
+            setStroke(dp(1), Color.argb(175, 240, 248, 255))
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            root.elevation = dp(10).toFloat()
+            root.elevation = dp(6).toFloat()
         }
 
-        // The 3D helper face (design/bubble_preview.html). It is drawn by the
-        // artwork itself, so the bubble needs no extra ring or glyph: the
-        // GradientDrawable above stays as the fallback the tab state uses.
+        // One flat, compact face inside the 56dp touch target. The old glossy
+        // rim + highlight layers made the overlay look busier than the panel.
         val icon = ImageView(this)
         icon.setImageResource(R.drawable.overlay_bubble_mascot)
         icon.scaleType = ImageView.ScaleType.CENTER_CROP
+        icon.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(12).toFloat()
+            setColor(Color.TRANSPARENT)
+        }
+        icon.clipToOutline = true
         val iconInset =
             resources.getDimensionPixelSize(R.dimen.overlay_bubble_icon_inset)
         val iconSize = (size - iconInset * 2).coerceAtLeast(dp(40))
@@ -323,56 +326,20 @@ class OverlayBubbleService : Service() {
         badgeView = badge
         iconView = icon
 
-        // A separate rim stays crisp above the artwork instead of being painted
-        // underneath a centre-cropped bitmap. The small highlight gives the
-        // bubble a tactile glass edge without putting any content on it.
-        val rim = View(this)
-        rim.background = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(Color.TRANSPARENT)
-            setStroke(dp(1), Color.argb(205, 240, 248, 255))
+        // Tucked state: one small handle replaces the dotted grip.
+        val grip = View(this)
+        grip.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(2).toFloat()
+            setColor(Color.argb(225, 255, 255, 255))
         }
-        rim.isClickable = false
-        root.addView(rim, FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.MATCH_PARENT,
-            FrameLayout.LayoutParams.MATCH_PARENT,
-        ))
-        rimView = rim
-        val highlight = View(this)
-        highlight.background = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(Color.argb(48, 255, 255, 255))
-        }
-        highlight.rotation = -28f
-        highlight.isClickable = false
-        root.addView(highlight, FrameLayout.LayoutParams(dp(20), dp(7)).apply {
-            gravity = Gravity.TOP or Gravity.START
-            leftMargin = dp(10)
-            topMargin = dp(5)
-        })
-        highlightView = highlight
-
-        // Tucked state: the face is gone and three dots say "pull me back".
-        val grip = LinearLayout(this)
-        grip.orientation = LinearLayout.VERTICAL
-        grip.gravity = Gravity.CENTER
         grip.visibility = View.GONE
-        repeat(3) {
-            val dot = View(this)
-            dot.setBackgroundColor(Color.WHITE)
-            grip.addView(
-                dot,
-                LinearLayout.LayoutParams(dp(4), dp(4)).apply {
-                    topMargin = if (it == 0) 0 else dp(3)
-                },
-            )
-        }
+        grip.isClickable = false
         root.addView(
             grip,
-            FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT,
-            ),
+            FrameLayout.LayoutParams(dp(4), dp(18)).apply {
+                gravity = Gravity.CENTER
+            },
         )
         gripView = grip
 
@@ -606,12 +573,7 @@ class OverlayBubbleService : Service() {
     private fun previewEnabledByUser(): Boolean =
         prefs().getBoolean(KEY_BUBBLE_PREVIEW_ENABLED, false)
 
-    /**
-     * The face bobs gently and blinks now and then. Both are ordinary property
-     * animations on a view that already exists: no frame assets, no Lottie, no
-     * battery cost worth mentioning, and nothing that can throw while the
-     * window is going away.
-     */
+    /** Keep the bubble still; a rare blink is enough life without idle bobbing. */
     private fun startIdleAnimation() {
         stopIdleAnimation()
         val icon = iconView ?: return
@@ -619,25 +581,10 @@ class OverlayBubbleService : Service() {
             icon.setImageResource(R.drawable.overlay_bubble_mascot)
             return
         }
-        val amplitude = dp(2).toFloat()
-        val animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 1_800L
-            repeatCount = ValueAnimator.INFINITE
-            repeatMode = ValueAnimator.REVERSE
-            interpolator = DecelerateInterpolator()
-            addUpdateListener { animation ->
-                icon.translationY =
-                    (animation.animatedValue as Float) * amplitude - amplitude / 2f
-            }
-        }
-        animator.start()
-        bobAnimator = animator
         scheduleBlink()
     }
 
     private fun stopIdleAnimation() {
-        bobAnimator?.cancel()
-        bobAnimator = null
         handler.removeCallbacks(blinkRunnable)
         handler.removeCallbacks(moodRunnable)
         iconView?.let {
@@ -814,19 +761,12 @@ class OverlayBubbleService : Service() {
         val root = view as? FrameLayout ?: return
         val tabWidth = resources.getDimensionPixelSize(R.dimen.overlay_bubble_collapsed_width)
         root.background = GradientDrawable().apply {
-            orientation = GradientDrawable.Orientation.TL_BR
-            colors = intArrayOf(bubbleColor(), Color.rgb(17, 79, 208))
-            setStroke(dp(1), Color.argb(190, 235, 246, 255))
-            if (collapsed) {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = tabWidth / 2f
-            } else {
-                shape = GradientDrawable.OVAL
-            }
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = if (collapsed) tabWidth / 2f else dp(18).toFloat()
+            setColor(bubbleColor())
+            setStroke(dp(1), Color.argb(175, 240, 248, 255))
         }
         iconView?.visibility = if (collapsed) View.GONE else View.VISIBLE
-        rimView?.visibility = if (collapsed) View.GONE else View.VISIBLE
-        highlightView?.visibility = if (collapsed) View.GONE else View.VISIBLE
         gripView?.visibility = if (collapsed) View.VISIBLE else View.GONE
         if (collapsed) {
             // The count would be clipped to nothing on a 22dp tab, and the
@@ -1677,8 +1617,6 @@ class OverlayBubbleService : Service() {
         badgeView = null
         iconView = null
         gripView = null
-        rimView = null
-        highlightView = null
         settleAnimator?.cancel()
         settleAnimator = null
         lastBadgeCount = 0

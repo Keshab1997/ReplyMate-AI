@@ -130,6 +130,7 @@ abstract class AppStrings {
   String get makeShorter;
   String get makeSofter;
   String get declinePolitely;
+  String get continueConversation;
   String get refineFailed;
   String get saveAsTemplate;
   String get replySaved;
@@ -441,6 +442,8 @@ class EnglishStrings extends AppStrings {
   String get makeSofter => 'Make softer';
   @override
   String get declinePolitely => 'Decline politely';
+  @override
+  String get continueConversation => 'Keep conversation going';
   @override
   String get refineFailed => 'Could not refine this reply.';
   @override
@@ -931,6 +934,8 @@ class BengaliStrings extends AppStrings {
   @override
   String get declinePolitely => 'ভদ্রভাবে না বলুন';
   @override
+  String get continueConversation => 'কথা এগিয়ে নিন';
+  @override
   String get refineFailed => 'জবাবটি ঠিক করা যায়নি।';
   @override
   String get saveAsTemplate => 'টেমপ্লেট হিসেবে সেভ করুন';
@@ -1413,6 +1418,8 @@ class HindiStrings extends AppStrings {
   String get makeSofter => 'नरम लहज़ा';
   @override
   String get declinePolitely => 'विनम्रता से मना करें';
+  @override
+  String get continueConversation => 'बात आगे बढ़ाएँ';
   @override
   String get refineFailed => 'इस जवाब को सुधार नहीं पाए।';
   @override

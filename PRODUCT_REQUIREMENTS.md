@@ -48,7 +48,7 @@ Allow users to:
 - Share a suggestion
 - Use a compatible notification quick-reply action when available
 - Choose a local one-tap reply for recognized common intents
-- Refine a generated draft on demand
+- Refine a generated draft on demand, including an optional context-aware follow-up question
 - Save and reuse user-authored reply templates stored on-device
 
 ### FR-09: User Confirmation

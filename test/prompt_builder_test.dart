@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:replymate/core/constants/reply_options.dart';
 import 'package:replymate/features/reply/data/prompt_builder.dart';
 import 'package:replymate/features/reply/domain/reply_request.dart';
+import 'package:replymate/features/reply/domain/reply_refinement.dart';
 
 void main() {
   const request = ReplyRequest(
@@ -49,6 +50,27 @@ void main() {
     expect(user, contains('polite decline'));
     expect(user, contains('exactly one revised reply'));
     expect(user, isNot(contains('Write 1 reply suggestion(s)')));
+  });
+
+  test('continuation prompt asks at most one grounded follow-up question', () {
+    const base = ReplyRequest(
+      message: 'Can we meet tomorrow?',
+      language: ReplyLanguage.bengali,
+      tone: ReplyTone.casual,
+      length: ReplyLength.medium,
+      priorMessages: ['Friend: Friday works for me.'],
+    );
+    final rewrite = base.copyWith(
+      count: 1,
+      draftToRefine: 'হ্যাঁ, দেখা হবে।',
+      refinementInstruction: ReplyRefinement.continueConversation.instruction,
+    );
+    final user = ReplyPrompt.user(rewrite);
+
+    expect(user, contains('Friend: Friday works for me.'));
+    expect(user, contains('হ্যাঁ, দেখা হবে।'));
+    expect(user, contains('at most one concise, relevant question'));
+    expect(user, contains('return the original draft unchanged'));
   });
 
   test('the message is trimmed before it reaches the provider', () {

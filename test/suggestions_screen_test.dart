@@ -177,6 +177,53 @@ void main() {
     expect(find.text('A shorter reply.'), findsOneWidget);
   });
 
+  testWidgets(
+    'keep-conversation action uses available context and one question',
+    (tester) async {
+      final repository = RefiningRepositoryFake();
+      const contextualRequest = ReplyRequest(
+        message: 'Can we meet tomorrow?',
+        language: ReplyLanguage.english,
+        tone: ReplyTone.casual,
+        length: ReplyLength.medium,
+        priorMessages: ['Friend: Friday works for me.'],
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+          child: MaterialApp(
+            home: SuggestionsScreen(
+              replies: const ['Sure, what time works for you?'],
+              request: contextualRequest,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.more_horiz_rounded));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Refine'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Keep conversation going'));
+      await tester.pumpAndSettle();
+
+      expect(
+        repository.lastRequest?.priorMessages,
+        contextualRequest.priorMessages,
+      );
+      expect(repository.lastRequest?.tone, ReplyTone.casual);
+      expect(
+        repository.lastRequest?.refinementInstruction,
+        contains('at most one concise, relevant question'),
+      );
+      expect(
+        repository.lastRequest?.refinementInstruction,
+        contains('return the original draft unchanged'),
+      );
+    },
+  );
+
   testWidgets('a suggestion can be saved as a local template', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final container = ProviderContainer();
