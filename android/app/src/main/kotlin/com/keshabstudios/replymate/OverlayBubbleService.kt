@@ -287,12 +287,14 @@ class OverlayBubbleService : Service() {
         val icon = ImageView(this)
         icon.setImageResource(R.drawable.overlay_bubble_mascot)
         icon.scaleType = ImageView.ScaleType.CENTER_CROP
+        val iconInset =
+            resources.getDimensionPixelSize(R.dimen.overlay_bubble_icon_inset)
+        val iconSize = (size - iconInset * 2).coerceAtLeast(dp(40))
         root.addView(
             icon,
-            FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT,
-            ),
+            FrameLayout.LayoutParams(iconSize, iconSize).apply {
+                gravity = Gravity.CENTER
+            },
         )
         // Message count, shown only when a second message arrives while the
         // bubble is up: one bubble, an honest count, never a stack of views.

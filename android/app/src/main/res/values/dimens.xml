@@ -4,6 +4,8 @@
          56dp is the smallest circle that is still comfortably tappable at
          large font scales and bold display settings. -->
     <dimen name="overlay_bubble_size">56dp</dimen>
+    <!-- Keep the mascot face visually compact inside the accessible 56dp tap target. -->
+    <dimen name="overlay_bubble_icon_inset">6dp</dimen>
     <!-- Default position: one bubble-width in, and a little below the status
          bar, so the first bubble never lands under the notch or the
          notification shade. -->
