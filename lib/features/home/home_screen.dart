@@ -100,6 +100,7 @@ class HomeScreen extends ConsumerWidget {
                 if (!permissionEnabled) ...[
                   PermissionStatusCard(
                     enabled: permissionEnabled,
+                    strings: strings,
                     onManage: () =>
                         _push(context, const PermissionSetupScreen()),
                   ),

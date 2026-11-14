@@ -366,7 +366,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                                 setState(() => _language = language),
                           ),
                           const SizedBox(height: AppTheme.spaceMd),
-                          _StyleLabel('Tone'),
+                          _StyleLabel(_strings.toneLabel),
                           ChoiceChips<ReplyTone>(
                             options: ReplyTone.values,
                             selected: _tone,

@@ -122,6 +122,7 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen>
 
                 PermissionStatusCard(
                   enabled: enabled,
+                  strings: strings,
                   onManage: () => ref
                       .read(listenerPermissionProvider.notifier)
                       .openSettings(),

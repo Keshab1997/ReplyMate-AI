@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/theme/app_theme.dart';
+import '../../core/l10n/app_strings.dart';
 
 /// The permission banner shown on Home and the permission screen: one card,
 /// three honest states (checking / granted / not granted). Never claims
@@ -8,12 +9,19 @@ import '../../app/theme/app_theme.dart';
 class PermissionStatusCard extends StatelessWidget {
   const PermissionStatusCard({
     required this.enabled,
+    required this.strings,
     this.checking = false,
     this.onManage,
     super.key,
   });
 
   final bool enabled;
+
+  /// Localization lives in the caller, like every other screen: the card used
+  /// to hardcode its three states in English, so a Bengali or Hindi session
+  /// still showed the amber banner in English - the one thing on Home the
+  /// setup-path sweep missed.
+  final AppStrings strings;
   final bool checking;
   final VoidCallback? onManage;
 
@@ -31,21 +39,20 @@ class PermissionStatusCard extends StatelessWidget {
       tint = scheme.surfaceContainerHighest.withValues(alpha: 0.65);
       foreground = scheme.onSurfaceVariant;
       icon = Icons.hourglass_top_rounded;
-      title = 'Checking notification access';
-      subtitle = 'Reading the current state from Android.';
+      title = strings.checkingNotificationAccess;
+      subtitle = strings.checkingNotificationAccessBody;
     } else if (enabled) {
       tint = AppTheme.mint.withValues(alpha: isDark ? 0.10 : 0.08);
       foreground = isDark ? AppTheme.mint : const Color(0xFF087F5B);
       icon = Icons.check_circle_rounded;
-      title = 'Notification access enabled';
-      subtitle = 'ReplyMate sees notifications from your selected apps only.';
+      title = strings.permissionGrantedTitle;
+      subtitle = strings.permissionGrantedBody;
     } else {
       tint = AppTheme.amber.withValues(alpha: isDark ? 0.10 : 0.09);
       foreground = isDark ? AppTheme.amber : const Color(0xFF9A5B00);
       icon = Icons.notifications_off_outlined;
-      title = 'Notification access not granted';
-      subtitle =
-          'Without it, paste or select text manually - replies still work.';
+      title = strings.permissionMissingTitle;
+      subtitle = strings.permissionMissingBody;
     }
     return Card(
       color: tint,
@@ -89,7 +96,7 @@ class PermissionStatusCard extends StatelessWidget {
                   child: TextButton.icon(
                     onPressed: onManage,
                     icon: const Icon(Icons.tune_rounded, size: 17),
-                    label: const Text('Manage'),
+                    label: Text(strings.manage),
                   ),
                 ),
               ),

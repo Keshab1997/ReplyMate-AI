@@ -177,6 +177,15 @@ abstract class AppStrings {
   String get permissionOverlayAndroid13;
   String get permissionOpenOverlay;
   String get permissionManageOverlay;
+  String get checkingNotificationAccess;
+  String get checkingNotificationAccessBody;
+  String get permissionGrantedTitle;
+  String get permissionGrantedBody;
+  String get permissionMissingTitle;
+  String get permissionMissingBody;
+  String get ownKeySection;
+  String get aiUsageSection;
+  String get settingsSubtitle;
   String get appsTitle;
   String get appsNothingYet;
   String appsSelectedOf(int selected, int total);
@@ -436,7 +445,8 @@ class EnglishStrings extends AppStrings {
       'Forgot the conversation with $name.';
   @override
   String get appLanguageNote =>
-      'The app speaks Bengali. Replies still follow the reply language above.';
+      'The app speaks Bengali. Replies still follow the reply language chosen '
+      'below.';
   // ------------------------------------------------------- setup path
 
   @override
@@ -447,7 +457,7 @@ class EnglishStrings extends AppStrings {
 
   @override
   String get onboardingSubtitle =>
-      'Thoughtful replies in your language,\\nwith you always in control.';
+      'Thoughtful replies in your language,\nwith you always in control.';
 
   @override
   String get onboardingPointConsentTitle => 'Replies you approve, always';
@@ -552,6 +562,36 @@ class EnglishStrings extends AppStrings {
 
   @override
   String get permissionManageOverlay => 'Manage overlay access';
+
+  @override
+  String get checkingNotificationAccess => 'Checking notification access';
+
+  @override
+  String get checkingNotificationAccessBody =>
+      'Reading the current state from Android.';
+
+  @override
+  String get permissionGrantedTitle => 'Notification access enabled';
+
+  @override
+  String get permissionGrantedBody =>
+      'ReplyMate sees notifications from your selected apps only.';
+
+  @override
+  String get permissionMissingTitle => 'Notification access not granted';
+
+  @override
+  String get permissionMissingBody =>
+      'Without it, paste or select text manually - replies still work.';
+
+  @override
+  String get ownKeySection => 'Your own AI key';
+
+  @override
+  String get aiUsageSection => 'AI usage';
+
+  @override
+  String get settingsSubtitle => 'Replies, permissions and privacy';
 
   @override
   String get appsTitle => 'Supported apps';
@@ -862,7 +902,7 @@ class BengaliStrings extends AppStrings {
   String forgotConversation(String name) => '$name-এর সঙ্গে কথোপকথন ভুলে গেছি।';
   @override
   String get appLanguageNote =>
-      'অ্যাপ বাংলায় চলবে। রিপ্লাই কিন্তু উপরের ভাষা অনুযায়ীই তৈরি হবে।';
+      'অ্যাপ বাংলায় চলবে। নিচের ভাষা দিয়ে ঠিক হয় রিপ্লাই কোন ভাষায় লেখা হবে।';
   // ------------------------------------------------------- setup path
 
   @override
@@ -873,7 +913,7 @@ class BengaliStrings extends AppStrings {
 
   @override
   String get onboardingSubtitle =>
-      'আপনার ভাষায় ভেবেচিন্তে লেখা উত্তর,\\nনিয়ন্ত্রণ সবসময় আপনার হাতে।';
+      'আপনার ভাষায় ভেবেচিন্তে লেখা উত্তর,\nনিয়ন্ত্রণ সবসময় আপনার হাতে।';
 
   @override
   String get onboardingPointConsentTitle =>
@@ -972,6 +1012,36 @@ class BengaliStrings extends AppStrings {
 
   @override
   String get permissionManageOverlay => 'ওভারলে অ্যাক্সেস সামলান';
+
+  @override
+  String get checkingNotificationAccess => 'নোটিফিকেশন অ্যাক্সেস দেখা হচ্ছে';
+
+  @override
+  String get checkingNotificationAccessBody =>
+      'অ্যান্ড্রয়েড থেকে এখনকার অবস্থাটা পড়া হচ্ছে।';
+
+  @override
+  String get permissionGrantedTitle => 'নোটিফিকেশন অ্যাক্সেস চালু আছে';
+
+  @override
+  String get permissionGrantedBody =>
+      'ReplyMate শুধু আপনার বেছে নেওয়া অ্যাপগুলোর নোটিফিকেশনই দেখে।';
+
+  @override
+  String get permissionMissingTitle => 'নোটিফিকেশন অ্যাক্সেস দেওয়া হয়নি';
+
+  @override
+  String get permissionMissingBody =>
+      'এটা না দিলেও নিচে নিজে লেখা বা পেস্ট করা টেক্সট দিয়ে রিপ্লাই তৈরি হবে।';
+
+  @override
+  String get ownKeySection => 'নিজের এআই কী';
+
+  @override
+  String get aiUsageSection => 'এআই ব্যবহার';
+
+  @override
+  String get settingsSubtitle => 'রিপ্লাই, অনুমতি আর গোপনীয়তা';
 
   @override
   String get appsTitle => 'সমর্থিত অ্যাপ';
@@ -1285,7 +1355,7 @@ class HindiStrings extends AppStrings {
   String forgotConversation(String name) => '$name के साथ बातचीत भुला दी गई।';
   @override
   String get appLanguageNote =>
-      'ऐप हिंदी में चलेगा। जवाब फिर भी ऊपर चुनी गई जवाब की भाषा में बनेंगे।';
+      'ऐप हिंदी में चलेगा। जवाब किस भाषा में बनेंगे, यह नीचे चुना जाता है।';
   // ------------------------------------------------------- setup path
 
   @override
@@ -1296,7 +1366,7 @@ class HindiStrings extends AppStrings {
 
   @override
   String get onboardingSubtitle =>
-      'आपकी भाषा में सोच-समझकर लिखा जवाब,\\nनियंत्रण हमेशा आपके पास।';
+      'आपकी भाषा में सोच-समझकर लिखा जवाब,\nनियंत्रण हमेशा आपके पास।';
 
   @override
   String get onboardingPointConsentTitle => 'जवाब जिसे आप मंज़ूर करें, हमेशा';
@@ -1395,6 +1465,36 @@ class HindiStrings extends AppStrings {
 
   @override
   String get permissionManageOverlay => 'ओवरले एक्सेस प्रबंधित करें';
+
+  @override
+  String get checkingNotificationAccess => 'नोटिफ़िकेशन ऐक्सेस देखा जा रहा है';
+
+  @override
+  String get checkingNotificationAccessBody =>
+      'Android से अभी की स्थिति पढ़ी जा रही है।';
+
+  @override
+  String get permissionGrantedTitle => 'नोटिफ़िकेशन ऐक्सेस चालू है';
+
+  @override
+  String get permissionGrantedBody =>
+      'ReplyMate सिर्फ़ आपके चुने हुए ऐप्स के नोटिफ़िकेशन देखता है।';
+
+  @override
+  String get permissionMissingTitle => 'नोटिफ़िकेशन ऐक्सेस नहीं दिया गया';
+
+  @override
+  String get permissionMissingBody =>
+      'इसके बिना भी नीचे खुद लिखा या पेस्ट किया टेक्स्ट जवाब बनाने के लिए काम करता है।';
+
+  @override
+  String get ownKeySection => 'अपनी खुद की AI कुंजी';
+
+  @override
+  String get aiUsageSection => 'AI का इस्तेमाल';
+
+  @override
+  String get settingsSubtitle => 'जवाब, अनुमतियाँ और निजता';
 
   @override
   String get appsTitle => 'समर्थित ऐप्स';

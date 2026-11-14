@@ -66,6 +66,22 @@ void main() {
     expect(find.text('Later - I will paste text manually'), findsNothing);
   });
 
+  testWidgets('the permission banner itself speaks Bengali', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(
+      app(const PermissionSetupScreen(), AppLanguage.bengali),
+    );
+    await tester.pumpAndSettle();
+
+    // The card, not only the screen around it: the amber state is the first
+    // thing a new user reads, and it was the last hardcoded English on it.
+    expect(
+      find.text(const BengaliStrings().permissionMissingTitle),
+      findsOneWidget,
+    );
+    expect(find.text('Notification access not granted'), findsNothing);
+  });
+
   testWidgets('the permission screen speaks Hindi', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
@@ -137,6 +153,34 @@ void main() {
         en.readerNoAccessibility,
         bn.readerNoAccessibility,
         hi.readerNoAccessibility,
+      ],
+      // The permission banner is shared by Home, Settings and the permission
+      // screen, so it is the one card a user meets three times. It used to be
+      // hardcoded English - these pin the three states in all three languages.
+      'permissionMissingTitle': [
+        en.permissionMissingTitle,
+        bn.permissionMissingTitle,
+        hi.permissionMissingTitle,
+      ],
+      'permissionMissingBody': [
+        en.permissionMissingBody,
+        bn.permissionMissingBody,
+        hi.permissionMissingBody,
+      ],
+      'permissionGrantedTitle': [
+        en.permissionGrantedTitle,
+        bn.permissionGrantedTitle,
+        hi.permissionGrantedTitle,
+      ],
+      'checkingNotificationAccess': [
+        en.checkingNotificationAccess,
+        bn.checkingNotificationAccess,
+        hi.checkingNotificationAccess,
+      ],
+      'settingsSubtitle': [
+        en.settingsSubtitle,
+        bn.settingsSubtitle,
+        hi.settingsSubtitle,
       ],
     };
 

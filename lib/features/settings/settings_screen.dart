@@ -244,8 +244,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               ),
               children: [
                 ScreenHeader(
-                  title: 'Settings',
-                  subtitle: 'Replies, permissions and privacy',
+                  title: strings.tabSettings,
+                  subtitle: strings.settingsSubtitle,
                   showBack: !widget.embedded,
                 ),
                 const SizedBox(height: AppTheme.spaceMd),
@@ -400,7 +400,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                           ),
                           const SizedBox(height: AppTheme.spaceMd),
                           Text(
-                            'How many options',
+                            strings.howManyOptions,
                             style: theme.textTheme.labelMedium?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
@@ -442,6 +442,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                     children: [
                       PermissionStatusCard(
                         enabled: permissionEnabled,
+                        strings: strings,
                         onManage: () => Navigator.of(context).push(
                           MaterialPageRoute<void>(
                             builder: (_) => const PermissionSetupScreen(),
@@ -686,7 +687,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                                   Icons.widgets_outlined,
                                   size: 18,
                                 ),
-                                label: const Text('Supported apps'),
+                                label: Text(strings.appsTitle),
                               ),
                             ),
                           ],
@@ -696,11 +697,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                   ),
                 ),
 
-                section('Your own AI key', const OwnKeyCard()),
+                section(strings.ownKeySection, const OwnKeyCard()),
 
-                section('AI usage', const _AiUsageCard()),
+                section(strings.aiUsageSection, const _AiUsageCard()),
 
-                section('Conversation memory', const ConversationMemoryCard()),
+                section(
+                  strings.conversationMemorySection,
+                  const ConversationMemoryCard(),
+                ),
 
                 section(
                   strings.privacySection,
