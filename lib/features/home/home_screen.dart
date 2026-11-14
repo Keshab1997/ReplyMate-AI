@@ -6,6 +6,7 @@ import '../../app/theme/app_icons.dart';
 import '../../app/theme/app_theme.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/platform/notifications_bridge.dart';
+import '../../shared/widgets/app_icon.dart';
 import '../../shared/widgets/mascot_face.dart';
 import '../../shared/widgets/permission_status_card.dart';
 import '../app_selection/app_selection_screen.dart';
@@ -148,15 +149,36 @@ class HomeScreen extends ConsumerWidget {
                           spacing: AppTheme.spaceSm,
                           runSpacing: AppTheme.spaceSm,
                           children: [
+                            // The icon travels with the chip: "what am I
+                            // watching?" is answered without opening the Apps
+                            // tab, and the answer is the icon the user already
+                            // knows from their home screen.
                             for (final packageName in selectedApps)
                               AppSurfaces.pill(
                                 context,
-                                child: Text(
-                                  labelForPackage(candidates, packageName),
-                                  style: const TextStyle(
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    AppIconTile(
+                                      label: labelForPackage(
+                                        candidates,
+                                        packageName,
+                                      ),
+                                      icon: candidateFor(
+                                        candidates,
+                                        packageName,
+                                      )?.icon,
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 7),
+                                    Text(
+                                      labelForPackage(candidates, packageName),
+                                      style: const TextStyle(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 onTap: () =>
                                     _push(context, const AppSelectionScreen()),

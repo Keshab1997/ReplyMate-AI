@@ -4,12 +4,15 @@ import android.Manifest
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.ByteArrayOutputStream
 
 /**
  * The Flutter host that owns the single platform channel.
@@ -356,18 +359,53 @@ abstract class ReplyMateFlutterActivity : FlutterActivity() {
      */
     private fun candidateApps(): List<Map<String, Any?>> {
         return CANDIDATE_PACKAGES.mapNotNull { packageName ->
-            val label = try {
-                packageManager.getApplicationLabel(
-                    packageManager.getApplicationInfo(packageName, 0),
-                ).toString()
+            val info = try {
+                packageManager.getApplicationInfo(packageName, 0)
             } catch (e: Exception) {
                 null // not installed, or hidden by package-visibility rules
             }
-            if (label == null) {
+            if (info == null) {
                 null
             } else {
-                mapOf<String, Any?>("packageName" to packageName, "label" to label)
+                mapOf<String, Any?>(
+                    "packageName" to packageName,
+                    "label" to packageManager.getApplicationLabel(info).toString(),
+                    // The launcher's own artwork, not a bundled copy: it is
+                    // always the icon the user sees on their home screen, stays
+                    // current through app updates and themes, and adds nothing
+                    // to the APK. Downscaled here - the list renders it at 40 dp.
+                    "iconBytes" to appIconBytes(packageName),
+                )
             }
+        }
+    }
+
+    /**
+     * A launcher icon as PNG bytes, or null.
+     *
+     * Three details that are easy to get wrong:
+     *  - `getApplicationIcon` can hand back an AdaptiveIconDrawable whose
+     *    intrinsic size is -1, so the bitmap is scaled against a fixed 192 px
+     *    target instead of `intrinsicWidth`.
+     *  - the drawable must be drawn onto a bitmap with alpha kept
+     *    (`ARGB_8888`), or every icon loses its rounded corners.
+     *  - a package that fails to produce a bitmap returns null rather than
+     *    throwing: one broken icon must not empty the whole list.
+     */
+    private fun appIconBytes(packageName: String): ByteArray? {
+        return try {
+            val drawable = packageManager.getApplicationIcon(packageName)
+            val size = ICON_TARGET_PX
+            val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            drawable.setBounds(0, 0, size, size)
+            drawable.draw(canvas)
+            val stream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+            bitmap.recycle()
+            stream.toByteArray()
+        } catch (e: Exception) {
+            null
         }
     }
 
@@ -381,6 +419,9 @@ abstract class ReplyMateFlutterActivity : FlutterActivity() {
     private companion object {
         const val CHANNEL = "com.keshabstudios.replymate/notifications"
         const val REQUEST_POST_NOTIFICATIONS = 4311
+
+        /** Launcher icons travel to Dart at this size; the list draws 40 dp. */
+        const val ICON_TARGET_PX = 192
 
         /**
          * `Settings.ACTION_ACCESSIBILITY_DETAILS_SETTINGS`, spelled out.

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme/app_theme.dart';
 import '../../core/platform/notifications_bridge.dart';
+import '../../shared/widgets/app_icon.dart';
 import '../../shared/widgets/screen_header.dart';
 import '../notifications/providers/notification_providers.dart';
 import 'providers/selected_apps_provider.dart';
@@ -25,6 +26,11 @@ String labelForPackage(List<CandidateApp> candidates, String packageName) =>
               CandidateApp(packageName: packageName, label: packageName),
         )
         .label;
+
+/// The candidate for a package, or null when the list is unavailable (tests,
+/// web preview). Home uses this to draw the same icon the list draws.
+CandidateApp? candidateFor(List<CandidateApp> candidates, String packageName) =>
+    candidates.where((app) => app.packageName == packageName).firstOrNull;
 
 /// FR-03: choose which messaging apps ReplyMate may process. The selection is
 /// the privacy boundary and is pushed to the native listener immediately.
@@ -121,6 +127,10 @@ class AppSelectionScreen extends ConsumerWidget {
                               index++
                             ) ...[
                               if (index > 0) const Divider(height: 1),
+                              // The launcher icon leads, because the user
+                              // recognises the app long before they read the
+                              // label (and two apps called "Messages" are only
+                              // distinguishable by their icon).
                               CheckboxListTile(
                                 value: selected.contains(
                                   apps[index].packageName,
@@ -128,6 +138,10 @@ class AppSelectionScreen extends ConsumerWidget {
                                 onChanged: (_) => ref
                                     .read(selectedAppsProvider.notifier)
                                     .toggle(apps[index].packageName),
+                                secondary: AppIconTile(
+                                  label: apps[index].label,
+                                  icon: apps[index].icon,
+                                ),
                                 title: Text(
                                   apps[index].label,
                                   style: theme.textTheme.titleSmall?.copyWith(
@@ -135,6 +149,9 @@ class AppSelectionScreen extends ConsumerWidget {
                                     fontSize: 14,
                                   ),
                                 ),
+                                // One line, said once: the old subtitle
+                                // repeated the same sentence on every row and
+                                // pushed the list past the fold.
                                 subtitle: Text(
                                   strings.appsNotificationsOnly,
                                   style: theme.textTheme.bodySmall?.copyWith(

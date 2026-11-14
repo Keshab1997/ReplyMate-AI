@@ -7,10 +7,22 @@ import '../../features/screen_reading/models/screen_reading_status.dart';
 
 /// A messaging app the native layer can actually see installed.
 class CandidateApp {
-  const CandidateApp({required this.packageName, required this.label});
+  const CandidateApp({
+    required this.packageName,
+    required this.label,
+    this.icon,
+  });
 
   final String packageName;
   final String label;
+
+  /// The app's own launcher icon, as the native layer drew it (PNG bytes).
+  ///
+  /// Null is a normal state, not a failure: an icon can be missing on a test
+  /// harness, a web preview, or a package whose drawable refused to render.
+  /// Every surface that shows an icon keeps its layout when this is null, so a
+  /// missing icon never becomes a missing row.
+  final Uint8List? icon;
 }
 
 /// Dart half of the single platform channel. Every method degrades to a safe
@@ -70,6 +82,9 @@ class NotificationsBridge {
             (map) => CandidateApp(
               packageName: map['packageName'] as String? ?? '',
               label: map['label'] as String? ?? '',
+              icon: map['iconBytes'] is Uint8List
+                  ? map['iconBytes'] as Uint8List
+                  : null,
             ),
           )
           .where((app) => app.packageName.isNotEmpty)
