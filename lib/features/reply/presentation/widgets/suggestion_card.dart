@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../../../core/l10n/app_strings.dart';
+import '../../domain/reply_refinement.dart';
 
 import '../../../../app/theme/app_icons.dart';
 import '../../../../app/theme/app_theme.dart';
@@ -16,6 +17,9 @@ class SuggestionCard extends StatefulWidget {
     required this.onShare,
     this.best = false,
     this.strings = const EnglishStrings(),
+    this.onRefine,
+    this.onSave,
+    this.refining = false,
     super.key,
   });
 
@@ -30,6 +34,42 @@ class SuggestionCard extends StatefulWidget {
   /// The first suggestion, marked so the user does not have to compare three
   /// paragraphs to pick one.
   final bool best;
+  final Future<void> Function(String draft, ReplyRefinement refinement)?
+  onRefine;
+  final Future<void> Function(String draft)? onSave;
+  final bool refining;
+
+  Future<void> _chooseRefinement(BuildContext context) async {
+    final action = await showModalBottomSheet<ReplyRefinement>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.short_text_rounded),
+              title: Text(strings.makeShorter),
+              onTap: () => Navigator.pop(sheetContext, ReplyRefinement.shorter),
+            ),
+            ListTile(
+              leading: const Icon(Icons.favorite_border_rounded),
+              title: Text(strings.makeSofter),
+              onTap: () => Navigator.pop(sheetContext, ReplyRefinement.softer),
+            ),
+            ListTile(
+              leading: const Icon(Icons.thumb_down_alt_outlined),
+              title: Text(strings.declinePolitely),
+              onTap: () =>
+                  Navigator.pop(sheetContext, ReplyRefinement.politeDecline),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (action != null) await onRefine?.call(controller.text, action);
+  }
 
   @override
   State<SuggestionCard> createState() => _SuggestionCardState();
@@ -123,6 +163,38 @@ class _SuggestionCardState extends State<SuggestionCard> {
                     label: widget.strings.share,
                     onPressed: () => widget.onShare(widget.controller.text),
                   ),
+                  if (widget.onRefine != null || widget.onSave != null)
+                    PopupMenuButton<_MoreAction>(
+                      tooltip: widget.strings.moreActions,
+                      icon: Icon(
+                        widget.refining
+                            ? Icons.hourglass_top_rounded
+                            : Icons.more_horiz_rounded,
+                      ),
+                      enabled: !widget.refining,
+                      onSelected: (action) {
+                        switch (action) {
+                          case _MoreAction.refine:
+                            widget._chooseRefinement(context);
+                            break;
+                          case _MoreAction.save:
+                            widget.onSave?.call(widget.controller.text);
+                            break;
+                        }
+                      },
+                      itemBuilder: (_) => [
+                        if (widget.onRefine != null)
+                          PopupMenuItem(
+                            value: _MoreAction.refine,
+                            child: Text(widget.strings.refine),
+                          ),
+                        if (widget.onSave != null)
+                          PopupMenuItem(
+                            value: _MoreAction.save,
+                            child: Text(widget.strings.saveAsTemplate),
+                          ),
+                      ],
+                    ),
                 ],
               ),
             ],
@@ -154,6 +226,8 @@ class _SuggestionCardState extends State<SuggestionCard> {
   }
 }
 
+enum _MoreAction { refine, save }
+
 /// A quiet action: icon plus label, no button chrome, so the reply text keeps
 /// the visual weight on the card.
 class _Action extends StatelessWidget {
@@ -165,7 +239,7 @@ class _Action extends StatelessWidget {
 
   final IconData icon;
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {

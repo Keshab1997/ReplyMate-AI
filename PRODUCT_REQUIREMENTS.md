@@ -38,7 +38,7 @@ Support:
 
 ### FR-07: Language Selection
 
-Support Bengali, Hindi, and English.
+Support Bengali, Hindi, and English. Detect a supported incoming language locally when confidence is high; ambiguous or mixed-script text must leave the user's chosen language unchanged.
 
 ### FR-08: Reply Actions
 
@@ -47,6 +47,9 @@ Allow users to:
 - Edit a suggestion
 - Share a suggestion
 - Use a compatible notification quick-reply action when available
+- Choose a local one-tap reply for recognized common intents
+- Refine a generated draft on demand
+- Save and reuse user-authored reply templates stored on-device
 
 ### FR-09: User Confirmation
 

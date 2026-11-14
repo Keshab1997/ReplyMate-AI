@@ -13,6 +13,8 @@ ReplyRequest _request({
   ReplyLength length = ReplyLength.short,
   int count = 1,
   List<String> prior = const [],
+  String? draftToRefine,
+  String? refinementInstruction,
 }) => ReplyRequest(
   message: message,
   language: language,
@@ -20,6 +22,8 @@ ReplyRequest _request({
   length: length,
   count: count,
   priorMessages: prior,
+  draftToRefine: draftToRefine,
+  refinementInstruction: refinementInstruction,
 );
 
 /// Counts calls and returns whatever the test asked for.
@@ -246,6 +250,26 @@ void main() {
       // The whole point: the provider was not called and nothing was spent.
       expect(inner.calls, 1);
       expect(budget.snapshot().used, 1);
+    });
+
+    test('rewrites are never persisted in the reply cache', () async {
+      final box = await freshBox('repo_refinement_cache');
+      final inner = _CountingRepository();
+      final repo = BudgetedReplyRepository(
+        inner: inner,
+        cache: ReplyCache(box: box),
+      );
+      final rewrite = _request(
+        message: 'Can we meet tomorrow?',
+        draftToRefine: 'Sure, see you then.',
+        refinementInstruction: 'Make it shorter.',
+      );
+
+      await repo.generate(rewrite);
+      await repo.generate(rewrite);
+
+      expect(inner.calls, 2);
+      expect(box.length, 0);
     });
 
     test('bypassCache reaches the provider and replaces the entry', () async {

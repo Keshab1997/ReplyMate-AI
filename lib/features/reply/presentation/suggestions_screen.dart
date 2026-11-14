@@ -3,14 +3,17 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/constants/reply_options.dart';
 
 import '../../../app/theme/app_theme.dart';
 import '../../../shared/widgets/mascot_face.dart';
 import '../../../shared/widgets/screen_header.dart';
 import '../../notifications/models/captured_notification.dart';
 import '../../notifications/providers/notification_providers.dart';
+import '../providers/saved_replies_provider.dart';
 import '../data/reply_repository.dart';
 import '../domain/reply_request.dart';
+import '../domain/reply_refinement.dart';
 import 'widgets/suggestion_card.dart';
 
 /// Screen 7 of: generated replies as separate
@@ -49,6 +52,45 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
 
   bool _regenerating = false;
   String? _regenerateError;
+  late final List<bool> _refining = List<bool>.filled(
+    widget.replies.length,
+    false,
+  );
+
+  Future<void> _refine(
+    int index,
+    String draft,
+    ReplyRefinement refinement,
+  ) async {
+    setState(() => _refining[index] = true);
+    final rewrite = widget.request.copyWith(
+      count: 1,
+      tone: refinement == ReplyRefinement.shorter
+          ? widget.request.tone
+          : ReplyTone.polite,
+      length: refinement == ReplyRefinement.shorter
+          ? ReplyLength.short
+          : widget.request.length,
+      draftToRefine: draft,
+      refinementInstruction: refinement.instruction,
+    );
+    final result = await ref.read(replyRepositoryProvider).generate(rewrite);
+    if (!mounted) return;
+    setState(() => _refining[index] = false);
+    switch (result) {
+      case ReplySuccess(:final replies) when replies.isNotEmpty:
+        _controllers[index].text = replies.first;
+        _controllers[index].selection = TextSelection.collapsed(
+          offset: replies.first.length,
+        );
+      case ReplySuccess():
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(_strings.refineFailed)));
+      case ReplyFailure(:final message):
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
 
   /// Ask again, bypassing the cache.
   ///
@@ -122,6 +164,16 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
         content: Text(
           opened ? _strings.shareOpened : _strings.shareUnavailable,
         ),
+      ),
+    );
+  }
+
+  Future<void> _save(String text) async {
+    final saved = await ref.read(savedRepliesProvider.notifier).add(text);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(saved ? _strings.replySaved : _strings.replyNotSaved),
       ),
     );
   }
@@ -233,6 +285,10 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                     onCopy: _copy,
                     onShare: _share,
                     strings: _strings,
+                    onRefine: (draft, refinement) =>
+                        _refine(index, draft, refinement),
+                    onSave: _save,
+                    refining: _refining[index],
                   ),
                   const SizedBox(height: AppTheme.spaceMd),
                 ],

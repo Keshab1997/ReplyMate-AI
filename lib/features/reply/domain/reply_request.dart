@@ -14,6 +14,8 @@ class ReplyRequest {
     this.count = 3,
     this.priorMessages = const <String>[],
     this.styleExamples = const <String>[],
+    this.draftToRefine,
+    this.refinementInstruction,
   });
 
   final String message;
@@ -36,7 +38,33 @@ class ReplyRequest {
   /// an empty list is the normal state with screen reading off.
   final List<String> styleExamples;
 
+  /// Present only for a user-requested rewrite of one generated draft.
+  final String? draftToRefine;
+
+  /// A fixed, visible rewrite request such as "shorter" or "decline politely".
+  final String? refinementInstruction;
+
   String get trimmedMessage => message.trim();
+  String get trimmedDraftToRefine => draftToRefine?.trim() ?? '';
+
+  ReplyRequest copyWith({
+    ReplyLanguage? language,
+    ReplyTone? tone,
+    ReplyLength? length,
+    int? count,
+    String? draftToRefine,
+    String? refinementInstruction,
+  }) => ReplyRequest(
+    message: message,
+    language: language ?? this.language,
+    tone: tone ?? this.tone,
+    length: length ?? this.length,
+    count: count ?? this.count,
+    priorMessages: priorMessages,
+    styleExamples: styleExamples,
+    draftToRefine: draftToRefine ?? this.draftToRefine,
+    refinementInstruction: refinementInstruction ?? this.refinementInstruction,
+  );
 
   /// All problems with this request, empty when it is sendable. Returning a
   /// list (not the first error) lets the UI show everything at once instead
@@ -50,6 +78,15 @@ class ReplyRequest {
         'Message is too long (${trimmedMessage.length} characters, '
         'limit ${AppConstants.maxMessageLength}).',
       );
+    }
+    if ((draftToRefine == null) != (refinementInstruction == null) ||
+        (draftToRefine != null && trimmedDraftToRefine.isEmpty) ||
+        (refinementInstruction != null &&
+            refinementInstruction!.trim().isEmpty)) {
+      problems.add('A refinement needs both a draft and a requested change.');
+    }
+    if (trimmedDraftToRefine.length > AppConstants.maxMessageLength) {
+      problems.add('The draft to refine is too long.');
     }
     if (count < AppConstants.minSuggestionCount ||
         count > AppConstants.maxSuggestionCount) {
@@ -74,5 +111,8 @@ class ReplyRequest {
     'count': count,
     'priorMessages': priorMessages,
     'styleExamples': styleExamples,
+    if (draftToRefine != null) 'draftToRefine': trimmedDraftToRefine,
+    if (refinementInstruction != null)
+      'refinementInstruction': refinementInstruction,
   };
 }

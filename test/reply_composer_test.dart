@@ -298,6 +298,74 @@ void main() {
     expect(find.text('পরামর্শ তৈরি করুন'), findsOneWidget);
   });
 
+  testWidgets('detects Bengali text and offers one-tap offline replies', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final repository = _RecordingReplyRepository();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+        child: const MaterialApp(home: ReplyComposerScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'ধন্যবাদ');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Quick replies'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is ChoiceChip &&
+            widget.selected &&
+            widget.label is Text &&
+            (widget.label as Text).data == 'Bengali',
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('স্বাগতম!'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Offline suggestions'), findsOneWidget);
+    expect(repository.request, isNull);
+  });
+
+  testWidgets('saved templates appear only when available and open offline', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      AppConstants.prefSavedReplies: ['I will get back to you soon.'],
+    });
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          replyRepositoryProvider.overrideWithValue(
+            _RecordingReplyRepository(),
+          ),
+        ],
+        child: const MaterialApp(home: ReplyComposerScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('My reply templates (1)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('I will get back to you soon.'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Offline suggestions'), findsOneWidget);
+    expect(find.text('I will get back to you soon.'), findsOneWidget);
+  });
+
   testWidgets('a hindi session renders hindi, including the style labels', (
     tester,
   ) async {

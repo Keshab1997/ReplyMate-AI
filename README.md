@@ -11,6 +11,10 @@ Make replying to messages faster, easier, and more natural without taking contro
 ## Core Features
 
 - AI-generated contextual reply suggestions (choose one to three)
+- Conservative on-device language detection for supported scripts and clear Latin-script phrases; uncertain text keeps the user's selected language
+- Intent-based one-tap offline replies for common message types
+- Locally saved user-authored reply templates
+- On-demand draft refinement (shorter, softer, or polite decline)
 - Bengali, Hindi, and English reply output
 - Multiple reply tones: Friendly, Professional, Casual, Polite, Funny, and Short and direct
 - Android notification-based message assistance
@@ -70,7 +74,7 @@ Real-device verification for the notification prototype is still outstanding (th
 ## Privacy Principles
 
 - No automatic sending
-- No unnecessary message storage
+- No unnecessary message storage; saved reply templates are explicitly user-authored and stay on this device
 - No message-content logging
 - Explicit user permission for notification access
 - Clear disclosure before sending message content to an AI service

@@ -22,6 +22,7 @@ Rules:
 - Do not invent facts about the user or the sender.
 ${_relationshipRule(tone)}${_persona(tone)}${_voice(styleExamples)}- Keep replies natural and concise.
 - Respect the requested language, tone and length exactly.
+- For a rewrite, preserve the draft's meaning and facts; change only what the user requested.
 - Do not generate harmful or deceptive content.
 - Never mention that you are an AI unless the message asks for it.
 
@@ -85,8 +86,25 @@ Voice for this reply: you are $partner.
   /// does not carries an empty list, and then the whole voice block — the
   /// largest block of input tokens in the prompt — is dropped rather than sent
   /// empty.
-  static String user(ReplyRequest request) =>
-      '''${_conversation(request)}Incoming message:
+  static String user(ReplyRequest request) {
+    final draft = request.trimmedDraftToRefine;
+    if (draft.isNotEmpty && request.refinementInstruction != null) {
+      return '''${_conversation(request)}Original incoming message (context only):
+${request.trimmedMessage}
+
+Draft to refine:
+$draft
+
+Requested change:
+${request.refinementInstruction}
+
+Rewrite this draft without adding facts. Return exactly one revised reply.
+Language: ${request.language.label}
+Tone: ${request.tone.label}
+Length: ${request.length.label}
+''';
+    }
+    return '''${_conversation(request)}Incoming message:
 ${request.trimmedMessage}
 
 Write ${request.count} reply suggestion(s).
@@ -94,6 +112,7 @@ Language: ${request.language.label}
 Tone: ${request.tone.label}
 Length: ${request.length.label}
 ''';
+  }
 
   /// What led up to the message, when the capture carried it. Without this the
   /// model answers one line with no idea what it is answering - and "shall we

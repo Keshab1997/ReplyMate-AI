@@ -5,6 +5,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/reply_options.dart';
 import '../../app_selection/providers/selected_apps_provider.dart';
 import '../../notifications/providers/notification_providers.dart';
+import '../../reply/providers/saved_replies_provider.dart';
 
 /// The user's default reply preferences (FR-07 plus tone/length defaults).
 /// Interface language and AI output language are independent settings in the
@@ -122,6 +123,7 @@ class PreferencesNotifier extends Notifier<ReplyPreferences> {
     await prefs.remove(AppConstants.prefDefaultLength);
     await prefs.remove(AppConstants.prefSuggestionCount);
     await prefs.remove(AppConstants.prefSelectedApps);
+    await ref.read(savedRepliesProvider.notifier).clear();
     await prefs.remove(AppConstants.prefOnboardingDone);
     state = const ReplyPreferences();
     ref.read(capturedNotificationsProvider.notifier).clear();

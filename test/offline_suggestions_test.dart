@@ -43,6 +43,15 @@ void main() {
       expect(OfflineSuggestions.intentOf('ok'), OfflineIntent.acknowledgement);
     });
 
+    test('a generic question does not get an assumed yes', () {
+      for (final language in ReplyLanguage.values) {
+        final first = _for('Can you do this?', language: language).first;
+        expect(first.toLowerCase(), isNot(startsWith('yes')));
+        expect(first.toLowerCase(), isNot(startsWith('हाँ')));
+        expect(first, isNot(startsWith('হ্যাঁ')));
+      }
+    });
+
     test('a plain statement is not forced into an intent', () {
       // The honest answer to "I don't know what this means" is unknown, and an
       // unknown intent produces no suggestions rather than a confident wrong

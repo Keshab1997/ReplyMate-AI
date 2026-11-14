@@ -116,7 +116,12 @@ class BudgetedReplyRepository implements ReplyRepository {
       return ReplyFailure(problems.join(' '), isRetryable: false);
     }
 
-    final cached = bypassCache ? null : _cache.lookup(request);
+    // Rewrites include the user's existing draft as well as the incoming
+    // message. Do not persist that text in the reply cache, even as a cache key.
+    final cacheEligible = request.draftToRefine == null;
+    final cached = bypassCache || !cacheEligible
+        ? null
+        : _cache.lookup(request);
     if (cached != null) {
       return ReplySuccess(
         cached.replies,
@@ -139,9 +144,13 @@ class BudgetedReplyRepository implements ReplyRepository {
     await budget?.record();
     final result = await inner.generate(request, bypassCache: bypassCache);
     if (result is ReplySuccess && result.replies.isNotEmpty) {
-      await _cache.store(request, result.replies);
+      if (cacheEligible) await _cache.store(request, result.replies);
       return result;
     }
+
+    // A failed rewrite cannot honestly fall back to an unrelated offline reply
+    // to the incoming message. Keep the original draft and report the failure.
+    if (request.draftToRefine != null) return result;
 
     // The paid path failed. Before giving up, offer what the rules can write:
     // no key, no network, no tokens. They are labelled offline by the caller,

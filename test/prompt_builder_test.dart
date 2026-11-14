@@ -29,6 +29,28 @@ void main() {
     expect(user, contains('3 reply suggestion(s)'));
   });
 
+  test('a rewrite prompt preserves the draft and requested transformation', () {
+    const base = ReplyRequest(
+      message: 'Can we meet tomorrow?',
+      language: ReplyLanguage.bengali,
+      tone: ReplyTone.polite,
+      length: ReplyLength.short,
+    );
+    final rewrite = base.copyWith(
+      count: 1,
+      draftToRefine: 'হ্যাঁ, আমি আসব।',
+      refinementInstruction:
+          'Rewrite as a polite decline without inventing a reason.',
+    );
+    final user = ReplyPrompt.user(rewrite);
+
+    expect(user, contains('Can we meet tomorrow?'));
+    expect(user, contains('হ্যাঁ, আমি আসব।'));
+    expect(user, contains('polite decline'));
+    expect(user, contains('exactly one revised reply'));
+    expect(user, isNot(contains('Write 1 reply suggestion(s)')));
+  });
+
   test('the message is trimmed before it reaches the provider', () {
     const padded = ReplyRequest(
       message: '  hello  ',

@@ -23,6 +23,10 @@ class AppConstants {
   /// anyway, and it costs three times the tokens.
   static const String prefSuggestionCount = 'replymate.suggestion_count';
 
+  /// Replies the user explicitly saves as reusable templates. These are
+  /// written locally by the user, never inferred from captured messages.
+  static const String prefSavedReplies = 'replymate.saved_replies';
+
   /// The user's bubble switch. Mirrored natively (same meaning, native prefs)
   /// because the notification listener must read it while no Flutter engine is
   /// alive.

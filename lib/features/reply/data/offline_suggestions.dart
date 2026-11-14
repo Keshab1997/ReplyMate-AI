@@ -95,7 +95,10 @@ class OfflineSuggestions {
   /// and so a test can assert every language has the same keys.
   static const Map<ReplyLanguage, Map<OfflineIntent, List<String>>> _tables = {
     ReplyLanguage.bengali: {
-      OfflineIntent.question: ['হ্যাঁ, ঠিক আছে।', 'একটু দেখে জানাচ্ছি।'],
+      OfflineIntent.question: [
+        'একটু দেখে জানাচ্ছি।',
+        'তুমি একটু বিস্তারিত বলবে?',
+      ],
       OfflineIntent.thanks: ['আর কিছু লাগলে বলো।', 'স্বাগতম!'],
       OfflineIntent.apology: ['ঠিক আছে, চিন্তা কোরো না।'],
       OfflineIntent.greeting: ['হ্যালো! কেমন আছো?', 'হ্যাঁ বলো।'],
@@ -108,7 +111,10 @@ class OfflineSuggestions {
       OfflineIntent.unknown: [],
     },
     ReplyLanguage.hindi: {
-      OfflineIntent.question: ['हाँ, ठीक है।', 'थोड़ा देखकर बताता हूँ।'],
+      OfflineIntent.question: [
+        'थोड़ा देखकर बताता हूँ।',
+        'थोड़ा और बता सकते हो?',
+      ],
       OfflineIntent.thanks: ['कोई बात नहीं।', 'कुछ और चाहिए तो बताइए।'],
       OfflineIntent.apology: ['ठीक है, चिंता मत करो।'],
       OfflineIntent.greeting: ['नमस्ते! कैसे हो?', 'हाँ, बोलो।'],
@@ -122,8 +128,8 @@ class OfflineSuggestions {
     },
     ReplyLanguage.english: {
       OfflineIntent.question: [
-        'Yes, that works.',
         'Let me check and get back to you.',
+        'Could you tell me a little more?',
       ],
       OfflineIntent.thanks: ['Anytime.', 'Glad it helped.'],
       OfflineIntent.apology: ['No worries at all.'],

@@ -5,7 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:replymate/core/constants/reply_options.dart';
 import 'package:replymate/features/notifications/models/captured_notification.dart';
 import 'package:replymate/features/reply/domain/reply_request.dart';
+import 'package:replymate/features/reply/data/reply_repository.dart';
+import 'package:replymate/features/reply/providers/saved_replies_provider.dart';
 import 'package:replymate/features/reply/presentation/suggestions_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 CapturedNotification contextWith({required bool hasReplyAction}) =>
     CapturedNotification(
@@ -28,6 +31,19 @@ const request = ReplyRequest(
   tone: ReplyTone.polite,
   length: ReplyLength.short,
 );
+
+class RefiningRepositoryFake implements ReplyRepository {
+  ReplyRequest? lastRequest;
+
+  @override
+  Future<ReplyResult> generate(
+    ReplyRequest request, {
+    bool bypassCache = false,
+  }) async {
+    lastRequest = request;
+    return const ReplySuccess(['A shorter reply.']);
+  }
+}
 
 Widget app(Widget screen) => ProviderScope(child: MaterialApp(home: screen));
 
@@ -127,6 +143,61 @@ void main() {
       find.text('Sharing is unavailable here. Copy the reply instead.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('a user can refine a draft without replacing its meaning', (
+    tester,
+  ) async {
+    final repository = RefiningRepositoryFake();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+        child: MaterialApp(
+          home: SuggestionsScreen(
+            replies: const ['Sure, I can do that.'],
+            request: request,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.more_horiz_rounded));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Refine'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Make shorter'));
+    await tester.pumpAndSettle();
+
+    expect(
+      repository.lastRequest?.trimmedDraftToRefine,
+      'Sure, I can do that.',
+    );
+    expect(repository.lastRequest?.refinementInstruction, contains('shorter'));
+    expect(find.text('A shorter reply.'), findsOneWidget);
+  });
+
+  testWidgets('a suggestion can be saved as a local template', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          home: SuggestionsScreen(replies: const ['Sure!'], request: request),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.more_horiz_rounded));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save as template'));
+    await tester.pumpAndSettle();
+
+    expect(container.read(savedRepliesProvider), ['Sure!']);
+    expect(find.text('Reply saved to your templates.'), findsOneWidget);
   });
 
   testWidgets('edit swaps the card text for an editable field', (tester) async {

@@ -120,6 +120,21 @@ abstract class AppStrings {
   String get generateAgain;
   String get bestFit;
   String get share;
+  String get quickReplies;
+  String get savedReplies;
+  String get addSavedReply;
+  String get noSavedReplies;
+  String get savedRepliesPrivacyNote;
+  String get deleteSavedReply;
+  String get refine;
+  String get makeShorter;
+  String get makeSofter;
+  String get declinePolitely;
+  String get refineFailed;
+  String get saveAsTemplate;
+  String get replySaved;
+  String get replyNotSaved;
+  String get moreActions;
   String get conversationMemorySection;
   String get bubbleSwitchTitle;
   String get refresh;
@@ -394,7 +409,7 @@ class EnglishStrings extends AppStrings {
   String get howManyOptions => 'How many options';
   @override
   String get sentOnlyOnGenerate =>
-      'The message is sent to an AI service only when you press Generate.';
+      'The message goes to an AI service only when you ask for suggestions or tap Refine.';
   @override
   String get oneWayToSayIt => 'One way to say it';
   @override
@@ -406,6 +421,37 @@ class EnglishStrings extends AppStrings {
   String get bestFit => 'BEST FIT';
   @override
   String get share => 'Share';
+  @override
+  String get quickReplies => 'Quick replies';
+  @override
+  String get savedReplies => 'My reply templates';
+  @override
+  String get addSavedReply => 'Add template';
+  @override
+  String get noSavedReplies => 'No saved replies yet.';
+  @override
+  String get savedRepliesPrivacyNote => 'Saved on this device only.';
+  @override
+  String get deleteSavedReply => 'Delete saved reply';
+  @override
+  String get refine => 'Refine';
+  @override
+  String get makeShorter => 'Make shorter';
+  @override
+  String get makeSofter => 'Make softer';
+  @override
+  String get declinePolitely => 'Decline politely';
+  @override
+  String get refineFailed => 'Could not refine this reply.';
+  @override
+  String get saveAsTemplate => 'Save as template';
+  @override
+  String get replySaved => 'Reply saved to your templates.';
+  @override
+  String get replyNotSaved =>
+      'Already saved or the template limit was reached.';
+  @override
+  String get moreActions => 'More actions';
   @override
   String get conversationMemorySection => 'Conversation memory';
   @override
@@ -853,7 +899,7 @@ class BengaliStrings extends AppStrings {
   String get howManyOptions => 'কতগুলো অপশন';
   @override
   String get sentOnlyOnGenerate =>
-      'আপনি Generate চাপলে তবেই মেসেজটি AI সার্ভিসে যায়।';
+      'আপনি পরামর্শ চাইলে বা Refine চাপলেই মেসেজটি AI সার্ভিসে যায়।';
   @override
   String get oneWayToSayIt => 'বলার একটি উপায়';
   @override
@@ -864,6 +910,36 @@ class BengaliStrings extends AppStrings {
   String get bestFit => 'সবচেয়ে মানানসই';
   @override
   String get share => 'শেয়ার';
+  @override
+  String get quickReplies => 'দ্রুত জবাব';
+  @override
+  String get savedReplies => 'আমার জবাবের টেমপ্লেট';
+  @override
+  String get addSavedReply => 'টেমপ্লেট যোগ করুন';
+  @override
+  String get noSavedReplies => 'এখনো কোনো জবাব সেভ করা নেই।';
+  @override
+  String get savedRepliesPrivacyNote => 'শুধু এই ডিভাইসে সেভ থাকে।';
+  @override
+  String get deleteSavedReply => 'সেভ করা জবাব মুছুন';
+  @override
+  String get refine => 'জবাব ঠিক করুন';
+  @override
+  String get makeShorter => 'আরও ছোট';
+  @override
+  String get makeSofter => 'আরও নরমভাবে';
+  @override
+  String get declinePolitely => 'ভদ্রভাবে না বলুন';
+  @override
+  String get refineFailed => 'জবাবটি ঠিক করা যায়নি।';
+  @override
+  String get saveAsTemplate => 'টেমপ্লেট হিসেবে সেভ করুন';
+  @override
+  String get replySaved => 'জবাবটি আপনার টেমপ্লেটে সেভ হয়েছে।';
+  @override
+  String get replyNotSaved => 'আগেই সেভ করা আছে, অথবা টেমপ্লেটের সীমা পূর্ণ।';
+  @override
+  String get moreActions => 'আরও কাজ';
   @override
   String get conversationMemorySection => 'কথোপকথনের স্মৃতি';
   @override
@@ -1306,7 +1382,7 @@ class HindiStrings extends AppStrings {
   String get howManyOptions => 'कितने विकल्प';
   @override
   String get sentOnlyOnGenerate =>
-      'संदेश AI सेवा को केवल तब भेजा जाता है जब आप Generate दबाते हैं।';
+      'सुझाव माँगने या Refine दबाने पर ही संदेश AI सेवा को भेजा जाता है।';
   @override
   String get oneWayToSayIt => 'कहने का एक तरीका';
   @override
@@ -1317,6 +1393,36 @@ class HindiStrings extends AppStrings {
   String get bestFit => 'सबसे उपयुक्त';
   @override
   String get share => 'शेयर';
+  @override
+  String get quickReplies => 'तुरंत जवाब';
+  @override
+  String get savedReplies => 'मेरे जवाब टेम्पलेट';
+  @override
+  String get addSavedReply => 'टेम्पलेट जोड़ें';
+  @override
+  String get noSavedReplies => 'अभी कोई जवाब सेव नहीं है।';
+  @override
+  String get savedRepliesPrivacyNote => 'सिर्फ़ इसी डिवाइस पर सेव होता है।';
+  @override
+  String get deleteSavedReply => 'सेव किया जवाब मिटाएँ';
+  @override
+  String get refine => 'जवाब सुधारें';
+  @override
+  String get makeShorter => 'छोटा करें';
+  @override
+  String get makeSofter => 'नरम लहज़ा';
+  @override
+  String get declinePolitely => 'विनम्रता से मना करें';
+  @override
+  String get refineFailed => 'इस जवाब को सुधार नहीं पाए।';
+  @override
+  String get saveAsTemplate => 'टेम्पलेट के रूप में सेव करें';
+  @override
+  String get replySaved => 'जवाब आपके टेम्पलेट में सेव हो गया।';
+  @override
+  String get replyNotSaved => 'पहले से सेव है या टेम्पलेट की सीमा पूरी हो गई।';
+  @override
+  String get moreActions => 'और काम';
   @override
   String get conversationMemorySection => 'बातचीत की याद';
   @override

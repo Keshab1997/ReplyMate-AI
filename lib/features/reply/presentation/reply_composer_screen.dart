@@ -16,8 +16,11 @@ import '../../notifications/models/captured_notification.dart';
 import '../../notifications/models/launch_context.dart';
 import '../../notifications/providers/notification_providers.dart';
 import '../../settings/providers/preferences_provider.dart';
+import '../data/offline_suggestions.dart';
+import '../data/reply_language_detector.dart';
 import '../data/reply_repository.dart';
 import '../domain/reply_request.dart';
+import '../providers/saved_replies_provider.dart';
 import 'suggestions_screen.dart';
 
 /// Screen 6 of. Context arrives from one of
@@ -60,6 +63,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
   ReplyTone _tone = ReplyTone.friendly;
   ReplyLength _length = ReplyLength.short;
   int _count = AppConstants.defaultSuggestionCount;
+  bool _languageManuallySelected = false;
 
   CapturedNotification? _context;
   bool _initialised = false;
@@ -99,6 +103,65 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
       _context = captured.first;
       _messageController.text = captured.first.displayText;
     }
+    _language =
+        ReplyLanguageDetector.detect(_messageController.text) ??
+        preferences.language;
+  }
+
+  void _messageChanged() {
+    final detected = ReplyLanguageDetector.detect(_messageController.text);
+    setState(() {
+      _failure = null;
+      if (!_languageManuallySelected && detected != null) {
+        _language = detected;
+      }
+    });
+  }
+
+  ReplyRequest _localReplyRequest() => ReplyRequest(
+    message: _messageController.text,
+    language: _language,
+    tone: _tone,
+    length: _length,
+    count: 1,
+    priorMessages: _context?.priorMessages ?? const <String>[],
+  );
+
+  Future<void> _openLocalReply(String reply) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => SuggestionsScreen(
+        replies: [reply],
+        request: _localReplyRequest(),
+        context: _context,
+        offline: true,
+      ),
+    ),
+  );
+
+  Future<void> _openSavedReplies(List<String> templates) async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            for (final template in templates)
+              ListTile(
+                leading: const Icon(Icons.bookmark_outline_rounded),
+                title: Text(
+                  template,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                onTap: () => Navigator.pop(sheetContext, template),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (selected != null && mounted) await _openLocalReply(selected);
   }
 
   Future<void> _generate() async {
@@ -173,12 +236,25 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
     final launchState = ref.watch(launchContextProvider);
     final preferences = ref.watch(preferencesProvider);
     final captured = ref.watch(capturedNotificationsProvider);
+    final savedReplies = ref.watch(savedRepliesProvider);
     _initialise(
       preferences,
       launchState.value,
       launchResolved: launchState.hasValue,
     );
     final launch = launchState.value;
+    final hasKnownIntent =
+        OfflineSuggestions.intentOf(_messageController.text) !=
+        OfflineIntent.unknown;
+    final quickReplies = hasKnownIntent
+        ? OfflineSuggestions.forMessage(
+            _messageController.text,
+            language: _language,
+            tone: _tone,
+            length: _length,
+            count: 2,
+          ).toSet().toList()
+        : const <String>[];
 
     final theme = Theme.of(context);
 
@@ -340,8 +416,49 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
                             ),
-                            onChanged: (_) => setState(() => _failure = null),
+                            onChanged: (_) => _messageChanged(),
                           ),
+                          if (quickReplies.isNotEmpty) ...[
+                            const SizedBox(height: AppTheme.spaceSm),
+                            Text(
+                              _strings.quickReplies,
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Wrap(
+                              spacing: AppTheme.spaceXs,
+                              runSpacing: AppTheme.spaceXs,
+                              children: [
+                                for (final reply in quickReplies)
+                                  ActionChip(
+                                    label: Text(
+                                      reply,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    onPressed: () => _openLocalReply(reply),
+                                  ),
+                              ],
+                            ),
+                          ],
+                          if (savedReplies.isNotEmpty)
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton.icon(
+                                onPressed: () =>
+                                    _openSavedReplies(savedReplies),
+                                icon: const Icon(
+                                  Icons.bookmark_outline_rounded,
+                                  size: 17,
+                                ),
+                                label: Text(
+                                  '${_strings.savedReplies} (${savedReplies.length})',
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -362,8 +479,10 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                             selected: _language,
                             labelOf: (language) => language.label,
                             iconOf: (_) => AppIcons.language,
-                            onSelected: (language) =>
-                                setState(() => _language = language),
+                            onSelected: (language) => setState(() {
+                              _languageManuallySelected = true;
+                              _language = language;
+                            }),
                           ),
                           const SizedBox(height: AppTheme.spaceMd),
                           _StyleLabel(_strings.toneLabel),

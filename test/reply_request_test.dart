@@ -44,6 +44,19 @@ void main() {
     test('surrounding whitespace is trimmed before sending', () {
       expect(request(message: '  hello  ').trimmedMessage, 'hello');
     });
+
+    test('a rewrite needs both its draft and requested change', () {
+      final partial = request().copyWith(draftToRefine: 'Sure, sounds good.');
+      expect(
+        partial.validate(),
+        contains('A refinement needs both a draft and a requested change.'),
+      );
+      final complete = partial.copyWith(
+        refinementInstruction: 'Make it shorter.',
+        count: 1,
+      );
+      expect(complete.validate(), isEmpty);
+    });
   });
 
   group('ReplyRequest.toJson', () {

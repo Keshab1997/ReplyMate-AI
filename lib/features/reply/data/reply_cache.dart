@@ -57,8 +57,9 @@ class ReplyCache {
     return Hive.openBox<dynamic>(boxName);
   }
 
-  /// The cache key for [request]. Every field that changes the answer is in it;
-  /// nothing that does not (no timestamps, no session ids) is.
+  /// The cache key for a normal generation request. Rewrites are deliberately
+  /// excluded by `BudgetedReplyRepository`, so their draft text is not persisted
+  /// in a cache key. No timestamps or session ids participate in a normal key.
   static String keyFor(ReplyRequest request) {
     final parts = <String>[
       request.trimmedMessage,
