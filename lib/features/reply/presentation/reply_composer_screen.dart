@@ -594,16 +594,6 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                             const SizedBox(height: AppTheme.spaceMd),
                             ..._buildReplyBubbles(context, theme, scheme),
                           ],
-                          // Only once there is something to answer: with an
-                          // empty box the line above already explains why, and
-                          // two explanations on one screen read as clutter.
-                          if (_suggestions.isEmpty &&
-                              !_generating &&
-                              _failure == null &&
-                              _messageController.text.trim().isNotEmpty) ...[
-                            const SizedBox(height: AppTheme.spaceLg),
-                            _EmptyHint(theme: theme, strings: _strings),
-                          ],
                           const SizedBox(height: AppTheme.spaceSm),
                         ],
                       ),
@@ -762,32 +752,6 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
     );
 
     return [
-      if (_context == null &&
-          (launch == null || !launch.hasText) &&
-          _messageController.text.trim().isEmpty)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Row(
-            children: [
-              Icon(
-                Icons.info_outline_rounded,
-                size: 14,
-                color: scheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  _strings.noMessageCaptured,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 11,
-                    height: 1.45,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       Align(
         alignment: Alignment.centerLeft,
         child: ConstrainedBox(
@@ -798,13 +762,60 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
       if (_context != null)
         Align(
           alignment: Alignment.centerLeft,
-          child: TextButton.icon(
+          child: IconButton(
+            tooltip: _strings.clear,
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints.tightFor(width: 34, height: 34),
+            padding: EdgeInsets.zero,
             onPressed: () => setState(_clearSessionContext),
-            icon: const Icon(Icons.close_rounded, size: 14),
-            label: Text(_strings.clear),
-            style: TextButton.styleFrom(
-              minimumSize: const Size(0, 30),
-              textStyle: const TextStyle(fontSize: 11),
+            icon: Icon(
+              Icons.close_rounded,
+              size: 17,
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      if (_context == null &&
+          (launch == null || !launch.hasText) &&
+          _messageController.text.trim().isEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: AppTheme.spaceLg),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.spaceLg,
+                  vertical: AppTheme.spaceLg,
+                ),
+                decoration: BoxDecoration(
+                  color: scheme.surface.withValues(
+                    alpha: theme.brightness == Brightness.dark ? 0.45 : 0.82,
+                  ),
+                  borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                  border: Border.all(
+                    color: scheme.outlineVariant.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    AppSurfaces.iconBadge(
+                      context,
+                      icon: Icons.forum_outlined,
+                      size: 46,
+                    ),
+                    const SizedBox(height: AppTheme.spaceSm + 2),
+                    Text(
+                      _strings.noMessageCaptured,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -1270,41 +1281,6 @@ class _BubbleAction extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// The composer at rest: one honest line about what to do, instead of a large
-/// empty card that looked like something had failed to load.
-class _EmptyHint extends StatelessWidget {
-  const _EmptyHint({required this.theme, required this.strings});
-
-  final ThemeData theme;
-  final AppStrings strings;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = theme.colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(
-          Icons.auto_awesome_outlined,
-          size: 15,
-          color: scheme.onSurfaceVariant,
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            strings.emptyComposerHint,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontSize: 12,
-              height: 1.5,
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

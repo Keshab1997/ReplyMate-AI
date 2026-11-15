@@ -142,7 +142,6 @@ abstract class AppStrings {
   String get editDraft;
   String get offlineDraft;
   String get cachedDraft;
-  String get emptyComposerHint;
   String get done;
   String get savedReplies;
   String get addSavedReply;
@@ -471,7 +470,7 @@ class EnglishStrings extends AppStrings {
   String get writeSomethingNew => 'Write something new';
   @override
   String get writeSomethingNewSubtitle =>
-      'Make a message from your own idea, without needing an incoming chat.';
+      'A fresh message, from your own idea.';
   @override
   String get createMessageTitle => 'Create a message';
   @override
@@ -537,10 +536,6 @@ class EnglishStrings extends AppStrings {
 
   @override
   String get cachedDraft => 'From cache';
-
-  @override
-  String get emptyComposerHint =>
-      'Type or paste the message, then generate. Drafts appear right here.';
 
   @override
   String get done => 'Done';
@@ -1114,8 +1109,7 @@ class BengaliStrings extends AppStrings {
   @override
   String get writeSomethingNew => 'নতুন কিছু লিখুন';
   @override
-  String get writeSomethingNewSubtitle =>
-      'কোনো আসা মেসেজ ছাড়াই নিজের ভাবনা থেকে জবাব লিখুন।';
+  String get writeSomethingNewSubtitle => 'নিজের ভাবনা থেকে নতুন মেসেজ লিখুন।';
   @override
   String get createMessageTitle => 'একটি মেসেজ লিখুন';
   @override
@@ -1180,10 +1174,6 @@ class BengaliStrings extends AppStrings {
 
   @override
   String get cachedDraft => 'ক্যাশ থেকে';
-
-  @override
-  String get emptyComposerHint =>
-      'মেসেজটা লিখুন বা পেস্ট করুন, তারপর তৈরি করুন। জবাব এখানেই দেখা যাবে।';
 
   @override
   String get done => 'হয়ে গেছে';
@@ -1749,8 +1739,7 @@ class HindiStrings extends AppStrings {
   @override
   String get writeSomethingNew => 'कुछ नया लिखें';
   @override
-  String get writeSomethingNewSubtitle =>
-      'किसी आए हुए चैट संदेश के बिना, अपने विचार से संदेश बनाएँ।';
+  String get writeSomethingNewSubtitle => 'अपने विचार से नया संदेश लिखें।';
   @override
   String get createMessageTitle => 'एक संदेश लिखें';
   @override
@@ -1815,10 +1804,6 @@ class HindiStrings extends AppStrings {
 
   @override
   String get cachedDraft => 'कैश से';
-
-  @override
-  String get emptyComposerHint =>
-      'संदेश लिखें या पेस्ट करें, फिर बनाएँ। जवाब यहीं दिखेंगे।';
 
   @override
   String get done => 'हो गया';

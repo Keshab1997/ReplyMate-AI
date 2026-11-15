@@ -161,6 +161,8 @@ class AppTheme {
             borderRadius: BorderRadius.circular(buttonRadius),
           ),
           textStyle: const TextStyle(
+            fontFamily: fontFamily,
+            fontFamilyFallback: fontFamilyFallback,
             fontSize: 15.5,
             fontWeight: FontWeight.w700,
           ),
@@ -184,7 +186,12 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: isDark ? brandBright : brand,
-          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          textStyle: const TextStyle(
+            fontFamily: fontFamily,
+            fontFamilyFallback: fontFamilyFallback,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
       cardTheme: CardThemeData(
@@ -366,9 +373,18 @@ class AppSurfaces {
     Widget? icon,
   }) {
     final enabled = onPressed != null;
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final labelStyle = TextStyle(
+      fontFamily: AppTheme.fontFamily,
+      fontFamilyFallback: AppTheme.fontFamilyFallback,
+      fontSize: 15.5,
+      fontWeight: FontWeight.w700,
+      color: enabled ? Colors.white : scheme.onSurfaceVariant,
+    );
     final buttonStyle = FilledButton.styleFrom(
       backgroundColor: Colors.transparent,
+      foregroundColor: Colors.white,
       shadowColor: Colors.transparent,
       disabledBackgroundColor: Colors.transparent,
       disabledForegroundColor: scheme.onSurfaceVariant,
@@ -392,12 +408,12 @@ class AppSurfaces {
           ? FilledButton(
               onPressed: onPressed,
               style: buttonStyle,
-              child: Text(label),
+              child: Text(label, style: labelStyle),
             )
           : FilledButton.icon(
               onPressed: onPressed,
               icon: icon,
-              label: Text(label),
+              label: Text(label, style: labelStyle),
               style: buttonStyle,
             ),
     );
