@@ -16,7 +16,7 @@ and hands it to you. You edit it. **You** press send.
 [![Kotlin](https://img.shields.io/badge/native-Kotlin-43E0A0?style=flat-square&labelColor=0C1220)](android/)
 [![Tests](https://img.shields.io/badge/tests-288_passing-43E0A0?style=flat-square&labelColor=0C1220)](test/)
 [![Version](https://img.shields.io/badge/version-1.5.0%2B5-4A94FF?style=flat-square&labelColor=0C1220)](CHANGELOG.md)
-[![License](https://img.shields.io/badge/license-TBD-8FA3C8?style=flat-square&labelColor=0C1220)](#-license)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-4A94FF?style=flat-square&labelColor=0C1220)](LICENSE)
 
 <sub><a href="#-honest-status">Status</a> · <a href="#-features">Features</a> · <a href="#-how-it-works">How it works</a> · <a href="#-privacy-by-design">Privacy</a> · <a href="#-build-and-run">Build</a> · <a href="ROADMAP.md">Roadmap</a> · <a href="AGENTS.md">Agent playbook</a></sub>
 
@@ -249,7 +249,52 @@ does not cover — all SIL Open Font License.
 
 ## 📄 License
 
-License to be decided before public distribution.
+**GNU Affero General Public License v3.0** — see [LICENSE](LICENSE) for the full text.
+Copyright (C) 2026 Keshab Sarkar.
+
+This is a deliberately strong copyleft licence, chosen because ReplyMate handles other
+people's private conversations: anyone who ships a modified ReplyMate — or runs one as a
+network service — has to publish their source under the same terms.
+
+**What you may do**
+
+- Use it, privately or commercially, on as many devices as you like.
+- Study it, modify it, fork it, build your own version.
+
+**What you must do**
+
+- Keep the copyright notices and ship the licence with any copy you distribute.
+- If you distribute a modified app — Play Store, APK, or a hosted service — the **complete
+  corresponding source must be available under the AGPL-3.0**, including your changes.
+- State what you changed, and keep the date.
+
+**What it does not do**
+
+- It is a *closed-source fork you may not make*: a proprietary or differently-licensed
+  build of this code is not permitted.
+- There is **no warranty**, to the extent the law allows.
+- It does not relicense third-party work: the Dart/Flutter packages keep their own licences
+  (`flutter pub deps`), and the bundled fonts stay under the SIL Open Font License
+  ([Inter](assets/fonts/Inter-OFL.txt), [Noto Sans Bengali](assets/fonts/NotoSansBengali-OFL.txt),
+  [Noto Sans Devanagari](assets/fonts/NotoSansDevanagari-OFL.txt)).
+
+Want other terms — commercial, private, or otherwise? Ask first; a different licence can
+only be granted by the copyright holder, and it cannot be applied retroactively to code
+already published under the AGPL.
+
+<details>
+<summary>Header for new source files</summary>
+
+```dart
+// ReplyMate AI — Copyright (C) 2026 Keshab Sarkar
+//
+// This program is free software: you can redistribute it and/or modify it under
+// the terms of the GNU Affero General Public License as published by the Free
+// Software Foundation, version 3. It is distributed in the hope that it will be
+// useful, but WITHOUT ANY WARRANTY. See the LICENSE file for details.
+```
+
+</details>
 
 <div align="center">
 <sub>Built by <a href="https://github.com/Keshab1997">Keshab Sarkar</a> · drafts, never sends.</sub>
