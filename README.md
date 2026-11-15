@@ -179,8 +179,14 @@ python3 tool/preflight.py        # ~1 s   before every push
 python3 tool/dep_check.py        # ~2 s   are the two pinned dependencies still current?
 flutter test test/<name>_test.dart   # the one test file that covers your change
 flutter analyze                  # for shared surfaces and risky diffs
-python3 tool/see_screen.py --route /settings   # actually look at the screen
+python3 tool/screenshots.py --shot settings-reply   # render a screen to a PNG, locally
+python3 tool/see_screen.py --route /settings        # photograph a route through CI
 ```
+
+`tool/screenshots.py` renders any screen the registry names — including screens you have
+to tap into, which `see_screen.py` cannot reach — in about a second, with the app's real
+theme and fonts, into `.agent-screens/local/` (git-ignored). It is a dev tool, not a test:
+`flutter test` never discovers it and it does nothing without `--dart-define=SHOTS=1`.
 
 No local `flutter build apk|aab|web` "just to check" — that is minutes for an artifact only
 CI needs, and the signing secrets live in CI anyway. Full policy: [AGENTS.md](AGENTS.md).
