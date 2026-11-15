@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:replymate/core/constants/app_constants.dart';
 import 'package:replymate/features/about/about_screen.dart';
 import 'package:replymate/features/home/home_screen.dart';
+import 'package:replymate/features/reply/presentation/create_message_screen.dart';
 import 'package:replymate/features/reply/presentation/reply_composer_screen.dart';
 import 'package:replymate/features/settings/presentation/ai_screen.dart';
 import 'package:replymate/features/settings/presentation/capture_screen.dart';
@@ -80,6 +81,7 @@ final List<Shot> shots = <Shot>[
     name: 'reply-composer',
     build: () => const ReplyComposerScreen(embedded: true),
   ),
+  Shot(name: 'create-message', build: () => const CreateMessageScreen()),
 
   // The two cases that catch what a comfortable phone hides.
   Shot(
