@@ -20,6 +20,7 @@ import '../data/chat_reply_style_store.dart';
 import '../data/offline_suggestions.dart';
 import '../data/reply_language_detector.dart';
 import '../data/reply_repository.dart';
+import '../domain/reply_intent.dart';
 import '../domain/reply_request.dart';
 import '../providers/saved_replies_provider.dart';
 import 'suggestions_screen.dart';
@@ -243,12 +244,22 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
     if (selected != null && mounted) await _openLocalReply(selected);
   }
 
-  Future<void> _generate() async {
+  Future<void> _generate({ReplyIntent? intent}) async {
+    if (_generating) return;
+    setState(() {
+      _generating = true;
+      _failure = null;
+      _suggestions = const <String>[];
+    });
     final capture = _context;
     final message = _messageController.text;
     final styleLoad = _chatStyleLoad;
     await styleLoad;
-    if (!mounted || capture != _context) return;
+    if (!mounted) return;
+    if (capture != _context) {
+      setState(() => _generating = false);
+      return;
+    }
     final chatStyle = _savedChatStyle;
     // Same memory contract as the bubble: file the message, then draft from the
     // window that includes it. Null here means memory is off or does not apply,
@@ -270,17 +281,16 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
       priorMessages:
           memory?.contextLines() ?? capture?.priorMessages ?? const <String>[],
       styleExamples: memory?.styleExamples() ?? const <String>[],
+      replyIntent: intent,
     );
     final problems = request.validate();
     if (problems.isNotEmpty) {
-      setState(() => _failure = ReplyFailure(problems.join(' ')));
+      setState(() {
+        _generating = false;
+        _failure = ReplyFailure(problems.join(' '));
+      });
       return;
     }
-    setState(() {
-      _generating = true;
-      _failure = null;
-      _suggestions = const <String>[];
-    });
     final result = await ref.read(replyRepositoryProvider).generate(request);
     if (!mounted) return;
     setState(() => _generating = false);
@@ -811,6 +821,16 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
     ];
   }
 
+  /// A choice starts the same single request as Generate; it is not a mode
+  /// that needs to be selected and submitted separately.
+  Widget _intentChip(ReplyIntent intent, String label) => ActionChip(
+    key: ValueKey<String>('reply-intent-${intent.name}'),
+    label: Text(label),
+    onPressed: _generating ? null : () => _generate(intent: intent),
+    visualDensity: VisualDensity.compact,
+    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  );
+
   /// Pinned bottom bar: the one action that changes what is on screen, and the
   /// line that says nothing leaves the phone until it is pressed. It never
   /// scrolls away, and it holds no controls of its own - language, tone, length
@@ -857,6 +877,37 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                   : _strings.generateAgain,
             ),
             const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                _strings.draftWithIntent,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 4,
+              runSpacing: 0,
+              children: [
+                _intentChip(ReplyIntent.agree, _strings.intentAgree),
+                _intentChip(
+                  ReplyIntent.politeDecline,
+                  _strings.intentPoliteDecline,
+                ),
+                _intentChip(
+                  ReplyIntent.askForDetails,
+                  _strings.intentAskForDetails,
+                ),
+                _intentChip(
+                  ReplyIntent.suggestAnotherTime,
+                  _strings.intentSuggestAnotherTime,
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
             Text(
               _strings.sentOnlyOnGenerate,
               textAlign: TextAlign.center,

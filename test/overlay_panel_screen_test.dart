@@ -10,6 +10,7 @@ import 'package:replymate/features/overlay/models/overlay_context.dart';
 import 'package:replymate/features/overlay/presentation/overlay_panel_screen.dart';
 import 'package:replymate/features/reply/data/chat_reply_style_store.dart';
 import 'package:replymate/features/reply/data/reply_repository.dart';
+import 'package:replymate/features/reply/domain/reply_intent.dart';
 import 'package:replymate/features/reply/domain/reply_request.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -430,6 +431,25 @@ void main() {
 
     expect(repository.calls, 1);
     expect(repository.request?.message, 'Can we meet tomorrow?');
+  });
+
+  testWidgets('an intent chip generates one draft directly', (tester) async {
+    final repository = _RecordingRepository();
+    await pumpPanel(
+      tester,
+      _context(),
+      overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+    );
+
+    expect(repository.calls, 0);
+    await tester.tap(
+      find.byKey(const ValueKey('overlay-reply-intent-askForDetails')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repository.calls, 1);
+    expect(repository.request?.replyIntent, ReplyIntent.askForDetails);
+    expect(find.text('Generate a reply'), findsOneWidget);
   });
 
   testWidgets('one suggestion is asked for by default', (tester) async {

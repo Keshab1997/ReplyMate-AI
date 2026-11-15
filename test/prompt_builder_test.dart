@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:replymate/core/constants/reply_options.dart';
 import 'package:replymate/features/reply/data/prompt_builder.dart';
+import 'package:replymate/features/reply/domain/reply_intent.dart';
 import 'package:replymate/features/reply/domain/reply_request.dart';
 import 'package:replymate/features/reply/domain/reply_refinement.dart';
 
@@ -19,6 +20,38 @@ void main() {
     expect(system, contains('Do not invent facts'));
     expect(system, contains('exactly 3 replies'));
     expect(system, contains('{"replies":'));
+  });
+
+  test(
+    'intent prompts give the selected direction without invented details',
+    () {
+      const intents = <ReplyIntent, String>{
+        ReplyIntent.agree: 'agree to the request',
+        ReplyIntent.politeDecline: 'decline this request politely',
+        ReplyIntent.askForDetails: 'ask one concise question',
+        ReplyIntent.suggestAnotherTime: 'invite another time',
+      };
+      for (final entry in intents.entries) {
+        final prompt = ReplyPrompt.user(
+          request.copyWith(replyIntent: entry.key),
+        );
+        expect(prompt, contains(entry.value));
+      }
+      final agree = ReplyPrompt.user(
+        request.copyWith(replyIntent: ReplyIntent.agree),
+      );
+      expect(agree, contains('Do not add commitments, dates'));
+      final anotherTime = ReplyPrompt.user(
+        request.copyWith(replyIntent: ReplyIntent.suggestAnotherTime),
+      );
+      expect(anotherTime, contains('Do not invent a specific date or time'));
+    },
+  );
+
+  test('ambiguous input is not treated as permission to agree or commit', () {
+    final system = ReplyPrompt.system(1, ReplyTone.friendly);
+    expect(system, contains('If the message is ambiguous'));
+    expect(system, contains('ask a clarifying question instead'));
   });
 
   test('the user prompt carries message, language, tone and length', () {

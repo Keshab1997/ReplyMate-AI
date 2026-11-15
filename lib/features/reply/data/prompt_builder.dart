@@ -1,4 +1,5 @@
 import '../../../core/constants/reply_options.dart';
+import '../domain/reply_intent.dart';
 import '../domain/reply_request.dart';
 
 /// Builds the two prompts for a generation request.
@@ -20,6 +21,7 @@ You are ReplyMate AI, a reply-drafting assistant for everyday conversations.
 Rules:
 - Preserve the intended meaning of the incoming message.
 - Do not invent facts about the user or the sender.
+- If the message is ambiguous, do not infer agreement, refusal, availability, or a commitment; ask a clarifying question instead.
 ${_relationshipRule(tone)}${_persona(tone)}${_voice(styleExamples)}- Keep replies natural and concise.
 - Respect the requested language, tone and length exactly.
 - For a rewrite, preserve the draft's meaning and facts; change only what the user requested.
@@ -108,11 +110,30 @@ Length: ${request.length.label}
 ${request.trimmedMessage}
 
 Write ${request.count} reply suggestion(s).
-Language: ${request.language.label}
+${_replyIntent(request.replyIntent)}Language: ${request.language.label}
 Tone: ${request.tone.label}
 Length: ${request.length.label}
 ''';
   }
+
+  /// A purpose chip is an explicit user choice, never a model inference.
+  /// The wording keeps the model from filling gaps with commitments or
+  /// availability the user did not provide.
+  static String _replyIntent(ReplyIntent? intent) => switch (intent) {
+    null => '',
+    ReplyIntent.agree =>
+      'Reply purpose: agree to the request. Do not add commitments, dates, '
+          'or details beyond what the user selected.\n',
+    ReplyIntent.politeDecline =>
+      'Reply purpose: decline this request politely. Do not invent a reason '
+          'or promise an alternative.\n',
+    ReplyIntent.askForDetails =>
+      'Reply purpose: ask one concise question about the missing details. '
+          'Do not guess the answer.\n',
+    ReplyIntent.suggestAnotherTime =>
+      'Reply purpose: indicate this time does not work and invite another '
+          'time. Do not invent a specific date or time the user is free.\n',
+  };
 
   /// What led up to the message, when the capture carried it. Without this the
   /// model answers one line with no idea what it is answering - and "shall we

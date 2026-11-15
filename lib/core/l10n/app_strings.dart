@@ -108,6 +108,11 @@ abstract class AppStrings {
   String get aiNotConfiguredPanel;
   String get generating;
   String get generateSuggestions;
+  String get draftWithIntent;
+  String get intentAgree;
+  String get intentPoliteDecline;
+  String get intentAskForDetails;
+  String get intentSuggestAnotherTime;
   String get noMessageCaptured;
   String get newReply;
   String get messageLabel;
@@ -433,6 +438,16 @@ class EnglishStrings extends AppStrings {
   String get generating => 'Generating…';
   @override
   String get generateSuggestions => 'Generate suggestions';
+  @override
+  String get draftWithIntent => 'Or draft with an intent';
+  @override
+  String get intentAgree => 'Agree';
+  @override
+  String get intentPoliteDecline => 'Decline politely';
+  @override
+  String get intentAskForDetails => 'Ask for details';
+  @override
+  String get intentSuggestAnotherTime => 'Suggest another time';
   @override
   String get noMessageCaptured =>
       'No message was captured. ReplyMate only keeps a message while the app is open, so paste the text below to reply to something yourself.';
@@ -1029,6 +1044,16 @@ class BengaliStrings extends AppStrings {
   @override
   String get generateSuggestions => 'পরামর্শ তৈরি করুন';
   @override
+  String get draftWithIntent => 'অথবা উদ্দেশ্য বেছে জবাব লিখুন';
+  @override
+  String get intentAgree => 'সম্মতি দিন';
+  @override
+  String get intentPoliteDecline => 'ভদ্রভাবে না বলুন';
+  @override
+  String get intentAskForDetails => 'বিস্তারিত জানতে চান';
+  @override
+  String get intentSuggestAnotherTime => 'অন্য সময় প্রস্তাব করুন';
+  @override
   String get noMessageCaptured =>
       'কোনো মেসেজ ধরা পড়েনি। ReplyMate মেসেজ রাখে শুধু অ্যাপ খোলা থাকা পর্যন্ত, তাই নিচে টেক্সট পেস্ট করে নিজে উত্তর দিন।';
   @override
@@ -1614,6 +1639,16 @@ class HindiStrings extends AppStrings {
   String get generating => 'बन रहा है…';
   @override
   String get generateSuggestions => 'सुझाव बनाएँ';
+  @override
+  String get draftWithIntent => 'या जवाब का उद्देश्य चुनें';
+  @override
+  String get intentAgree => 'सहमत हों';
+  @override
+  String get intentPoliteDecline => 'विनम्रता से मना करें';
+  @override
+  String get intentAskForDetails => 'और जानकारी पूछें';
+  @override
+  String get intentSuggestAnotherTime => 'कोई और समय सुझाएँ';
   @override
   String get noMessageCaptured =>
       'कोई संदेश कैप्चर नहीं हुआ। ReplyMate संदेश केवल ऐप खुला रहने तक रखता है, इसलिए नीचे पाठ पेस्ट करके खुद जवाब दें।';

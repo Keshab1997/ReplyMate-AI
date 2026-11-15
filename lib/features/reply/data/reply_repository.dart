@@ -150,7 +150,11 @@ class BudgetedReplyRepository implements ReplyRepository {
 
     // A failed rewrite cannot honestly fall back to an unrelated offline reply
     // to the incoming message. Keep the original draft and report the failure.
-    if (request.draftToRefine != null) return result;
+    // Intent chips also require intent-aware wording; generic offline candidates
+    // could contradict a selected purpose, so preserve the honest failure.
+    if (request.draftToRefine != null || request.replyIntent != null) {
+      return result;
+    }
 
     // The paid path failed. Before giving up, offer what the rules can write:
     // no key, no network, no tokens. They are labelled offline by the caller,
@@ -171,14 +175,15 @@ class BudgetedReplyRepository implements ReplyRepository {
   /// The offline candidates for a request, without attempting a paid call.
   /// Used when the allowance is spent, so the screen can still offer something
   /// rather than a dead end.
-  List<String> offlineOnly(ReplyRequest request) =>
-      OfflineSuggestions.forMessage(
-        request.trimmedMessage,
-        language: request.language,
-        tone: request.tone,
-        length: request.length,
-        count: request.count,
-      );
+  List<String> offlineOnly(ReplyRequest request) => request.replyIntent != null
+      ? const <String>[]
+      : OfflineSuggestions.forMessage(
+          request.trimmedMessage,
+          language: request.language,
+          tone: request.tone,
+          length: request.length,
+          count: request.count,
+        );
 }
 
 /// The repository the UI talks to. `main()` selects the key-pool

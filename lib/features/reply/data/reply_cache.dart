@@ -71,6 +71,7 @@ class ReplyCache {
       // examples are the user's own voice, which does not change a reply's
       // content enough to justify a cache miss on every new example.
       request.priorMessages.join('\u0001'),
+      request.replyIntent?.name ?? '',
     ];
     return base64Url.encode(utf8.encode(parts.join('\u0002')));
   }

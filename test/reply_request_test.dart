@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:replymate/core/constants/reply_options.dart';
+import 'package:replymate/features/reply/domain/reply_intent.dart';
 import 'package:replymate/features/reply/domain/reply_request.dart';
 
 void main() {
@@ -71,6 +72,21 @@ void main() {
         'styleExamples': const <String>[],
       });
     });
+
+    test(
+      'a selected intent is explicit on the wire and omitted by default',
+      () {
+        final intended = ReplyRequest(
+          message: 'Can you take this on?',
+          language: ReplyLanguage.english,
+          tone: ReplyTone.polite,
+          length: ReplyLength.short,
+          replyIntent: ReplyIntent.politeDecline,
+        );
+        expect(intended.toJson()['replyIntent'], 'politeDecline');
+        expect(request().toJson().containsKey('replyIntent'), isFalse);
+      },
+    );
   });
 
   group('option enums', () {

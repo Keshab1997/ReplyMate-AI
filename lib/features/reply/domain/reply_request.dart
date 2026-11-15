@@ -1,5 +1,6 @@
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/reply_options.dart';
+import 'reply_intent.dart';
 
 /// A validated request for reply suggestions (FR-05 to FR-07).
 /// Validation lives in the domain layer so every entry point - composer,
@@ -16,6 +17,7 @@ class ReplyRequest {
     this.styleExamples = const <String>[],
     this.draftToRefine,
     this.refinementInstruction,
+    this.replyIntent,
   });
 
   final String message;
@@ -44,6 +46,9 @@ class ReplyRequest {
   /// A fixed, visible rewrite request such as "shorter" or "decline politely".
   final String? refinementInstruction;
 
+  /// Optional purpose selected by the user before generating this draft.
+  final ReplyIntent? replyIntent;
+
   String get trimmedMessage => message.trim();
   String get trimmedDraftToRefine => draftToRefine?.trim() ?? '';
 
@@ -54,6 +59,7 @@ class ReplyRequest {
     int? count,
     String? draftToRefine,
     String? refinementInstruction,
+    ReplyIntent? replyIntent,
   }) => ReplyRequest(
     message: message,
     language: language ?? this.language,
@@ -64,6 +70,7 @@ class ReplyRequest {
     styleExamples: styleExamples,
     draftToRefine: draftToRefine ?? this.draftToRefine,
     refinementInstruction: refinementInstruction ?? this.refinementInstruction,
+    replyIntent: replyIntent ?? this.replyIntent,
   );
 
   /// All problems with this request, empty when it is sendable. Returning a
@@ -114,5 +121,6 @@ class ReplyRequest {
     if (draftToRefine != null) 'draftToRefine': trimmedDraftToRefine,
     if (refinementInstruction != null)
       'refinementInstruction': refinementInstruction,
+    if (replyIntent != null) 'replyIntent': replyIntent?.name,
   };
 }

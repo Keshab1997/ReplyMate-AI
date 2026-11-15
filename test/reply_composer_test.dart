@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:replymate/core/constants/app_constants.dart';
 import 'package:replymate/features/reply/data/reply_repository.dart';
+import 'package:replymate/features/reply/domain/reply_intent.dart';
 import 'package:replymate/features/reply/domain/reply_request.dart';
 import 'package:replymate/core/l10n/app_strings.dart';
 import 'package:replymate/core/constants/reply_options.dart';
@@ -22,12 +23,14 @@ class _RecordingReplyRepository implements ReplyRepository {
   _RecordingReplyRepository();
 
   ReplyRequest? request;
+  int calls = 0;
 
   @override
   Future<ReplyResult> generate(
     ReplyRequest request, {
     bool bypassCache = false,
   }) async {
+    calls++;
     this.request = request;
     return const ReplyFailure('Recorded test request.');
   }
@@ -164,6 +167,29 @@ void main() {
     expect(repository.request?.count, 2);
     // The failure is reported in the conversation now, not on a pushed screen.
     expect(find.text('Recorded test request.'), findsOneWidget);
+  });
+
+  testWidgets('an intent chip makes one draft request without Generate', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final repository = _RecordingReplyRepository();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+        child: const MaterialApp(home: ReplyComposerScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Can you take this on?');
+    await tester.tap(find.byKey(const ValueKey('reply-intent-politeDecline')));
+    await tester.pumpAndSettle();
+
+    expect(repository.calls, 1);
+    expect(repository.request?.replyIntent, ReplyIntent.politeDecline);
+    expect(find.text('Generate suggestions'), findsOneWidget);
   });
 
   testWidgets('drafts land in the conversation, not on a pushed screen', (

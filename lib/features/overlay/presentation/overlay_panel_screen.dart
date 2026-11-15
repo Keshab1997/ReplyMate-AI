@@ -14,6 +14,7 @@ import '../../memory/providers/conversation_memory_provider.dart';
 import '../../notifications/providers/notification_providers.dart';
 import '../../reply/data/chat_reply_style_store.dart';
 import '../../reply/data/reply_repository.dart';
+import '../../reply/domain/reply_intent.dart';
 import '../../reply/domain/reply_request.dart';
 import '../../reply/presentation/widgets/suggestion_card.dart';
 import '../../settings/providers/preferences_provider.dart';
@@ -97,7 +98,12 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
         .push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen()));
   }
 
-  Future<void> _generate(OverlayContext overlay) async {
+  Future<void> _generate(OverlayContext overlay, {ReplyIntent? intent}) async {
+    if (_generating) return;
+    setState(() {
+      _generating = true;
+      _failure = null;
+    });
     final message = _messageController.text;
     // A per-chat style wins when the user explicitly saved one; otherwise the
     // user's global settings remain the fallback.
@@ -136,16 +142,16 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
       priorMessages:
           memory?.contextLines() ?? overlay.notification.priorMessages,
       styleExamples: memory?.styleExamples() ?? const <String>[],
+      replyIntent: intent,
     );
     final problems = request.validate();
     if (problems.isNotEmpty) {
-      setState(() => _failure = ReplyFailure(problems.join(' ')));
+      setState(() {
+        _generating = false;
+        _failure = ReplyFailure(problems.join(' '));
+      });
       return;
     }
-    setState(() {
-      _generating = true;
-      _failure = null;
-    });
     final result = await ref.read(replyRepositoryProvider).generate(request);
     if (!mounted) return;
     switch (result) {
@@ -377,6 +383,19 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     }
     return _buildPanelShell(overlay: overlay, child: _buildPanel(overlay));
   }
+
+  /// Runs generation directly from the chip; no follow-up Generate tap.
+  Widget _intentChip(
+    OverlayContext overlay,
+    ReplyIntent intent,
+    String label,
+  ) => ActionChip(
+    key: ValueKey<String>('overlay-reply-intent-${intent.name}'),
+    label: Text(label),
+    onPressed: _generating ? null : () => _generate(overlay, intent: intent),
+    visualDensity: VisualDensity.compact,
+    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  );
 
   Widget _buildPanelShell({OverlayContext? overlay, required Widget child}) {
     return Semantics(
@@ -828,6 +847,38 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
           ),
         ],
         const SizedBox(height: AppTheme.spaceMd),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            _strings.draftWithIntent,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        Wrap(
+          spacing: 4,
+          runSpacing: 0,
+          children: [
+            _intentChip(overlay, ReplyIntent.agree, _strings.intentAgree),
+            _intentChip(
+              overlay,
+              ReplyIntent.politeDecline,
+              _strings.intentPoliteDecline,
+            ),
+            _intentChip(
+              overlay,
+              ReplyIntent.askForDetails,
+              _strings.intentAskForDetails,
+            ),
+            _intentChip(
+              overlay,
+              ReplyIntent.suggestAnotherTime,
+              _strings.intentSuggestAnotherTime,
+            ),
+          ],
+        ),
+        const SizedBox(height: AppTheme.spaceSm),
         FilledButton.icon(
           onPressed: _generating ? null : () => _generate(overlay),
           icon: _generating

@@ -4,6 +4,7 @@ import 'package:replymate/core/constants/reply_options.dart';
 import 'package:replymate/features/reply/data/ai_budget.dart';
 import 'package:replymate/features/reply/data/reply_cache.dart';
 import 'package:replymate/features/reply/data/reply_repository.dart';
+import 'package:replymate/features/reply/domain/reply_intent.dart';
 import 'package:replymate/features/reply/domain/reply_request.dart';
 
 ReplyRequest _request({
@@ -15,6 +16,7 @@ ReplyRequest _request({
   List<String> prior = const [],
   String? draftToRefine,
   String? refinementInstruction,
+  ReplyIntent? replyIntent,
 }) => ReplyRequest(
   message: message,
   language: language,
@@ -24,9 +26,18 @@ ReplyRequest _request({
   priorMessages: prior,
   draftToRefine: draftToRefine,
   refinementInstruction: refinementInstruction,
+  replyIntent: replyIntent,
 );
 
 /// Counts calls and returns whatever the test asked for.
+class FailingRepository implements ReplyRepository {
+  @override
+  Future<ReplyResult> generate(
+    ReplyRequest request, {
+    bool bypassCache = false,
+  }) async => const ReplyFailure('provider unavailable');
+}
+
 class _CountingRepository implements ReplyRepository {
   _CountingRepository([this.reply = 'ঠিক আছে']);
 
@@ -82,6 +93,13 @@ void main() {
       );
       expect(
         ReplyCache.keyFor(_request(message: 'hello there', prior: ['earlier'])),
+        isNot(base),
+      );
+      expect(
+        ReplyCache.keyFor(
+          _request(message: 'hello there')
+              .copyWith(replyIntent: ReplyIntent.agree),
+        ),
         isNot(base),
       );
     });
@@ -315,6 +333,25 @@ void main() {
       expect(inner.calls, 1);
       expect(budget.snapshot().used, 1);
     });
+
+    test(
+      'generic offline fallback never contradicts a selected intent',
+      () async {
+        final repo = BudgetedReplyRepository(
+          inner: FailingRepository(),
+          cache: ReplyCache.disabled(),
+        );
+        final intended = _request(
+          message: 'Can you come tomorrow?',
+          replyIntent: ReplyIntent.politeDecline,
+        );
+
+        final result = await repo.generate(intended);
+
+        expect(result, isA<ReplyFailure>());
+        expect(repo.offlineOnly(intended), isEmpty);
+      },
+    );
 
     test('an invalid request spends nothing', () async {
       final budget = AiBudget(box: await freshBox('repo_invalid'), limit: 5);
