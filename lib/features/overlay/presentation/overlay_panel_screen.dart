@@ -12,6 +12,7 @@ import '../../../shared/widgets/brand_icon.dart';
 import '../../../shared/widgets/section_label.dart';
 import '../../memory/providers/conversation_memory_provider.dart';
 import '../../notifications/providers/notification_providers.dart';
+import '../../reply/data/chat_reply_style_store.dart';
 import '../../reply/data/reply_repository.dart';
 import '../../reply/domain/reply_request.dart';
 import '../../reply/presentation/widgets/suggestion_card.dart';
@@ -59,6 +60,9 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
   /// The conversation being answered. Normally the one the bubble was opened
   /// for; the switcher can move it to another chat that is also waiting.
   OverlayContext? _active;
+  ChatReplyStyle? _activeChatStyle;
+  String? _styleNotificationKey;
+  int _chatStyleLoadVersion = 0;
 
   /// The context the current drafts belong to. An accepted reply is filed
   /// against *this* conversation, not whichever one the panel last showed - the
@@ -94,9 +98,25 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
   }
 
   Future<void> _generate(OverlayContext overlay) async {
-    // Style comes from the user's saved defaults, so the same reply style
-    // follows them from the composer into the bubble.
+    final message = _messageController.text;
+    // A per-chat style wins when the user explicitly saved one; otherwise the
+    // user's global settings remain the fallback.
     final preferences = ref.read(preferencesProvider);
+    final key = ref
+        .read(conversationMemoryControllerProvider)
+        .keyFor(overlay.notification);
+    ChatReplyStyle? chatStyle;
+    if (key != null) {
+      try {
+        chatStyle = await ref.read(chatReplyStyleStoreProvider).get(key);
+      } catch (_) {
+        // Reply generation falls back to the global style on a local read error.
+      }
+    }
+    if (!mounted) return;
+    if (_styleNotificationKey == overlay.notification.key) {
+      setState(() => _activeChatStyle = chatStyle);
+    }
     // Conversation memory, when the user switched it on: this both files the
     // message being answered and hands back the window including it
     // Null means "no memory applies here",
@@ -108,10 +128,10 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     if (!mounted) return;
     _draftingFor = overlay;
     final request = ReplyRequest(
-      message: _messageController.text,
-      language: preferences.language,
-      tone: preferences.tone,
-      length: preferences.length,
+      message: message,
+      language: chatStyle?.language ?? preferences.language,
+      tone: chatStyle?.tone ?? preferences.tone,
+      length: chatStyle?.length ?? preferences.length,
       count: preferences.suggestionCount,
       priorMessages:
           memory?.contextLines() ?? overlay.notification.priorMessages,
@@ -154,9 +174,32 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     if (_initialisedMessage) return;
     _initialisedMessage = true;
     _messageController.text = overlay.displayText;
+    _activeChatStyle = null;
+    _styleNotificationKey = overlay.notification.key;
+    unawaited(_loadChatStyle(overlay));
   }
 
-  /// One card is not "Suggestions", and a lone card must not be badged
+  Future<void> _loadChatStyle(OverlayContext overlay) async {
+    final version = ++_chatStyleLoadVersion;
+    final key = ref
+        .read(conversationMemoryControllerProvider)
+        .keyFor(overlay.notification);
+    if (key == null) return;
+    ChatReplyStyle? saved;
+    try {
+      saved = await ref.read(chatReplyStyleStoreProvider).get(key);
+    } catch (_) {
+      // A local preference failure must never block a reply.
+    }
+    if (!mounted ||
+        version != _chatStyleLoadVersion ||
+        _styleNotificationKey != overlay.notification.key) {
+      return;
+    }
+    setState(() => _activeChatStyle = saved);
+  }
+
+  /// One card is not "Suggestions",  and a lone card must not be badged
   /// "BEST FIT" as though it had beaten the others.
   String get _suggestionsLabel =>
       _strings.suggestionsLabel(_controllers.length);
@@ -170,6 +213,9 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     setState(() {
       _active = overlay;
       _initialisedMessage = false;
+      _activeChatStyle = null;
+      _styleNotificationKey = null;
+      _chatStyleLoadVersion++;
       _editingMessage = false;
       _failure = null;
       for (final controller in _controllers) {
@@ -608,6 +654,48 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
     );
   }
 
+  Future<void> _saveChatStyle(
+    OverlayContext overlay,
+    ReplyPreferences preferences,
+  ) async {
+    final key = ref
+        .read(conversationMemoryControllerProvider)
+        .keyFor(overlay.notification);
+    if (key == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(_strings.chatStyleDisclosureTitle),
+        content: Text(
+          _strings.chatStyleDisclosureBody(key.contactName, key.packageName),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(_strings.close),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(_strings.done),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final style = ChatReplyStyle(
+      language: preferences.language,
+      tone: preferences.tone,
+      length: preferences.length,
+    );
+    await ref.read(chatReplyStyleStoreProvider).save(key, style);
+    ref.invalidate(chatReplyStylesProvider);
+    if (!mounted) return;
+    setState(() => _activeChatStyle = style);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(_strings.chatStyleSaved(key.contactName))),
+    );
+  }
+
   Widget _buildPanel(OverlayContext initial) {
     final overlay = _active ?? initial;
     final theme = Theme.of(context);
@@ -675,9 +763,9 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
                 const SizedBox(width: AppTheme.spaceSm),
                 Expanded(
                   child: Text(
-                    '${preferences.language.label} · '
-                    '${preferences.tone.label} · '
-                    '${preferences.length.label}',
+                    '${(_activeChatStyle?.language ?? preferences.language).label} · '
+                    '${(_activeChatStyle?.tone ?? preferences.tone).label} · '
+                    '${(_activeChatStyle?.length ?? preferences.length).label}',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
@@ -695,6 +783,24 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
             ),
           ),
         ),
+        if ((overlay.notification.title ?? '').trim().isNotEmpty)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => _saveChatStyle(overlay, preferences),
+              icon: Icon(
+                _activeChatStyle == null
+                    ? Icons.bookmark_add_outlined
+                    : Icons.bookmark_added_outlined,
+                size: 16,
+              ),
+              label: Text(
+                _activeChatStyle == null
+                    ? _strings.saveChatStyle
+                    : _strings.updateChatStyle,
+              ),
+            ),
+          ),
         if (!firebaseReady) ...[
           const SizedBox(height: AppTheme.spaceXs),
           Text(

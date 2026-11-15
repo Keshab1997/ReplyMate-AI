@@ -5,6 +5,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/reply_options.dart';
 import '../../app_selection/providers/selected_apps_provider.dart';
 import '../../notifications/providers/notification_providers.dart';
+import '../../reply/data/chat_reply_style_store.dart';
 import '../../reply/providers/saved_replies_provider.dart';
 
 /// The user's default reply preferences (FR-07 plus tone/length defaults).
@@ -121,6 +122,8 @@ class PreferencesNotifier extends Notifier<ReplyPreferences> {
     await prefs.remove(AppConstants.prefDefaultLanguage);
     await prefs.remove(AppConstants.prefDefaultTone);
     await prefs.remove(AppConstants.prefDefaultLength);
+    await prefs.remove(AppConstants.prefChatReplyStyles);
+    ref.invalidate(chatReplyStylesProvider);
     await prefs.remove(AppConstants.prefSuggestionCount);
     await prefs.remove(AppConstants.prefSelectedApps);
     await ref.read(savedRepliesProvider.notifier).clear();

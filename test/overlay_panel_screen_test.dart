@@ -1,10 +1,14 @@
+import 'dart:convert';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:replymate/core/constants/app_constants.dart';
+import 'package:replymate/core/constants/reply_options.dart';
 import 'package:replymate/features/overlay/models/overlay_context.dart';
 import 'package:replymate/features/overlay/presentation/overlay_panel_screen.dart';
+import 'package:replymate/features/reply/data/chat_reply_style_store.dart';
 import 'package:replymate/features/reply/data/reply_repository.dart';
 import 'package:replymate/features/reply/domain/reply_request.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -209,6 +213,45 @@ void main() {
     expect(find.text('Change'), findsOneWidget);
     // The way out to those controls is the tune icon.
     expect(find.byTooltip('Settings'), findsOneWidget);
+  });
+
+  testWidgets('per-chat style wins over global defaults in the bubble', (
+    tester,
+  ) async {
+    const style = ChatReplyStyle(
+      language: ReplyLanguage.bengali,
+      tone: ReplyTone.professional,
+      length: ReplyLength.long,
+    );
+    final saved = jsonEncode([
+      {
+        'packageName': 'com.whatsapp',
+        'contactName': 'Asha',
+        'style': style.toJson(),
+      },
+    ]);
+    final repository = _RecordingRepository();
+    await pumpPanel(
+      tester,
+      _context(),
+      prefs: <String, Object>{
+        AppConstants.prefDefaultLanguage: 'en',
+        AppConstants.prefDefaultTone: 'friendly',
+        AppConstants.prefDefaultLength: 'short',
+        AppConstants.prefChatReplyStyles: saved,
+      },
+      overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+    );
+
+    expect(find.text('Bengali · Professional · Long'), findsOneWidget);
+    expect(find.text('Update this chat’s style'), findsOneWidget);
+    await tester.ensureVisible(find.text('Generate a reply'));
+    await tester.tap(find.text('Generate a reply'));
+    await tester.pumpAndSettle();
+
+    expect(repository.request?.language, ReplyLanguage.bengali);
+    expect(repository.request?.tone, ReplyTone.professional);
+    expect(repository.request?.length, ReplyLength.long);
   });
 
   testWidgets('a complete message shows no warning noise', (tester) async {

@@ -8,8 +8,12 @@ import 'package:replymate/core/constants/app_constants.dart';
 import 'package:replymate/features/reply/data/reply_repository.dart';
 import 'package:replymate/features/reply/domain/reply_request.dart';
 import 'package:replymate/core/l10n/app_strings.dart';
+import 'package:replymate/core/constants/reply_options.dart';
 import 'package:replymate/core/platform/notifications_bridge.dart';
+import 'package:replymate/features/notifications/models/captured_notification.dart';
 import 'package:replymate/features/notifications/providers/notification_providers.dart';
+import 'package:replymate/features/memory/domain/conversation_memory.dart';
+import 'package:replymate/features/reply/data/chat_reply_style_store.dart';
 import 'package:replymate/features/reply/presentation/reply_composer_screen.dart';
 import 'package:replymate/features/settings/providers/preferences_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -189,6 +193,105 @@ void main() {
     expect(find.text('Edit'), findsOneWidget);
     // And the bar offers a second attempt instead of a first one.
     expect(find.text('Generate again'), findsOneWidget);
+  });
+
+  testWidgets('saved chat style overrides global defaults and detection', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final chat = ConversationKey.tryOf(
+      packageName: 'com.whatsapp',
+      contactName: 'Asha',
+    )!;
+    const savedStyle = ChatReplyStyle(
+      language: ReplyLanguage.bengali,
+      tone: ReplyTone.professional,
+      length: ReplyLength.medium,
+    );
+    await ChatReplyStyleStore().save(chat, savedStyle);
+    final repository = _RecordingReplyRepository();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+        child: MaterialApp(
+          home: ReplyComposerScreen(
+            initialNotification: CapturedNotification(
+              packageName: 'com.whatsapp',
+              key: 'notification-1',
+              title: 'Asha',
+              text: 'Can we meet tomorrow?',
+              isTruncated: false,
+              isGrouped: false,
+              isGroupSummary: false,
+              mayBeRedacted: false,
+              hasReplyAction: true,
+              postedAtMillis: 1,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Update this chat’s style'), findsOneWidget);
+    await tester.tap(find.text('Generate suggestions'));
+    await tester.pumpAndSettle();
+
+    expect(repository.request?.language, ReplyLanguage.bengali);
+    expect(repository.request?.tone, ReplyTone.professional);
+    expect(repository.request?.length, ReplyLength.medium);
+  });
+
+  testWidgets('saving a chat style requires confirmation and stores no text', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final repository = _RecordingReplyRepository();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+        child: MaterialApp(
+          home: ReplyComposerScreen(
+            initialNotification: CapturedNotification(
+              packageName: 'com.whatsapp',
+              key: 'notification-2',
+              title: 'Asha',
+              text: 'A private message which is not saved',
+              isTruncated: false,
+              isGrouped: false,
+              isGroupSummary: false,
+              mayBeRedacted: false,
+              hasReplyAction: true,
+              postedAtMillis: 1,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Save style for this chat'));
+    await tester.pumpAndSettle();
+    expect(find.text('Save reply style?'), findsOneWidget);
+    expect(find.textContaining('no message text is stored'), findsOneWidget);
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+
+    final key = ConversationKey.tryOf(
+      packageName: 'com.whatsapp',
+      contactName: 'Asha',
+    )!;
+    expect(await ChatReplyStyleStore().get(key), isNotNull);
+    final prefs = await SharedPreferences.getInstance();
+    final serialized = prefs.getString(AppConstants.prefChatReplyStyles)!;
+    expect(serialized, isNot(contains('A private message')));
+    expect(find.text('Update this chat’s style'), findsOneWidget);
   });
 
   testWidgets('closing the composer clears transient notification context', (

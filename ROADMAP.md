@@ -42,6 +42,7 @@ pending.
 
 - [x] Implement onboarding, home, permission setup and supported-app selection.
 - [x] Implement AI reply-language, tone, length and suggestion-count preferences.
+- [x] Add user-confirmed per-chat language, tone and length preferences, stored locally without message text.
 - [x] Implement the reply composer, suggestions, edit/copy/share actions and conditional quick reply.
 - [x] Add independent Bengali/Hindi/English app-interface localization.
       All three languages exist (`EnglishStrings`, `BengaliStrings`,

@@ -50,6 +50,8 @@ Allow users to:
 - Choose a local one-tap reply for recognized common intents
 - Refine a generated draft on demand, including an optional context-aware follow-up question
 - Save and reuse user-authored reply templates stored on-device
+- Save and reuse an explicitly chosen reply language, tone and length per chat;
+  keep these style preferences on-device and separate from message history
 
 ### FR-09: User Confirmation
 

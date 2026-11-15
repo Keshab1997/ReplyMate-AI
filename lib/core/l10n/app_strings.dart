@@ -144,6 +144,16 @@ abstract class AppStrings {
   String get replyNotSaved;
   String get moreActions;
   String get conversationMemorySection;
+  String get saveChatStyle;
+  String get updateChatStyle;
+  String get chatStyleDisclosureTitle;
+  String chatStyleDisclosureBody(String chat, String app);
+  String chatStyleSaved(String chat);
+  String chatStyleRemoved(String chat);
+  String get chatStylesSection;
+  String get chatStylesPrivacyNote;
+  String get noChatStyles;
+  String get removeChatStyle;
   String get bubbleSwitchTitle;
   String get refresh;
   String get rememberRecentChats;
@@ -487,6 +497,33 @@ class EnglishStrings extends AppStrings {
   String get moreActions => 'More actions';
   @override
   String get conversationMemorySection => 'Conversation memory';
+  @override
+  String get saveChatStyle => 'Save style for this chat';
+  @override
+  String get updateChatStyle => 'Update this chat’s style';
+  @override
+  String get chatStyleDisclosureTitle => 'Save reply style?';
+  @override
+  String chatStyleDisclosureBody(String chat, String app) =>
+      'Save language, tone and length for "$chat" in $app? ReplyMate matches '
+      'using the app and notification name. Renamed chats or another chat '
+      'with the same name may match. Only these style choices are saved on '
+      'this device; no message text is stored.';
+  @override
+  String chatStyleSaved(String chat) => 'Reply style saved for $chat.';
+  @override
+  String chatStyleRemoved(String chat) =>
+      'Saved reply style removed for $chat.';
+  @override
+  String get chatStylesSection => 'Per-chat reply styles';
+  @override
+  String get chatStylesPrivacyNote =>
+      'Only your chosen language, tone and length are stored on this device. '
+      'No message text is saved.';
+  @override
+  String get noChatStyles => 'No chat-specific styles saved yet.';
+  @override
+  String get removeChatStyle => 'Remove saved style';
   @override
   String get bubbleSwitchTitle => 'Floating reply bubble';
   @override
@@ -1001,6 +1038,34 @@ class BengaliStrings extends AppStrings {
   @override
   String get conversationMemorySection => 'কথোপকথনের স্মৃতি';
   @override
+  String get saveChatStyle => 'এই চ্যাটের স্টাইল সেভ করুন';
+  @override
+  String get updateChatStyle => 'এই চ্যাটের স্টাইল বদলান';
+  @override
+  String get chatStyleDisclosureTitle => 'রিপ্লাইয়ের স্টাইল সেভ করবেন?';
+  @override
+  String chatStyleDisclosureBody(String chat, String app) =>
+      '$app-এ "$chat"-এর ভাষা, টোন ও দৈর্ঘ্য সেভ করবেন? ReplyMate অ্যাপ '
+      'ও নোটিফিকেশনে দেখা নাম দিয়ে চ্যাট মেলায়। নাম বদলালে বা একই নামে '
+      'অন্য চ্যাট থাকলে ভুল মিলতে পারে। শুধু এই স্টাইলগুলো এই ডিভাইসে '
+      'রাখা হবে; মেসেজের লেখা সেভ হবে না।';
+  @override
+  String chatStyleSaved(String chat) => '$chat-এর রিপ্লাই স্টাইল সেভ হয়েছে।';
+  @override
+  String chatStyleRemoved(String chat) =>
+      '$chat-এর সেভ করা রিপ্লাই স্টাইল মুছে গেছে।';
+  @override
+  String get chatStylesSection => 'প্রতি চ্যাটের রিপ্লাই স্টাইল';
+  @override
+  String get chatStylesPrivacyNote =>
+      'আপনার বেছে নেওয়া ভাষা, টোন ও দৈর্ঘ্য শুধু এই ডিভাইসে রাখা হয়। '
+      'কোনো মেসেজের লেখা সেভ হয় না।';
+  @override
+  String get noChatStyles =>
+      'এখনো কোনো চ্যাটের জন্য আলাদা স্টাইল সেভ করা হয়নি।';
+  @override
+  String get removeChatStyle => 'সেভ করা স্টাইল মুছুন';
+  @override
   String get bubbleSwitchTitle => 'ভাসমান রিপ্লাই বাবল';
   @override
   String get refresh => 'রিফ্রেশ';
@@ -1508,6 +1573,32 @@ class HindiStrings extends AppStrings {
   String get moreActions => 'और काम';
   @override
   String get conversationMemorySection => 'बातचीत की याद';
+  @override
+  String get saveChatStyle => 'इस चैट के लिए शैली सेव करें';
+  @override
+  String get updateChatStyle => 'इस चैट की शैली बदलें';
+  @override
+  String get chatStyleDisclosureTitle => 'जवाब की शैली सेव करें?';
+  @override
+  String chatStyleDisclosureBody(String chat, String app) =>
+      '$app में "$chat" के लिए भाषा, लहज़ा और लंबाई सेव करें? ReplyMate '
+      'ऐप और नोटिफ़िकेशन में दिखने वाले नाम से चैट पहचानता है। नाम बदलने '
+      'या उसी नाम की दूसरी चैट होने पर मिलान गलत हो सकता है। केवल ये शैली '
+      'चुनाव इसी डिवाइस पर सेव होंगे; संदेश का टेक्स्ट सेव नहीं होगा।';
+  @override
+  String chatStyleSaved(String chat) => '$chat के लिए जवाब की शैली सेव हो गई।';
+  @override
+  String chatStyleRemoved(String chat) => '$chat की सेव की गई शैली हट गई।';
+  @override
+  String get chatStylesSection => 'हर चैट की जवाब शैली';
+  @override
+  String get chatStylesPrivacyNote =>
+      'केवल आपकी चुनी भाषा, लहज़ा और लंबाई इसी डिवाइस पर सेव होती है। '
+      'संदेश का टेक्स्ट सेव नहीं होता।';
+  @override
+  String get noChatStyles => 'अभी किसी चैट के लिए अलग शैली सेव नहीं है।';
+  @override
+  String get removeChatStyle => 'सेव की गई शैली हटाएँ';
   @override
   String get bubbleSwitchTitle => 'फ़्लोटिंग रिप्लाई बबल';
   @override

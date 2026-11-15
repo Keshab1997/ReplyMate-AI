@@ -22,6 +22,7 @@ import '../notifications/providers/notification_providers.dart';
 import '../overlay/providers/bubble_providers.dart';
 import '../reply/data/ai_budget.dart';
 import '../reply/presentation/own_key_card.dart';
+import '../reply/presentation/chat_reply_styles_card.dart';
 import '../reply/presentation/saved_replies_card.dart';
 import '../reply/data/reply_cache.dart';
 import '../reply/data/reply_repository.dart';
@@ -84,10 +85,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       builder: (dialogContext) => AlertDialog(
         title: const Text('Clear local preferences?'),
         content: const Text(
-          'Language, tone, length, selected apps, saved reply templates and '
-          'onboarding state are removed from this device. Any in-memory notification context and '
-          'pending quick-reply action are cleared too; message history is not '
-          'stored.',
+          'Language, tone, per-chat reply styles, selected apps, saved reply '
+          'templates and onboarding state are removed from this device. Any '
+          'in-memory notification context and pending quick-reply action are '
+          'cleared too; message history is not stored.',
         ),
         actions: [
           TextButton(
@@ -706,6 +707,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                   strings.conversationMemorySection,
                   const ConversationMemoryCard(),
                 ),
+
+                section(strings.chatStylesSection, const ChatReplyStylesCard()),
 
                 section(strings.savedReplies, const SavedRepliesCard()),
 

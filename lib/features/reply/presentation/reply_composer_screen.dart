@@ -16,6 +16,7 @@ import '../../notifications/models/captured_notification.dart';
 import '../../notifications/models/launch_context.dart';
 import '../../notifications/providers/notification_providers.dart';
 import '../../settings/providers/preferences_provider.dart';
+import '../data/chat_reply_style_store.dart';
 import '../data/offline_suggestions.dart';
 import '../data/reply_language_detector.dart';
 import '../data/reply_repository.dart';
@@ -60,11 +61,14 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
   final TextEditingController _messageController = TextEditingController();
 
   /// The language the message itself appears to be written in, when the
-  /// detector is confident. Null means "not sure", and the user's Settings
-  /// choice is used: uncertain text keeps the setting, it does not guess.
-  /// Tone, length and count have no local copy at all - they are Settings'
-  /// business, and this screen is a conversation, not a second settings form.
+  /// detector is confident. Null means "not sure": use an explicit saved
+  /// chat style first, then this detection, then the user's Settings default.
+  /// Tone, length and count have no local copy - except the explicit style saved
+  /// for a chat - so this screen remains a conversation, not a settings form.
   ReplyLanguage? _detectedLanguage;
+  int _chatStyleLoadVersion = 0;
+  Future<void> _chatStyleLoad = Future<void>.value();
+  ChatReplyStyle? _savedChatStyle;
 
   CapturedNotification? _context;
   bool _initialised = false;
@@ -104,6 +108,75 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
       _messageController.text = captured.first.displayText;
     }
     _detectedLanguage = ReplyLanguageDetector.detect(_messageController.text);
+    if (_context != null) _chatStyleLoad = _loadChatStyle(_context);
+  }
+
+  Future<void> _loadChatStyle(CapturedNotification? capture) async {
+    final version = ++_chatStyleLoadVersion;
+    final key = capture == null
+        ? null
+        : ref.read(conversationMemoryControllerProvider).keyFor(capture);
+    if (key == null) return;
+    ChatReplyStyle? saved;
+    try {
+      saved = await ref.read(chatReplyStyleStoreProvider).get(key);
+    } catch (_) {
+      // A local preference failure must never block writing a reply.
+    }
+    if (!mounted || version != _chatStyleLoadVersion || _context != capture) {
+      return;
+    }
+    setState(() => _savedChatStyle = saved);
+  }
+
+  void _selectContext(CapturedNotification? capture) {
+    setState(() {
+      _context = capture;
+      _messageController.text = capture?.displayText ?? '';
+      _detectedLanguage = ReplyLanguageDetector.detect(_messageController.text);
+      _savedChatStyle = null;
+    });
+    _chatStyleLoad = _loadChatStyle(capture);
+  }
+
+  Future<void> _saveChatStyle() async {
+    final capture = _context;
+    if (capture == null) return;
+    final key = ref.read(conversationMemoryControllerProvider).keyFor(capture);
+    if (key == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(_strings.chatStyleDisclosureTitle),
+        content: Text(
+          _strings.chatStyleDisclosureBody(key.contactName, key.packageName),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(_strings.close),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(_strings.done),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final preferences = ref.read(preferencesProvider);
+    final style = ChatReplyStyle(
+      language: preferences.language,
+      tone: preferences.tone,
+      length: preferences.length,
+    );
+    await ref.read(chatReplyStyleStoreProvider).save(key, style);
+    ref.invalidate(chatReplyStylesProvider);
+    if (!mounted) return;
+    setState(() => _savedChatStyle = style);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(_strings.chatStyleSaved(key.contactName))),
+    );
   }
 
   void _messageChanged() {
@@ -118,24 +191,31 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
     final preferences = ref.read(preferencesProvider);
     return ReplyRequest(
       message: _messageController.text,
-      language: _detectedLanguage ?? preferences.language,
-      tone: preferences.tone,
-      length: preferences.length,
+      language:
+          _savedChatStyle?.language ??
+          _detectedLanguage ??
+          preferences.language,
+      tone: _savedChatStyle?.tone ?? preferences.tone,
+      length: _savedChatStyle?.length ?? preferences.length,
       count: 1,
       priorMessages: _context?.priorMessages ?? const <String>[],
     );
   }
 
-  Future<void> _openLocalReply(String reply) => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => SuggestionsScreen(
-        replies: [reply],
-        request: _localReplyRequest(),
-        context: _context,
-        offline: true,
+  Future<void> _openLocalReply(String reply) async {
+    await _chatStyleLoad;
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SuggestionsScreen(
+          replies: [reply],
+          request: _localReplyRequest(),
+          context: _context,
+          offline: true,
+        ),
       ),
-    ),
-  );
+    );
+  }
 
   Future<void> _openSavedReplies(List<String> templates) async {
     final selected = await showModalBottomSheet<String>(
@@ -164,10 +244,15 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
   }
 
   Future<void> _generate() async {
+    final capture = _context;
+    final message = _messageController.text;
+    final styleLoad = _chatStyleLoad;
+    await styleLoad;
+    if (!mounted || capture != _context) return;
+    final chatStyle = _savedChatStyle;
     // Same memory contract as the bubble: file the message, then draft from the
     // window that includes it. Null here means memory is off or does not apply,
     // and the capture's own history is used instead.
-    final capture = _context;
     final memory = capture == null
         ? null
         : await ref
@@ -176,10 +261,11 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
     if (!mounted) return;
     final preferences = ref.read(preferencesProvider);
     final request = ReplyRequest(
-      message: _messageController.text,
-      language: _detectedLanguage ?? preferences.language,
-      tone: preferences.tone,
-      length: preferences.length,
+      message: message,
+      language:
+          chatStyle?.language ?? _detectedLanguage ?? preferences.language,
+      tone: chatStyle?.tone ?? preferences.tone,
+      length: chatStyle?.length ?? preferences.length,
       count: preferences.suggestionCount,
       priorMessages:
           memory?.contextLines() ?? capture?.priorMessages ?? const <String>[],
@@ -301,6 +387,9 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
     unawaited(ref.read(notificationsBridgeProvider).clearRetainedContext());
     _messageController.clear();
     _context = null;
+    _savedChatStyle = null;
+    _chatStyleLoadVersion++;
+    _chatStyleLoad = Future<void>.value();
   }
 
   @override
@@ -311,10 +400,13 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
     final savedReplies = ref.watch(savedRepliesProvider);
     _initialise(launchState.value, launchResolved: launchState.hasValue);
     final launch = launchState.value;
-    // Confident detection wins over the setting; everything else *is* the
-    // setting. No copy is kept here, so changing tone in Settings shows up on
-    // this screen on the way back instead of being frozen until a restart.
-    final language = _detectedLanguage ?? preferences.language;
+    // An explicitly saved chat style outranks detection and global Settings.
+    // Without one, confident detection picks the language and global Settings
+    // supply the rest of the style.
+    final language =
+        _savedChatStyle?.language ?? _detectedLanguage ?? preferences.language;
+    final tone = _savedChatStyle?.tone ?? preferences.tone;
+    final length = _savedChatStyle?.length ?? preferences.length;
     final hasKnownIntent =
         OfflineSuggestions.intentOf(_messageController.text) !=
         OfflineIntent.unknown;
@@ -322,8 +414,8 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
         ? OfflineSuggestions.forMessage(
             _messageController.text,
             language: language,
-            tone: preferences.tone,
-            length: preferences.length,
+            tone: tone,
+            length: length,
             count: 2,
           ).toSet().toList()
         : const <String>[];
@@ -474,6 +566,29 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                 color: AppTheme.brandBright,
               ),
             ),
+            if ((_context!.title ?? '').trim().isNotEmpty)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _saveChatStyle,
+                  icon: Icon(
+                    _savedChatStyle == null
+                        ? Icons.bookmark_add_outlined
+                        : Icons.bookmark_added_outlined,
+                    size: 16,
+                  ),
+                  label: Text(
+                    _savedChatStyle == null
+                        ? _strings.saveChatStyle
+                        : _strings.updateChatStyle,
+                  ),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(0, 32),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    textStyle: const TextStyle(fontSize: 11),
+                  ),
+                ),
+              ),
             const SizedBox(height: 4),
             if (_context!.contextWarnings.isNotEmpty)
               Padding(
@@ -507,12 +622,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                         ),
                       ),
                   ],
-                  onChanged: (value) {
-                    setState(() {
-                      _context = value;
-                      _messageController.text = value?.displayText ?? '';
-                    });
-                  },
+                  onChanged: _selectContext,
                 ),
               ),
           ] else if (launch != null && launch.hasText)

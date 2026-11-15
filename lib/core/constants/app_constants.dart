@@ -18,6 +18,9 @@ class AppConstants {
   static const String prefDefaultTone = 'replymate.default_tone';
   static const String prefDefaultLength = 'replymate.default_length';
 
+  /// Explicit per-chat reply styles; contains no message text.
+  static const String prefChatReplyStyles = 'replymate.chat_reply_styles';
+
   /// How many replies the app drafts at once. One is the default: comparing
   /// three paragraphs is more work than editing the one you would have picked
   /// anyway, and it costs three times the tokens.

@@ -64,6 +64,7 @@ and hands it to you. You edit it. **You** press send.
 - On-demand refinement — *shorter*, *softer*, *polite decline*
 - Optional context-aware follow-up question
 - Conservative on-device language detection; uncertain text keeps your setting
+- Explicit per-chat language, tone and length preferences, saved on-device
 - Intent-based one-tap **offline** replies — no key, no network, no Firebase
 
 **Where it works**
@@ -128,6 +129,7 @@ and hands it to you. You edit it. **You** press send.
 | **No automatic sending** | No send path exists in any layer. Quick reply is attempted only against a live `RemoteInput` action, and only after you tap. |
 | **No message logging** | Message text lives in memory and is dropped when the panel closes. The single exception is conversation memory — opt-in, bounded, deletable, local. |
 | **Nothing on disk you did not ask for** | Screen reading stores nothing. Conversation memory is the only place text may be written, and switching it off deletes it. |
+| **Per-chat styles, no message text** | Only your chosen language, tone and length are stored locally. Matching uses the app and notification display name; renamed or same-name chats can match imperfectly. |
 | **No cloud backup** | `android:allowBackup` is `false`. A phone backup cannot carry your key or your memory off the device. |
 | **Your key is yours** | BYOK keys live in a local Hive box. Never Firestore, never rendered back on screen ("set" is the whole state shown), never logged. |
 | **Nothing hidden** | `google-services.json` is never in git, and its absence never breaks a build or a screen — the app runs as a full guest shell and says what is not configured. |
