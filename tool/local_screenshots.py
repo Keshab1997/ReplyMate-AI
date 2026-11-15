@@ -76,7 +76,14 @@ def known_shots() -> list[str]:
             "Re-run the agent-pack installer to create it."
         )
     source = REGISTRY.read_text(encoding="utf-8")
-    return re.findall(r"name:\s*'([^']+)'", source)
+    # Strip comments first: the installed template ships a worked example inside
+    # a block comment, and a commented-out shot is not a shot. Whole-line `//`
+    # comments only, so a `//` inside a string stays put.
+    source = re.sub(r"/\*.*?\*/", "", source, flags=re.S)
+    source = "\n".join(
+        line for line in source.splitlines() if not line.lstrip().startswith("//")
+    )
+    return re.findall(r"\bname:\s*'([^']+)'", source)
 
 
 def main() -> int:
