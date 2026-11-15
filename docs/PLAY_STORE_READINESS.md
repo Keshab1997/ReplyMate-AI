@@ -44,10 +44,18 @@ android:isAccessibilityTool="true"
 
 The file's own comment says this was set deliberately for a **sideloaded,
 personal build**, and `README.md` says plainly that ReplyMate "is not
-[an accessibility tool] and does not claim to be". For Play those two
-statements cannot both be true: setting the flag on an app that is not a
+[an accessibility tool] and does not claim to be".
+
+For Play those two statements cannot both be true: setting the flag on an app that is not a
 disability tool is one of the named rejection causes in the 2026 sensitive
 permissions policy.
+
+> **Decision (owner, November 2026): left as `true` for now.** Nothing in this
+> codebase reads the flag — the reader works through `canRetrieveWindowContent`
+> and `rootInActiveWindow` — so the flag was kept only to hold the Advanced
+> Protection Mode exemption on Android 17+ for the owner's own sideloaded build.
+> It must become `false`, together with the disclosure and declaration below,
+> before any Play submission. Do not flip it silently.
 
 What Play requires instead, for an app that is *not* an accessibility tool but
 does use the API:
