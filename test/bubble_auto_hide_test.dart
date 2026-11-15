@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:replymate/core/constants/app_constants.dart';
 import 'package:replymate/features/overlay/providers/bubble_providers.dart';
-import 'package:replymate/features/settings/settings_screen.dart';
+import 'package:replymate/features/settings/presentation/capture_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Records the outbound calls so the test can prove that a hide-after choice
@@ -54,7 +54,7 @@ void main() {
       recorder.handle,
     );
     await tester.pumpWidget(
-      const ProviderScope(child: MaterialApp(home: SettingsScreen())),
+      const ProviderScope(child: MaterialApp(home: CaptureScreen())),
     );
     await tester.pumpAndSettle();
     return recorder;

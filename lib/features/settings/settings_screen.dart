@@ -1,48 +1,35 @@
-import 'dart:async';
-
-import 'package:hive_flutter/hive_flutter.dart';
-
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 
-import '../../app/theme/app_icons.dart';
 import '../../app/theme/app_theme.dart';
-import '../../core/constants/app_constants.dart';
 import '../../core/constants/app_info.dart';
-import '../../core/constants/reply_options.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/firebase/firebase_providers.dart';
-import '../../shared/widgets/brand_icon.dart';
-import '../../shared/widgets/choice_chips.dart';
 import '../../shared/widgets/mascot_face.dart';
+import '../../shared/widgets/screen_header.dart';
 import '../about/about_screen.dart';
 import '../admin/admin_gate_screen.dart';
-import '../../shared/widgets/permission_status_card.dart';
-import '../../shared/widgets/screen_header.dart';
-import '../app_selection/app_selection_screen.dart';
-import '../notifications/providers/notification_providers.dart';
 import '../overlay/providers/bubble_providers.dart';
-import '../reply/data/ai_budget.dart';
-import '../reply/presentation/own_key_card.dart';
-import '../reply/presentation/chat_reply_styles_card.dart';
-import '../reply/presentation/saved_replies_card.dart';
-import '../reply/data/reply_cache.dart';
-import '../reply/data/reply_repository.dart';
-import '../screen_reading/providers/screen_reading_provider.dart';
-import '../memory/widgets/conversation_memory_card.dart';
-import '../screen_reading/widgets/screen_reading_status_card.dart';
-import '../permissions/permission_setup_screen.dart';
-import '../permissions/providers/permission_provider.dart';
+import 'presentation/ai_screen.dart';
+import 'presentation/capture_screen.dart';
+import 'presentation/memory_screen.dart';
+import 'presentation/privacy_screen.dart';
+import 'presentation/reply_defaults_screen.dart';
+import 'presentation/settings_tile.dart';
 import 'providers/preferences_provider.dart';
 
-/// Screen 8 plus the privacy screen (9): defaults, permission state, and the
-/// privacy explanation with a working "clear local preferences" control.
-/// Stateful and lifecycle-aware for one reason: the overlay grant can be given
-/// or taken away in Android Settings while this screen is alive. Without a
-/// resume re-read the "Reply bubble" switch would stay greyed out after the
-/// user *did* grant access - the bubble would look broken for a permission
-/// reason nobody could see.
-class SettingsScreen extends ConsumerStatefulWidget {
+/// Settings, as a hub: who this app is, and six named doors.
+///
+/// It used to be one screen holding every control the app owns - ten cards in a
+/// single scroll, from the language chips down to the privacy promises. That is
+/// a list nobody finishes: the tone chips a user wanted were in the third card,
+/// the promises they were worried about were in the ninth, and nothing on the
+/// screen told them which was which until they scrolled past it.
+///
+/// Now the same controls live behind five sections plus About. Nothing was
+/// removed and no default changed: the screen got shorter, the icons made it
+/// scannable, and each group kept the words it already had.
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({this.embedded = false, super.key});
 
   /// See `HomeScreen.embedded`. When true the back button goes too: in a tab
@@ -50,194 +37,32 @@ class SettingsScreen extends ConsumerStatefulWidget {
   /// whole app with it.
   final bool embedded;
 
-  @override
-  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends ConsumerState<SettingsScreen>
-    with WidgetsBindingObserver {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    // Re-read on entry, not only on first build.
-    ref.read(overlayProvider.notifier).refresh();
-    ref.read(listenerPermissionProvider.notifier).refresh();
-    ref.read(screenReadingAvailableProvider.notifier).refresh();
+  void _open(BuildContext context, Widget screen) {
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
   }
 
   @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      ref.read(overlayProvider.notifier).refresh();
-      ref.read(listenerPermissionProvider.notifier).refresh();
-      ref.read(screenReadingAvailableProvider.notifier).refresh();
-    }
-  }
-
-  Future<void> _confirmClear(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Clear local preferences?'),
-        content: const Text(
-          'Language, tone, per-chat reply styles, selected apps, saved reply '
-          'templates and onboarding state are removed from this device. Any '
-          'in-memory notification context and pending quick-reply action are '
-          'cleared too; message history is not stored.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Clear'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    await ref.read(preferencesProvider.notifier).clearAll();
-  }
-
-  /// Turns the floating reply bubble on or off (default off).
-  /// Enabling asks for the Android 13+ notification permission first, because
-  /// without it the bubble's own notification and the fallback notification
-  /// cannot appear - and the user deserves to know that before wondering why
-  /// nothing showed up. A refusal is reported, never hidden, and never undoes
-  /// the choice.
-  Future<void> _setBubble(
-    BuildContext context,
-    WidgetRef ref,
-    bool enabled,
-  ) async {
-    if (enabled) {
-      final notificationsAllowed = await ref
-          .read(notificationsBridgeProvider)
-          .requestNotificationPermission();
-      if (!notificationsAllowed && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Notifications are not allowed, so the bubble notification and '
-              'the fallback notification cannot appear. The bubble still works '
-              'while ReplyMate is running.',
-            ),
-          ),
-        );
-      }
-    }
-    await ref.read(bubbleEnabledProvider.notifier).setEnabled(enabled);
-  }
-
-  /// Turns screen reading on or off (default off).
-  /// Turning it **on** shows the disclosure first and waits for a real
-  /// confirmation: this is the one feature that reads text off the screen
-  /// rather than out of a notification, and "I agreed to that" has to be an
-  /// answer the user gave, not a side effect of tapping a switch. A refusal
-  /// leaves the switch exactly where it was.
-  /// Opens Android's accessibility screen. Always available, not only when the
-  /// grant is missing: the toggle has to be turned off and on again after a
-  /// config change, which is something you do while the grant is still there.
-  Future<void> _openAccessibilitySettings(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
-    final opened = await ref
-        .read(notificationsBridgeProvider)
-        .openAccessibilitySettings();
-    if (!context.mounted) return;
-    if (opened == 'none') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'This phone has no accessibility screen to open. '
-            'Look for it under Settings \u2192 Accessibility.',
-          ),
-        ),
-      );
-    }
-  }
-
-  Future<void> _setScreenReading(
-    BuildContext context,
-    WidgetRef ref,
-    bool enabled,
-  ) async {
-    if (enabled) {
-      final strings = ref.read(appStringsProvider);
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(strings.screenReadingDisclosureTitle),
-          content: Text(strings.screenReadingDisclosureBody),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Not now'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Turn on'),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true) return;
-    }
-    await ref.read(screenReadingProvider.notifier).setEnabled(enabled);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final preferences = ref.watch(preferencesProvider);
-    final permissionEnabled = ref.watch(listenerPermissionProvider);
-    final overlayEnabled = ref.watch(overlayProvider);
-    final bubbleEnabled = ref.watch(bubbleEnabledProvider);
-    final bubbleAutoHide = ref.watch(bubbleAutoHideProvider);
-    final bubblePreview = ref.watch(bubblePreviewProvider);
-    final screenReading = ref.watch(screenReadingProvider);
-    final screenReadingAvailable = ref.watch(screenReadingAvailableProvider);
+  Widget build(BuildContext context, WidgetRef ref) {
     final strings = ref.watch(appStringsProvider);
-    final appLanguage = ref.watch(appLanguageProvider);
+    final preferences = ref.watch(preferencesProvider);
+    final bubbleEnabled = ref.watch(bubbleEnabledProvider);
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
-    Widget section(String label, Widget child) => Padding(
-      padding: const EdgeInsets.only(top: AppTheme.spaceLg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: AppTheme.spaceSm),
-            child: Text(
-              label.toUpperCase(),
-              style: theme.textTheme.labelSmall?.copyWith(
-                letterSpacing: 1.3,
-                fontWeight: FontWeight.w700,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          child,
-        ],
-      ),
-    );
+    // The summary line, not a hint: the point of a hub row is that the answer
+    // to "what is in there?" is visible before the tap.
+    final replySummary =
+        '${preferences.language.label} · ${preferences.tone.label} · '
+        '${preferences.length.label} · ${preferences.suggestionCount}';
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: AppTheme.backgroundGradient(theme.brightness),
         ),
         child: SafeArea(
-          bottom: !widget.embedded,
+          bottom: !embedded,
           child: AppSurfaces.centered(
             ListView(
               padding: const EdgeInsets.fromLTRB(
@@ -246,11 +71,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                 AppTheme.spaceMd,
                 AppTheme.spaceXl,
               ),
-              children: [
+              children: <Widget>[
                 ScreenHeader(
                   title: strings.tabSettings,
                   subtitle: strings.settingsSubtitle,
-                  showBack: !widget.embedded,
+                  showBack: !embedded,
                 ),
                 const SizedBox(height: AppTheme.spaceMd),
 
@@ -296,7 +121,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                                     strings.versionLine(AppInfo.versionLabel),
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       fontSize: 11.5,
-                                      color: theme.colorScheme.onSurfaceVariant,
+                                      color: scheme.onSurfaceVariant,
                                     ),
                                   ),
                                   Text(
@@ -317,492 +142,68 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                   ),
                 ),
 
-                section(
-                  strings.appLanguageSection,
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Wrap(
-                            spacing: AppTheme.spaceSm,
-                            runSpacing: AppTheme.spaceSm,
-                            children: [
-                              for (final language in AppLanguage.values)
-                                ChoiceChip(
-                                  label: Text(language.label),
-                                  selected: language == appLanguage,
-                                  onSelected: (_) => ref
-                                      .read(appLanguageProvider.notifier)
-                                      .setLanguage(language),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: AppTheme.spaceSm),
-                          Text(
-                            strings.appLanguageNote,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontSize: 12,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
+                const SizedBox(height: AppTheme.spaceLg),
+
+                // Each row: a coloured icon, a name, and what is behind it.
+                // Ordered the way the app is used: what a reply is made of
+                // first, then where messages come from, then what it costs,
+                // then what it kept, then the promises.
+                Column(
+                  children: <Widget>[
+                    SettingsTile(
+                      icon: Icons.tune_rounded,
+                      title: strings.replyStyle,
+                      subtitle: replySummary,
+                      onTap: () => _open(context, const ReplyDefaultsScreen()),
                     ),
-                  ),
-                ),
-
-                section(
-                  strings.replyStyle,
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            strings.languageLabel,
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          ChoiceChips<ReplyLanguage>(
-                            options: ReplyLanguage.values,
-                            selected: preferences.language,
-                            labelOf: (language) => language.label,
-                            iconOf: (_) => AppIcons.language,
-                            onSelected: (language) => ref
-                                .read(preferencesProvider.notifier)
-                                .setLanguage(language),
-                          ),
-                          const SizedBox(height: AppTheme.spaceMd),
-                          Text(
-                            strings.toneLabel,
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          ChoiceChips<ReplyTone>(
-                            options: ReplyTone.values,
-                            selected: preferences.tone,
-                            labelOf: (tone) => tone.label,
-                            iconOf: (_) => AppIcons.tone,
-                            onSelected: (tone) => ref
-                                .read(preferencesProvider.notifier)
-                                .setTone(tone),
-                          ),
-                          const SizedBox(height: AppTheme.spaceMd),
-                          Text(
-                            strings.lengthLabel,
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          ChoiceChips<ReplyLength>(
-                            options: ReplyLength.values,
-                            selected: preferences.length,
-                            labelOf: (length) => length.label,
-                            iconOf: (_) => AppIcons.length,
-                            onSelected: (length) => ref
-                                .read(preferencesProvider.notifier)
-                                .setLength(length),
-                          ),
-                          const SizedBox(height: AppTheme.spaceMd),
-                          Text(
-                            strings.howManyOptions,
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          ChoiceChips<int>(
-                            options: List<int>.generate(
-                              AppConstants.maxSuggestionCount -
-                                  AppConstants.minSuggestionCount +
-                                  1,
-                              (index) =>
-                                  AppConstants.minSuggestionCount + index,
-                            ),
-                            selected: preferences.suggestionCount,
-                            labelOf: (count) => '$count',
-                            iconOf: (_) => AppIcons.count,
-                            onSelected: (count) => ref
-                                .read(preferencesProvider.notifier)
-                                .setSuggestionCount(count),
-                          ),
-                          const SizedBox(height: AppTheme.spaceSm),
-                          Text(
-                            'Every screen and the bubble use this style. '
-                            'Nothing asks again.',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontSize: 12,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
+                    const SizedBox(height: AppTheme.spaceSm),
+                    SettingsTile(
+                      icon: Icons.notifications_active_outlined,
+                      title: strings.captureSection,
+                      subtitle: strings.settingsCaptureHint,
+                      color: AppTheme.cyan,
+                      onTap: () => _open(context, const CaptureScreen()),
                     ),
-                  ),
-                ),
-
-                section(
-                  strings.captureSection,
-                  Column(
-                    children: [
-                      PermissionStatusCard(
-                        enabled: permissionEnabled,
-                        strings: strings,
-                        onManage: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const PermissionSetupScreen(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppTheme.spaceSm),
-                      Card(
-                        child: Column(
-                          children: [
-                            SwitchListTile(
-                              value: bubbleEnabled,
-                              secondary: AppSurfaces.iconBadge(
-                                context,
-                                icon: AppIcons.bubble,
-                                size: 36,
-                              ),
-                              // Off - and unswitchable - until Android actually
-                              // lets us draw over other apps. A switch that
-                              // promises something the OS refuses would be the
-                              // dishonest version of it.
-                              onChanged: overlayEnabled
-                                  ? (value) => _setBubble(context, ref, value)
-                                  : null,
-                              title: Text(strings.bubbleSwitchTitle),
-                              subtitle: Text(
-                                overlayEnabled
-                                    ? 'Shows a bubble over the app you are in '
-                                          'when an allowed app sends a message. '
-                                          'Off by default; turn it off again any '
-                                          'time.'
-                                    : 'Needs the optional "Display over other '
-                                          'apps" access. Grant it below; the '
-                                          'switch turns on by itself when you '
-                                          'come back.',
-                              ),
-                            ),
-                            // Only meaningful while the bubble exists: a
-                            // preview or a hide-timer for a bubble that is
-                            // switched off would be a setting that cannot do
-                            // anything.
-                            if (bubbleEnabled) ...[
-                              const Divider(height: 1),
-                              // Off by default, and deliberately not bundled
-                              // with the bubble switch: this is the only place
-                              // message text reaches the screen outside the
-                              // panel, so it is a separate yes
-
-                              SwitchListTile(
-                                value: bubblePreview,
-                                secondary: AppSurfaces.iconBadge(
-                                  context,
-                                  icon: AppIcons.edit,
-                                  size: 36,
-                                ),
-                                onChanged: (value) => ref
-                                    .read(bubblePreviewProvider.notifier)
-                                    .setEnabled(value),
-                                title: const Text('Show a preview'),
-                                subtitle: const Text(
-                                  'Shows the sender and the first line beside '
-                                  'the bubble. Off by default: anyone glancing '
-                                  'at your screen can read it. Hidden on the '
-                                  'lock screen and never saved.',
-                                ),
-                              ),
-                              const Divider(height: 1),
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  AppTheme.spaceMd,
-                                  AppTheme.spaceSm,
-                                  AppTheme.spaceMd,
-                                  AppTheme.spaceSm,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            'Hide the bubble after',
-                                            style: theme.textTheme.titleSmall,
-                                          ),
-                                        ),
-                                        Text(
-                                          bubbleAutoHide == 0
-                                              ? 'Never'
-                                              : '$bubbleAutoHide min',
-                                          style: theme.textTheme.labelLarge
-                                              ?.copyWith(
-                                                color:
-                                                    theme.colorScheme.primary,
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: AppTheme.spaceXs),
-                                    Text(
-                                      'A bubble nobody replies to tidies '
-                                      'itself away. The message is not '
-                                      'lost - a new one brings it back.',
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: theme
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                          ),
-                                    ),
-                                    const SizedBox(height: AppTheme.spaceSm),
-                                    ChoiceChips<int>(
-                                      options:
-                                          AppConstants.bubbleAutoHideOptions,
-                                      selected: bubbleAutoHide,
-                                      labelOf: (minutes) => minutes == 0
-                                          ? 'Never'
-                                          : '$minutes min',
-                                      onSelected: (minutes) => ref
-                                          .read(bubbleAutoHideProvider.notifier)
-                                          .setMinutes(minutes),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                            const Divider(height: 1),
-                            // Screen reading: the only feature here that can see
-                            // text the platform never hands us, so it asks twice
-                            // - once on Android's own accessibility screen, and
-                            // once here, in words, before it is ever switched on.
-                            SwitchListTile(
-                              value: screenReading && screenReadingAvailable,
-                              secondary: AppSurfaces.iconBadge(
-                                context,
-                                size: 36,
-                                child: BrandIcon(
-                                  type: BrandIconType.screenReading,
-                                  color: theme.colorScheme.primary,
-                                  size: 18,
-                                ),
-                              ),
-                              onChanged: screenReadingAvailable
-                                  ? (value) =>
-                                        _setScreenReading(context, ref, value)
-                                  : null,
-                              title: Text(strings.screenReadingTitle),
-                              subtitle: Text(
-                                screenReadingAvailable
-                                    ? strings.screenReadingSubtitle
-                                    : strings.screenReadingNeedsPermission,
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                AppTheme.spaceMd,
-                                0,
-                                AppTheme.spaceMd,
-                                AppTheme.spaceMd,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: OutlinedButton.icon(
-                                      onPressed: () =>
-                                          _openAccessibilitySettings(
-                                            context,
-                                            ref,
-                                          ),
-                                      icon: const Icon(
-                                        Icons.open_in_new,
-                                        size: 18,
-                                      ),
-                                      label: Text(
-                                        strings.screenReadingOpenSettings,
-                                      ),
-                                    ),
-                                  ),
-                                  if (!screenReadingAvailable) ...[
-                                    const SizedBox(height: AppTheme.spaceSm),
-                                    Text(
-                                      strings.screenReadingBlocked,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            fontSize: 12,
-                                            height: 1.5,
-                                            color: theme
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                          ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                            // Shown once Android has granted access: that is the
-                            // only point at which "it reads nothing" is a
-                            // question about the reading rather than the grant.
-                            if (screenReadingAvailable)
-                              const ScreenReadingStatusCard(),
-                            // The fix for "the switch does nothing": the reason
-                            // is a permission, so the permission gets a button
-                            // *here*, not three screens away.
-                            if (!overlayEnabled)
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  AppTheme.spaceMd,
-                                  0,
-                                  AppTheme.spaceMd,
-                                  AppTheme.spaceMd,
-                                ),
-                                child: Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: OutlinedButton.icon(
-                                    onPressed: () => ref
-                                        .read(overlayProvider.notifier)
-                                        .openSettings(),
-                                    icon: const Icon(
-                                      Icons.open_in_new,
-                                      size: 18,
-                                    ),
-                                    label: const Text('Grant overlay access'),
-                                  ),
-                                ),
-                              ),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                AppTheme.spaceSm,
-                                0,
-                                AppTheme.spaceSm,
-                                AppTheme.spaceSm,
-                              ),
-                              child: OutlinedButton.icon(
-                                onPressed: () => Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => const AppSelectionScreen(),
-                                  ),
-                                ),
-                                icon: const Icon(
-                                  Icons.widgets_outlined,
-                                  size: 18,
-                                ),
-                                label: Text(strings.appsTitle),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                section(strings.ownKeySection, const OwnKeyCard()),
-
-                section(strings.aiUsageSection, const _AiUsageCard()),
-
-                section(
-                  strings.conversationMemorySection,
-                  const ConversationMemoryCard(),
-                ),
-
-                section(strings.chatStylesSection, const ChatReplyStylesCard()),
-
-                section(strings.savedReplies, const SavedRepliesCard()),
-
-                section(
-                  strings.privacySection,
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _Promise(
-                            icon: Icons.delete_outline_rounded,
-                            title: strings.messagesNeverStored,
-                            body: strings.messagesNeverStoredBody,
-                          ),
-                          const SizedBox(height: AppTheme.spaceMd),
-                          _Promise(
-                            icon: Icons.pan_tool_alt_outlined,
-                            title: strings.nothingSentAlone,
-                            body: strings.nothingSentAloneBody,
-                          ),
-                          const SizedBox(height: AppTheme.spaceMd),
-                          Text(
-                            'Notification access lets ReplyMate see notifications '
-                            'from the apps you selected - never inside the apps. '
-                            'When you generate suggestions, the message text you '
-                            'provide is sent to an AI service to draft replies. '
-                            'Conversations are not stored, and message content '
-                            'is never logged.',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              fontSize: 12,
-                              height: 1.55,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(height: AppTheme.spaceMd),
-                          OutlinedButton(
-                            onPressed: () => _confirmClear(context, ref),
-                            child: Text(strings.clearLocalPreferences),
-                          ),
-                        ],
-                      ),
+                    const SizedBox(height: AppTheme.spaceSm),
+                    SettingsTile(
+                      icon: Icons.key_outlined,
+                      title: strings.ownKeySection,
+                      subtitle: strings.settingsAiHint,
+                      color: AppTheme.amber,
+                      onTap: () => _open(context, const AiScreen()),
                     ),
-                  ),
-                ),
-
-                // The row every Android user looks for. It opens a screen
-                // rather than dumping six paragraphs into Settings: the version
-                // and the honest status belong together, and neither belongs
-                // between the switches.
-                section(
-                  strings.aboutTitle,
-                  Card(
-                    clipBehavior: Clip.antiAlias,
-                    child: ListTile(
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const AboutScreen(),
-                        ),
-                      ),
-                      leading: const Icon(Icons.info_outline_rounded, size: 20),
-                      title: Text(strings.aboutOpenTitle),
-                      subtitle: Text(
-                        strings.aboutOpenSubtitle,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 12,
-                        ),
-                      ),
-                      trailing: const Icon(Icons.chevron_right_rounded),
+                    const SizedBox(height: AppTheme.spaceSm),
+                    SettingsTile(
+                      icon: Icons.bookmarks_outlined,
+                      title: strings.conversationMemorySection,
+                      subtitle: strings.settingsMemoryHint,
+                      color: AppTheme.mint,
+                      onTap: () => _open(context, const MemoryScreen()),
                     ),
-                  ),
+                    const SizedBox(height: AppTheme.spaceSm),
+                    SettingsTile(
+                      icon: Icons.lock_outline_rounded,
+                      title: strings.privacySection,
+                      subtitle: strings.settingsPrivacyHint,
+                      color: AppTheme.mint,
+                      onTap: () => _open(context, const PrivacyScreen()),
+                    ),
+                    const SizedBox(height: AppTheme.spaceSm),
+                    SettingsTile(
+                      icon: Icons.info_outline_rounded,
+                      title: strings.aboutOpenTitle,
+                      subtitle: strings.aboutOpenSubtitle,
+                      color: scheme.onSurfaceVariant,
+                      onTap: () => _open(context, const AboutScreen()),
+                    ),
+                  ],
                 ),
 
                 if (ref.watch(firebaseReadyProvider))
                   Padding(
                     padding: const EdgeInsets.only(top: AppTheme.spaceLg),
                     child: OutlinedButton.icon(
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const AdminGateScreen(),
-                        ),
-                      ),
+                      onPressed: () => _open(context, const AdminGateScreen()),
                       icon: const Icon(Icons.shield_outlined),
                       label: const Text('Admin'),
                     ),
@@ -810,195 +211,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// One privacy promise: icon, claim, one sentence of proof.
-class _Promise extends StatelessWidget {
-  const _Promise({required this.icon, required this.title, required this.body});
-
-  final IconData icon;
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppSurfaces.iconBadge(
-          context,
-          icon: icon,
-          color: theme.brightness == Brightness.dark
-              ? AppTheme.mint
-              : const Color(0xFF087F5B),
-          size: 34,
-        ),
-        const SizedBox(width: AppTheme.spaceSm + 2),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12.5,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                body,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontSize: 12,
-                  height: 1.45,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Today's paid-AI allowance, and the way to clear the reply cache.
-///
-/// The budget is the app's promise that "free" stays free, so the number is
-/// shown rather than hidden until it bites. Reading it also tells the user the
-/// truth people usually learn the hard way: the count is per device, not per
-/// account.
-class _AiUsageCard extends ConsumerStatefulWidget {
-  const _AiUsageCard();
-
-  @override
-  ConsumerState<_AiUsageCard> createState() => _AiUsageCardState();
-}
-
-class _AiUsageCardState extends ConsumerState<_AiUsageCard> {
-  AiBudgetSnapshot? _snapshot;
-  int _cachedReplies = 0;
-  bool _clearing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    unawaited(_read());
-  }
-
-  Future<void> _read() async {
-    final repo = ref.read(replyRepositoryProvider);
-    final budget = repo is BudgetedReplyRepository ? repo.budget : null;
-    if (!mounted) return;
-    setState(() {
-      _snapshot = budget?.snapshot();
-      _cachedReplies = _cacheLength();
-    });
-  }
-
-  /// Hive is not initialized in a widget test, and a settings screen that
-  /// throws because a cache box is missing would be the exact "a missing
-  /// dependency must never break a screen" rule this app applies to Firebase.
-  int _cacheLength() {
-    try {
-      if (!Hive.isBoxOpen(ReplyCache.boxName)) return 0;
-      return Hive.box<dynamic>(ReplyCache.boxName).length;
-    } catch (_) {
-      return 0;
-    }
-  }
-
-  Future<void> _clearCache() async {
-    setState(() => _clearing = true);
-    try {
-      if (Hive.isBoxOpen(ReplyCache.boxName)) {
-        await Hive.box<dynamic>(ReplyCache.boxName).clear();
-      }
-    } catch (_) {
-      // Nothing to clear if the box never opened.
-    }
-    if (!mounted) return;
-    setState(() {
-      _clearing = false;
-      _cachedReplies = 0;
-    });
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Reply cache cleared')));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final snapshot = _snapshot;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (snapshot == null)
-              Text(
-                'AI usage is not being counted on this install.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              )
-            else ...[
-              Text(
-                '${snapshot.used} of ${snapshot.limit} AI replies used today',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(99),
-                child: LinearProgressIndicator(
-                  value: snapshot.fraction,
-                  minHeight: 6,
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                  color: snapshot.exhausted
-                      ? theme.colorScheme.error
-                      : theme.colorScheme.primary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                snapshot.exhausted
-                    ? 'The allowance is used up. It resets tomorrow.'
-                    : 'Counting requests, not tokens — this is a per-device '
-                          'guard, not a billing system for an AI provider '
-                          'account.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Cached replies: $_cachedReplies',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-                TextButton(
-                  onPressed: _cachedReplies == 0 || _clearing
-                      ? null
-                      : _clearCache,
-                  child: Text(_clearing ? 'Clearing…' : 'Clear cache'),
-                ),
-              ],
-            ),
-          ],
         ),
       ),
     );

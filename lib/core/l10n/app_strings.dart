@@ -251,6 +251,14 @@ abstract class AppStrings {
   // About this app (Settings → About). The version is a real value shown to a
   // user who is about to file a bug report, not decoration: it must match
   // pubspec.yaml, and test/app_info_test.dart is what holds the two together.
+  // The Settings hub. One line per destination, because a sub-screen nobody
+  // can identify from the hub is a screen nobody opens.
+  String get settingsReplyHint;
+  String get settingsCaptureHint;
+  String get settingsAiHint;
+  String get settingsMemoryHint;
+  String get settingsPrivacyHint;
+
   String get aboutTitle;
   String get aboutOpenTitle;
   String get aboutOpenSubtitle;
@@ -821,6 +829,20 @@ class EnglishStrings extends AppStrings {
 
   @override
   String readerSeen(String text) => 'Seen: "$text"';
+
+  @override
+  String get settingsReplyHint => 'Language, tone, length and how many drafts';
+  @override
+  String get settingsCaptureHint =>
+      'Notification access, the bubble, screen reading and allowed apps';
+  @override
+  String get settingsAiHint => 'Your own key, today\'s usage, per-chat styles';
+  @override
+  String get settingsMemoryHint =>
+      'Conversation memory and the replies you saved';
+  @override
+  String get settingsPrivacyHint =>
+      'What is never stored, and the button that clears this phone';
 
   @override
   String get aboutTitle => 'About this app';
@@ -1418,6 +1440,20 @@ class BengaliStrings extends AppStrings {
   String readerSeen(String text) => 'দেখা গেছে: "$text"';
 
   @override
+  String get settingsReplyHint => 'ভাষা, সুর, দৈর্ঘ্য আর কতগুলো ড্রাফট';
+  @override
+  String get settingsCaptureHint =>
+      'নোটিফিকেশন অ্যাক্সেস, বাবল, স্ক্রিন রিডিং আর অনুমোদিত অ্যাপ';
+  @override
+  String get settingsAiHint => 'নিজের key, আজকের ব্যবহার, চ্যাট-ভিত্তিক স্টাইল';
+  @override
+  String get settingsMemoryHint =>
+      'কথোপকথনের মেমরি আর আপনি যেসব রিপ্লাই সেভ করেছেন';
+  @override
+  String get settingsPrivacyHint =>
+      'কী কখনোই রাখা হয় না, আর এই ফোন মোছার বাটন';
+
+  @override
   String get aboutTitle => 'অ্যাপ পরিচিতি';
   @override
   String get aboutOpenTitle => 'ReplyMate সম্পর্কে';
@@ -2009,6 +2045,19 @@ class HindiStrings extends AppStrings {
 
   @override
   String readerSeen(String text) => 'देखा गया: "$text"';
+
+  @override
+  String get settingsReplyHint => 'भाषा, लहजा, लंबाई और कितने ड्राफ़्ट';
+  @override
+  String get settingsCaptureHint =>
+      'सूचना पहुँच, बबल, स्क्रीन रीडिंग और अनुमत ऐप';
+  @override
+  String get settingsAiHint => 'अपनी key, आज का उपयोग, चैट-वार स्टाइल';
+  @override
+  String get settingsMemoryHint => 'बातचीत की मेमोरी और आपके सहेजे हुए जवाब';
+  @override
+  String get settingsPrivacyHint =>
+      'क्या कभी नहीं रखा जाता, और इस फ़ोन को मिटाने का बटन';
 
   @override
   String get aboutTitle => 'ऐप के बारे में';
