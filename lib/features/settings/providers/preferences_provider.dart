@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../app/theme/app_theme_preferences.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/reply_options.dart';
 import '../../app_selection/providers/selected_apps_provider.dart';
@@ -118,6 +119,7 @@ class PreferencesNotifier extends Notifier<ReplyPreferences> {
   /// "Clear local preferences" from the privacy screen: everything the app
   /// stored locally goes away, including the app allowlist.
   Future<void> clearAll() async {
+    await ref.read(appThemePreferencesProvider.notifier).reset();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(AppConstants.prefDefaultLanguage);
     await prefs.remove(AppConstants.prefDefaultTone);

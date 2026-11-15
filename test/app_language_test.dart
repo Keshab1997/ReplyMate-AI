@@ -133,6 +133,18 @@ void main() {
         strings.messagesNeverStored,
         strings.nothingSentAlone,
         strings.screenReadingTitle,
+        strings.appearanceTitle,
+        strings.appearanceSubtitle,
+        strings.appearanceMode,
+        strings.appearanceSystem,
+        strings.appearanceLight,
+        strings.appearanceDark,
+        strings.appearanceColors,
+        strings.paletteViolet,
+        strings.paletteForest,
+        strings.paletteRose,
+        strings.paletteAmber,
+        strings.paletteOcean,
       ]) {
         expect(value.trim(), isNotEmpty, reason: '${language.code} has a gap');
       }

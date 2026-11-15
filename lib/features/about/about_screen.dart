@@ -29,7 +29,10 @@ class AboutScreen extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       body: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: AppTheme.backgroundGradient(theme.brightness),
+          gradient: AppTheme.backgroundGradient(
+            theme.brightness,
+            primary: theme.colorScheme.primary,
+          ),
         ),
         child: SafeArea(
           child: AppSurfaces.centered(

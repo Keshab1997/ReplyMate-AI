@@ -17,6 +17,8 @@ class AppConstants {
   /// Interface language ('en' / 'bn'). Independent of the reply language: a
   /// Bengali UI can draft English replies.
   static const String prefAppLanguage = 'replymate.app_language';
+  static const String prefThemePalette = 'replymate.theme_palette';
+  static const String prefThemeMode = 'replymate.theme_mode';
   static const String prefSelectedApps = 'replymate.selected_apps';
   static const String prefDefaultLanguage = 'replymate.default_language';
   static const String prefDefaultTone = 'replymate.default_tone';

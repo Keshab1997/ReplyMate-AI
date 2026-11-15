@@ -47,11 +47,13 @@ class AppSelectionScreen extends ConsumerWidget {
     final candidates = ref.watch(candidateAppsProvider);
     final selected = ref.watch(selectedAppsProvider);
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     return Scaffold(
       body: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: AppTheme.backgroundGradient(theme.brightness),
+          gradient: AppTheme.backgroundGradient(
+            theme.brightness,
+            primary: theme.colorScheme.primary,
+          ),
         ),
         child: SafeArea(
           bottom: !embedded,
@@ -160,7 +162,7 @@ class AppSelectionScreen extends ConsumerWidget {
                                 ),
                                 controlAffinity:
                                     ListTileControlAffinity.trailing,
-                                activeColor: AppTheme.brandBright,
+                                activeColor: theme.colorScheme.primary,
                               ),
                             ],
                           ],
@@ -173,9 +175,7 @@ class AppSelectionScreen extends ConsumerWidget {
                           Icon(
                             Icons.verified_user_outlined,
                             size: 14,
-                            color: isDark
-                                ? AppTheme.brandBright
-                                : AppTheme.brand,
+                            color: theme.colorScheme.primary,
                           ),
                           const SizedBox(width: AppTheme.spaceSm),
                           Expanded(

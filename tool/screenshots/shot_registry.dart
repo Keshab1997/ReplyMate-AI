@@ -15,6 +15,7 @@ import 'package:replymate/features/home/home_screen.dart';
 import 'package:replymate/features/reply/presentation/create_message_screen.dart';
 import 'package:replymate/features/reply/presentation/reply_composer_screen.dart';
 import 'package:replymate/features/settings/presentation/ai_screen.dart';
+import 'package:replymate/features/settings/presentation/appearance_screen.dart';
 import 'package:replymate/features/settings/presentation/capture_screen.dart';
 import 'package:replymate/features/settings/presentation/memory_screen.dart';
 import 'package:replymate/features/settings/presentation/privacy_screen.dart';
@@ -146,6 +147,12 @@ final List<Shot> shots = <Shot>[
   Shot(
     name: 'settings-hub-light',
     build: () => const SettingsScreen(),
+    dark: false,
+  ),
+  Shot(name: 'appearance', build: () => const AppearanceScreen()),
+  Shot(
+    name: 'appearance-light',
+    build: () => const AppearanceScreen(),
     dark: false,
   ),
 ];

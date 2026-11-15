@@ -7,7 +7,7 @@ import '../../../app/theme/app_theme.dart';
 ///
 /// The icon is not decoration. Ten rows of identical text is what the old
 /// screen looked like from a distance; a glyph the eye can find without reading
-/// is what makes six rows scannable. The colour comes from the caller so each
+/// is what makes seven rows scannable. The colour comes from the caller so each
 /// group keeps a consistent accent (capture is blue, privacy is mint, and so on).
 class SettingsTile extends StatelessWidget {
   const SettingsTile({

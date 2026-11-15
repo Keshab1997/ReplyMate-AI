@@ -238,7 +238,7 @@ class _SetupTopBar extends StatelessWidget {
                             ? null
                             : scheme.surfaceContainerHighest,
                         gradient: i <= step.index
-                            ? AppTheme.primaryGradient
+                            ? AppTheme.primaryGradientFor(scheme)
                             : null,
                       ),
                     ),

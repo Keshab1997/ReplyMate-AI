@@ -62,7 +62,10 @@ class _AppShellState extends ConsumerState<AppShell> {
     return Scaffold(
       body: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: AppTheme.backgroundGradient(theme.brightness),
+          gradient: AppTheme.backgroundGradient(
+            theme.brightness,
+            primary: theme.colorScheme.primary,
+          ),
         ),
         child: IndexedStack(
           index: tab.index,

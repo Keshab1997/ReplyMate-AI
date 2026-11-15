@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:replymate/app/app.dart';
+import 'package:replymate/app/theme/app_theme.dart';
 import 'package:replymate/core/constants/app_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -22,6 +23,7 @@ void main() {
     WidgetTester tester, {
     bool onboardingDone = false,
     bool setupDone = false,
+    Map<String, Object> extraPrefs = const {},
   }) async {
     binding.defaultBinaryMessenger.setMockMethodCallHandler(
       channel,
@@ -42,6 +44,7 @@ void main() {
     SharedPreferences.setMockInitialValues({
       if (onboardingDone) AppConstants.prefOnboardingDone: true,
       if (setupDone) AppConstants.prefSetupDone: true,
+      ...extraPrefs,
     });
     await tester.pumpWidget(const ProviderScope(child: ReplyMateApp()));
     await tester.pumpAndSettle();
@@ -101,6 +104,23 @@ void main() {
     await boot(tester, onboardingDone: true);
     expect(find.text('Start setup'), findsOneWidget);
     expect(find.text('Notification access not granted'), findsNothing);
+  });
+
+  testWidgets('saved appearance is applied to the whole app', (tester) async {
+    await boot(
+      tester,
+      onboardingDone: true,
+      setupDone: true,
+      extraPrefs: <String, Object>{
+        AppConstants.prefThemePalette: 'forest',
+        AppConstants.prefThemeMode: 'dark',
+      },
+    );
+
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp).first);
+    expect(app.theme?.colorScheme.primary, AppPalette.forest.primary);
+    expect(app.darkTheme?.colorScheme.primary, AppPalette.forest.bright);
+    expect(app.themeMode, ThemeMode.dark);
   });
 
   testWidgets(

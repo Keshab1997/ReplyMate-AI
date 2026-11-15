@@ -152,6 +152,7 @@ class _MascotFaceState extends State<MascotFace> with TickerProviderStateMixin {
     // developer toggle: honour it everywhere, including the decorating bob.
     final moving = _shouldMove;
     final size = widget.size;
+    final accent = Theme.of(context).colorScheme.primary;
     final tilt = switch (widget.mood) {
       MascotMood.listening => -0.04,
       MascotMood.thinking => -0.09,
@@ -172,7 +173,7 @@ class _MascotFaceState extends State<MascotFace> with TickerProviderStateMixin {
           ),
           boxShadow: [
             BoxShadow(
-              color: AppTheme.brand.withValues(alpha: 0.5),
+              color: accent.withValues(alpha: 0.5),
               blurRadius: size * 0.4,
               offset: Offset(0, size * 0.12),
             ),
@@ -273,8 +274,9 @@ class _MascotFaceState extends State<MascotFace> with TickerProviderStateMixin {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppTheme.brand.withValues(alpha: 0.32),
-                    AppTheme.cyan.withValues(alpha: 0.10),
+                    accent.withValues(alpha: 0.32),
+                    Theme.of(context).colorScheme.secondary
+                        .withValues(alpha: 0.10),
                     Colors.transparent,
                   ],
                   stops: const [0.0, 0.55, 0.74],

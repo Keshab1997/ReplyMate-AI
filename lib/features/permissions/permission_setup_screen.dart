@@ -94,7 +94,10 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen>
     return Scaffold(
       body: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: AppTheme.backgroundGradient(theme.brightness),
+          gradient: AppTheme.backgroundGradient(
+            theme.brightness,
+            primary: theme.colorScheme.primary,
+          ),
         ),
         child: SafeArea(
           child: AppSurfaces.centered(
@@ -152,7 +155,7 @@ class _PermissionSetupScreenState extends ConsumerState<PermissionSetupScreen>
                           icon: Icons.block_rounded,
                           title: strings.permissionNoReadTitle,
                           body: strings.permissionNoReadBody,
-                          tint: AppTheme.brandBright,
+                          tint: theme.colorScheme.primary,
                         ),
                       ],
                     ),

@@ -48,7 +48,10 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       body: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: AppTheme.backgroundGradient(theme.brightness),
+          gradient: AppTheme.backgroundGradient(
+            theme.brightness,
+            primary: theme.colorScheme.primary,
+          ),
         ),
         child: SafeArea(
           bottom: !embedded,
@@ -325,7 +328,7 @@ class _HomeHero extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     return Card(
-      color: AppTheme.brand.withValues(alpha: isDark ? 0.13 : 0.065),
+      color: theme.colorScheme.primary.withValues(alpha: isDark ? 0.13 : 0.065),
       child: Padding(
         padding: const EdgeInsets.all(AppTheme.spaceMd),
         child: LayoutBuilder(

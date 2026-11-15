@@ -188,7 +188,10 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
     return Scaffold(
       body: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: AppTheme.backgroundGradient(theme.brightness),
+          gradient: AppTheme.backgroundGradient(
+            theme.brightness,
+            primary: theme.colorScheme.primary,
+          ),
         ),
         child: SafeArea(
           child: AppSurfaces.centered(
@@ -246,12 +249,15 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                   Container(
                     padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                     decoration: BoxDecoration(
-                      color: AppTheme.brand.withValues(
+                      color: theme.colorScheme.primary.withValues(
                         alpha: isDark ? 0.12 : 0.07,
                       ),
                       borderRadius: BorderRadius.circular(12),
                       border: Border(
-                        left: BorderSide(color: AppTheme.brand, width: 3),
+                        left: BorderSide(
+                          color: theme.colorScheme.primary,
+                          width: 3,
+                        ),
                       ),
                     ),
                     child: Column(
@@ -260,7 +266,7 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                         Text(
                           widget.context!.displayTitle,
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: AppTheme.brandBright,
+                            color: theme.colorScheme.primary,
                             fontWeight: FontWeight.w700,
                           ),
                         ),

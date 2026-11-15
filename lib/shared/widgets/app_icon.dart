@@ -2,8 +2,6 @@ import 'dart:typed_data';
 
 import 'package:material_ui/material_ui.dart';
 
-import '../../app/theme/app_theme.dart';
-
 /// One supported app's launcher icon, at the size every list uses.
 ///
 /// The artwork comes from the device (see `candidateApps()` in the native
@@ -41,9 +39,13 @@ class AppIconTile extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           borderRadius: radius,
-          color: AppTheme.brand.withValues(alpha: isDark ? 0.18 : 0.10),
+          color: theme.colorScheme.primary.withValues(
+            alpha: isDark ? 0.18 : 0.10,
+          ),
           border: Border.all(
-            color: AppTheme.brand.withValues(alpha: isDark ? 0.28 : 0.16),
+            color: theme.colorScheme.primary.withValues(
+              alpha: isDark ? 0.28 : 0.16,
+            ),
           ),
         ),
         child: Text(
@@ -51,7 +53,7 @@ class AppIconTile extends StatelessWidget {
           style: theme.textTheme.titleSmall?.copyWith(
             fontSize: size * 0.42,
             fontWeight: FontWeight.w800,
-            color: isDark ? AppTheme.brandBright : AppTheme.brand,
+            color: theme.colorScheme.primary,
           ),
         ),
       );

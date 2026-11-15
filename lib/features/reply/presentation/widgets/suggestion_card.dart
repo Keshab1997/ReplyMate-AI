@@ -101,7 +101,7 @@ class _SuggestionCardState extends State<SuggestionCard> {
                 : Colors.white,
             border: Border.all(
               color: widget.best
-                  ? AppTheme.brandBright.withValues(alpha: 0.55)
+                  ? theme.colorScheme.primary.withValues(alpha: 0.55)
                   : (isDark
                         ? Colors.white.withValues(alpha: 0.09)
                         : theme.colorScheme.outlineVariant),
@@ -109,7 +109,7 @@ class _SuggestionCardState extends State<SuggestionCard> {
             boxShadow: widget.best
                 ? [
                     BoxShadow(
-                      color: AppTheme.brand.withValues(alpha: 0.14),
+                      color: theme.colorScheme.primary.withValues(alpha: 0.14),
                       blurRadius: 18,
                       offset: const Offset(0, 8),
                     ),

@@ -11,6 +11,7 @@ import '../about/about_screen.dart';
 import '../admin/admin_gate_screen.dart';
 import '../overlay/providers/bubble_providers.dart';
 import 'presentation/ai_screen.dart';
+import 'presentation/appearance_screen.dart';
 import 'presentation/capture_screen.dart';
 import 'presentation/memory_screen.dart';
 import 'presentation/privacy_screen.dart';
@@ -18,7 +19,7 @@ import 'presentation/reply_defaults_screen.dart';
 import 'presentation/settings_tile.dart';
 import 'providers/preferences_provider.dart';
 
-/// Settings, as a hub: who this app is, and six named doors.
+/// Settings, as a hub: who this app is, and seven named doors.
 ///
 /// It used to be one screen holding every control the app owns - ten cards in a
 /// single scroll, from the language chips down to the privacy promises. That is
@@ -26,7 +27,7 @@ import 'providers/preferences_provider.dart';
 /// the promises they were worried about were in the ninth, and nothing on the
 /// screen told them which was which until they scrolled past it.
 ///
-/// Now the same controls live behind five sections plus About. Nothing was
+/// Now the same controls live behind six sections plus About. Nothing was
 /// removed and no default changed: the screen got shorter, the icons made it
 /// scannable, and each group kept the words it already had.
 class SettingsScreen extends ConsumerWidget {
@@ -59,7 +60,10 @@ class SettingsScreen extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       body: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: AppTheme.backgroundGradient(theme.brightness),
+          gradient: AppTheme.backgroundGradient(
+            theme.brightness,
+            primary: theme.colorScheme.primary,
+          ),
         ),
         child: SafeArea(
           bottom: !embedded,
@@ -161,7 +165,7 @@ class SettingsScreen extends ConsumerWidget {
                       icon: Icons.notifications_active_outlined,
                       title: strings.captureSection,
                       subtitle: strings.settingsCaptureHint,
-                      color: AppTheme.cyan,
+                      color: scheme.secondary,
                       onTap: () => _open(context, const CaptureScreen()),
                     ),
                     const SizedBox(height: AppTheme.spaceSm),
@@ -187,6 +191,14 @@ class SettingsScreen extends ConsumerWidget {
                       subtitle: strings.settingsPrivacyHint,
                       color: AppTheme.mint,
                       onTap: () => _open(context, const PrivacyScreen()),
+                    ),
+                    const SizedBox(height: AppTheme.spaceSm),
+                    SettingsTile(
+                      icon: Icons.palette_outlined,
+                      title: strings.appearanceTitle,
+                      subtitle: strings.appearanceSubtitle,
+                      color: scheme.primary,
+                      onTap: () => _open(context, const AppearanceScreen()),
                     ),
                     const SizedBox(height: AppTheme.spaceSm),
                     SettingsTile(

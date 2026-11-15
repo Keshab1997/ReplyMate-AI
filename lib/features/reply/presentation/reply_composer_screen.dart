@@ -450,7 +450,10 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
         backgroundColor: Colors.transparent,
         body: DecoratedBox(
           decoration: BoxDecoration(
-            gradient: AppTheme.backgroundGradient(theme.brightness),
+            gradient: AppTheme.backgroundGradient(
+              theme.brightness,
+              primary: theme.colorScheme.primary,
+            ),
           ),
           child: Builder(
             builder: (context) {
@@ -1112,7 +1115,9 @@ class _ReplyBubble extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
       decoration: BoxDecoration(
-        color: AppTheme.brand.withValues(alpha: isDark ? 0.22 : 0.09),
+        color: theme.colorScheme.primary.withValues(
+          alpha: isDark ? 0.22 : 0.09,
+        ),
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(AppTheme.cardRadius),
           topRight: Radius.circular(AppTheme.cardRadius),
@@ -1120,7 +1125,9 @@ class _ReplyBubble extends StatelessWidget {
           bottomRight: Radius.circular(4),
         ),
         border: Border.all(
-          color: AppTheme.brand.withValues(alpha: isDark ? 0.34 : 0.16),
+          color: theme.colorScheme.primary.withValues(
+            alpha: isDark ? 0.34 : 0.16,
+          ),
         ),
       ),
       child: Column(
@@ -1136,7 +1143,7 @@ class _ReplyBubble extends StatelessWidget {
                   if (best)
                     _BubbleTag(
                       label: strings.bestFit,
-                      color: AppTheme.brand,
+                      color: theme.colorScheme.primary,
                       isDark: isDark,
                     ),
                   if (cached)

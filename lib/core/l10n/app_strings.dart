@@ -90,6 +90,18 @@ abstract class AppStrings {
   String get nothingSentAloneBody;
   String get clearLocalPreferences;
   String get appLanguageSection;
+  String get appearanceTitle;
+  String get appearanceSubtitle;
+  String get appearanceMode;
+  String get appearanceSystem;
+  String get appearanceLight;
+  String get appearanceDark;
+  String get appearanceColors;
+  String get paletteViolet;
+  String get paletteForest;
+  String get paletteRose;
+  String get paletteAmber;
+  String get paletteOcean;
 
   // ------------------------------------------------ bubble, composer, memory
   String get suggestionOne;
@@ -454,6 +466,30 @@ class EnglishStrings extends AppStrings {
   String get clearLocalPreferences => 'Clear local preferences';
   @override
   String get appLanguageSection => 'App language';
+  @override
+  String get appearanceTitle => 'Appearance';
+  @override
+  String get appearanceSubtitle => 'Choose your colors and brightness.';
+  @override
+  String get appearanceMode => 'Brightness';
+  @override
+  String get appearanceSystem => 'System';
+  @override
+  String get appearanceLight => 'Light';
+  @override
+  String get appearanceDark => 'Dark';
+  @override
+  String get appearanceColors => 'Color themes';
+  @override
+  String get paletteViolet => 'Lavender';
+  @override
+  String get paletteForest => 'Forest';
+  @override
+  String get paletteRose => 'Rose';
+  @override
+  String get paletteAmber => 'Amber';
+  @override
+  String get paletteOcean => 'Ocean';
   @override
   String get suggestionOne => 'Suggestion';
   @override
@@ -1164,6 +1200,30 @@ class BengaliStrings extends AppStrings {
   @override
   String get appLanguageSection => 'অ্যাপের ভাষা';
   @override
+  String get appearanceTitle => 'অ্যাপের রং ও থিম';
+  @override
+  String get appearanceSubtitle => 'রং ও হালকা বা গাঢ় চেহারা বেছে নিন।';
+  @override
+  String get appearanceMode => 'উজ্জ্বলতা';
+  @override
+  String get appearanceSystem => 'সিস্টেম';
+  @override
+  String get appearanceLight => 'হালকা';
+  @override
+  String get appearanceDark => 'গাঢ়';
+  @override
+  String get appearanceColors => 'রঙের থিম';
+  @override
+  String get paletteViolet => 'ল্যাভেন্ডার';
+  @override
+  String get paletteForest => 'বন';
+  @override
+  String get paletteRose => 'গোলাপি';
+  @override
+  String get paletteAmber => 'অ্যাম্বার';
+  @override
+  String get paletteOcean => 'সমুদ্র';
+  @override
   String get suggestionOne => 'পরামর্শ';
   @override
   String get suggestionMany => 'পরামর্শগুলো';
@@ -1861,6 +1921,30 @@ class HindiStrings extends AppStrings {
   String get clearLocalPreferences => 'लोकल प्राथमिकताएँ साफ़ करें';
   @override
   String get appLanguageSection => 'ऐप की भाषा';
+  @override
+  String get appearanceTitle => 'ऐप का रंग और थीम';
+  @override
+  String get appearanceSubtitle => 'रंग और हल्का या गहरा रूप चुनें।';
+  @override
+  String get appearanceMode => 'चमक';
+  @override
+  String get appearanceSystem => 'सिस्टम';
+  @override
+  String get appearanceLight => 'हल्का';
+  @override
+  String get appearanceDark => 'गहरा';
+  @override
+  String get appearanceColors => 'रंग की थीम';
+  @override
+  String get paletteViolet => 'लैवेंडर';
+  @override
+  String get paletteForest => 'जंगल';
+  @override
+  String get paletteRose => 'गुलाबी';
+  @override
+  String get paletteAmber => 'एम्बर';
+  @override
+  String get paletteOcean => 'समुद्र';
   @override
   String get suggestionOne => 'सुझाव';
   @override

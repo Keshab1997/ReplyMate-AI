@@ -66,7 +66,10 @@ class OnboardingScreen extends ConsumerWidget {
     return Scaffold(
       body: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: AppTheme.backgroundGradient(theme.brightness),
+          gradient: AppTheme.backgroundGradient(
+            theme.brightness,
+            primary: theme.colorScheme.primary,
+          ),
         ),
         child: SafeArea(
           child: AppSurfaces.centered(
@@ -98,10 +101,10 @@ class OnboardingScreen extends ConsumerWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             AppIcons.generate,
                             size: 14,
-                            color: AppTheme.brandBright,
+                            color: theme.colorScheme.primary,
                           ),
                           const SizedBox(width: 6),
                           Text(
@@ -195,8 +198,7 @@ class _OnboardingPoint extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final (icon, title, body) = point;
-    final isDark = theme.brightness == Brightness.dark;
-    final foreground = isDark ? AppTheme.brandBright : AppTheme.brand;
+    final foreground = theme.colorScheme.primary;
     return Padding(
       padding: const EdgeInsets.all(14),
       child: Row(

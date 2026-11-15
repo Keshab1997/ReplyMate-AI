@@ -435,12 +435,12 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              gradient: AppTheme.primaryGradient,
+              gradient: AppTheme.primaryGradientFor(scheme),
               borderRadius: BorderRadius.circular(13),
               border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.brand.withValues(alpha: 0.24),
+                  color: scheme.primary.withValues(alpha: 0.24),
                   blurRadius: 16,
                   offset: const Offset(0, 5),
                 ),
@@ -578,7 +578,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
                     selected ? Icons.circle : Icons.circle_outlined,
                     size: 7,
                     color: selected
-                        ? AppTheme.brandBright
+                        ? theme.colorScheme.primary
                         : theme.colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 6),

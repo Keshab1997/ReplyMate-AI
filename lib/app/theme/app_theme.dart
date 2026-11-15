@@ -1,8 +1,34 @@
 import 'package:material_ui/material_ui.dart';
 
-/// Centralized design tokens: one brand blue, one spacing scale, one corner
-/// radius family and one gradient. Screens take their visual language from
-/// here so light and dark stay in step with the mascot artwork.
+/// Colour families users can choose in Appearance. Surface shades stay calm;
+/// the primary/bright/secondary colours carry the chosen personality.
+enum AppPalette {
+  violet('violet', Color(0xFF8055D9), Color(0xFFB495F5), Color(0xFF56C9C2)),
+  forest('forest', Color(0xFF23866A), Color(0xFF56B995), Color(0xFFB6D777)),
+  rose('rose', Color(0xFFD35F76), Color(0xFFF08B9D), Color(0xFFFFC17A)),
+  amber('amber', Color(0xFFB97919), Color(0xFFE6A83D), Color(0xFFCE6D55)),
+  ocean('ocean', Color(0xFF1B6EF3), Color(0xFF4A94FF), Color(0xFF38D9F8));
+
+  const AppPalette(
+    this.storageValue,
+    this.primary,
+    this.bright,
+    this.secondary,
+  );
+
+  final String storageValue;
+  final Color primary;
+  final Color bright;
+  final Color secondary;
+
+  static AppPalette fromStorage(String? value) => AppPalette.values.firstWhere(
+    (palette) => palette.storageValue == value,
+    orElse: () => AppPalette.violet,
+  );
+}
+
+/// System, light, and dark display choices are persisted separately from the
+/// colour family so changing one never silently resets the other.
 class AppTheme {
   AppTheme._();
 
@@ -36,28 +62,36 @@ class AppTheme {
   static const Color mascotHighlight = Color(0xFF4A94FF);
   static const Color mascotBase = Color(0xFF114FD0);
 
-  /// The one gradient the app uses for anything primary.
-  static const LinearGradient primaryGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [brand, brandBright, cyan],
-  );
-
-  /// A quiet screen background: cool light surfaces, deep navy at night.
-  static LinearGradient backgroundGradient(Brightness brightness) {
-    if (brightness == Brightness.dark) {
-      return const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Color(0xFF0B1425), Color(0xFF05080F)],
-      );
-    }
-    return const LinearGradient(
+  /// A subtle palette-tinted canvas; the accent remains visible without
+  /// turning every screen into a saturated colour block.
+  static LinearGradient backgroundGradient(
+    Brightness brightness, {
+    Color? primary,
+  }) {
+    final tint = primary ?? brand;
+    final dark = brightness == Brightness.dark;
+    final top = Color.alphaBlend(
+      tint.withValues(alpha: dark ? 0.075 : 0.045),
+      dark ? const Color(0xFF0B0A12) : const Color(0xFFF8F6FB),
+    );
+    final bottom = dark ? const Color(0xFF07070C) : const Color(0xFFFFFCFA);
+    return LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: [Color(0xFFF0F5FF), Color(0xFFFAFCFF)],
+      colors: [top, bottom],
     );
   }
+
+  static LinearGradient primaryGradientFor(ColorScheme scheme) =>
+      LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          scheme.primary,
+          Color.lerp(scheme.primary, scheme.secondary, 0.45)!,
+          scheme.secondary,
+        ],
+      );
 
   // --------------------------------------------------------------- spacing
 
@@ -77,27 +111,48 @@ class AppTheme {
   static const double tileRadius = 16;
   static const double buttonRadius = 16;
 
-  static ThemeData light() => _base(Brightness.light);
+  static ThemeData light({AppPalette palette = AppPalette.violet}) =>
+      _base(Brightness.light, palette);
 
-  static ThemeData dark() => _base(Brightness.dark);
+  static ThemeData dark({AppPalette palette = AppPalette.violet}) =>
+      _base(Brightness.dark, palette);
 
-  static ThemeData _base(Brightness brightness) {
+  static ThemeData _base(Brightness brightness, AppPalette palette) {
     final isDark = brightness == Brightness.dark;
-    final scheme = ColorScheme.fromSeed(seedColor: seed, brightness: brightness)
-        .copyWith(
-          primary: isDark ? brandBright : brand,
-          secondary: cyan,
-          surface: isDark ? inkSurface : Colors.white,
-          surfaceContainerHighest: isDark
-              ? inkElevated
-              : const Color(0xFFEAF0FA),
+    final surface = isDark
+        ? Color.alphaBlend(
+            palette.primary.withValues(alpha: 0.055),
+            const Color(0xFF111018),
+          )
+        : Color.alphaBlend(
+            palette.primary.withValues(alpha: 0.025),
+            const Color(0xFFFFFEFC),
+          );
+    final elevated = isDark
+        ? Color.alphaBlend(
+            palette.primary.withValues(alpha: 0.09),
+            const Color(0xFF1A1821),
+          )
+        : Color.alphaBlend(
+            palette.primary.withValues(alpha: 0.06),
+            const Color(0xFFF3F0F6),
+          );
+    final scheme =
+        ColorScheme.fromSeed(
+          seedColor: palette.primary,
+          brightness: brightness,
+        ).copyWith(
+          primary: isDark ? palette.bright : palette.primary,
+          secondary: palette.secondary,
+          surface: surface,
+          surfaceContainerHighest: elevated,
         );
     final base = ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
       fontFamily: fontFamily,
       fontFamilyFallback: fontFamilyFallback,
-      scaffoldBackgroundColor: isDark ? ink : const Color(0xFFF7F9FF),
+      scaffoldBackgroundColor: surface,
     );
 
     final borderRadius = BorderRadius.circular(14);
@@ -153,7 +208,7 @@ class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(54),
-          backgroundColor: brand,
+          backgroundColor: scheme.primary,
           foregroundColor: Colors.white,
           disabledBackgroundColor: scheme.surfaceContainerHighest,
           disabledForegroundColor: scheme.onSurfaceVariant,
@@ -349,9 +404,9 @@ class AppSurfaces {
       (icon == null) != (child == null),
       'Provide exactly one of icon or child.',
     );
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final foreground =
-        color ?? (isDark ? AppTheme.brandBright : AppTheme.brand);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final foreground = color ?? theme.colorScheme.primary;
     return Container(
       width: size,
       height: size,
@@ -393,11 +448,11 @@ class AppSurfaces {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
         color: enabled ? null : scheme.surfaceContainerHighest,
-        gradient: enabled ? AppTheme.primaryGradient : null,
+        gradient: enabled ? AppTheme.primaryGradientFor(scheme) : null,
         boxShadow: enabled
             ? [
                 BoxShadow(
-                  color: AppTheme.brand.withValues(alpha: 0.32),
+                  color: scheme.primary.withValues(alpha: 0.32),
                   blurRadius: 24,
                   offset: const Offset(0, 10),
                 ),
@@ -426,14 +481,16 @@ class AppSurfaces {
     bool accent = false,
     VoidCallback? onTap,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final content = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       child: child,
     );
     return Material(
       color: accent
-          ? AppTheme.brand.withValues(alpha: isDark ? 0.22 : 0.10)
+          ? scheme.primary.withValues(alpha: isDark ? 0.22 : 0.10)
           : (isDark
                 ? Colors.white.withValues(alpha: 0.055)
                 : const Color(0xFFF7F9FD)),
@@ -441,7 +498,7 @@ class AppSurfaces {
         borderRadius: BorderRadius.circular(11),
         side: BorderSide(
           color: accent
-              ? AppTheme.brandBright.withValues(alpha: 0.32)
+              ? scheme.primary.withValues(alpha: 0.32)
               : (isDark
                     ? Colors.white.withValues(alpha: 0.09)
                     : Theme.of(context).colorScheme.outlineVariant),

@@ -5,6 +5,7 @@ import 'package:replymate/core/constants/app_constants.dart';
 import 'package:replymate/core/constants/reply_options.dart';
 import 'package:replymate/core/l10n/app_strings.dart';
 import 'package:replymate/features/about/about_screen.dart';
+import 'package:replymate/features/settings/presentation/appearance_screen.dart';
 import 'package:replymate/features/settings/presentation/reply_defaults_screen.dart';
 import 'package:replymate/features/settings/presentation/settings_tile.dart';
 import 'package:replymate/features/settings/settings_screen.dart';
@@ -30,13 +31,14 @@ void main() {
     await pumpHub(tester);
     const strings = EnglishStrings();
 
-    expect(find.byType(SettingsTile), findsNWidgets(6));
+    expect(find.byType(SettingsTile), findsNWidgets(7));
     for (final title in <String>[
       strings.replyStyle,
       strings.captureSection,
       strings.ownKeySection,
       strings.conversationMemorySection,
       strings.privacySection,
+      strings.appearanceTitle,
       strings.aboutOpenTitle,
     ]) {
       expect(find.text(title), findsOneWidget, reason: 'missing door: $title');
@@ -61,6 +63,20 @@ void main() {
         '${ReplyLanguage.bengali.label} · ${ReplyTone.professional.label} · '
         '${ReplyLength.medium.label} · 2';
     expect(find.text(summary), findsOneWidget);
+  });
+
+  testWidgets('the appearance door opens color and brightness choices', (
+    tester,
+  ) async {
+    await pumpHub(tester);
+
+    await tester.tap(find.text(const EnglishStrings().appearanceTitle));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppearanceScreen), findsOneWidget);
+    expect(find.text(const EnglishStrings().paletteViolet), findsOneWidget);
+    expect(find.text(const EnglishStrings().paletteForest), findsOneWidget);
+    expect(find.text(const EnglishStrings().appearanceSystem), findsOneWidget);
   });
 
   testWidgets('the hub holds no controls of its own', (tester) async {
@@ -109,6 +125,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.byType(SettingsTile), findsNWidgets(6));
+    expect(find.byType(SettingsTile), findsNWidgets(7));
   });
 }
