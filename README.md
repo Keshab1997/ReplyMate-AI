@@ -216,10 +216,10 @@ lib/
 │   ├── screen_reading/ off by default, allowlist-bound, read-only
 │   ├── memory/     bounded, deletable, on-device only
 │   ├── admin/      allowlisted operator screens
-│   └── onboarding/ permissions/ app_selection/ settings/ home/
+│   └── onboarding/ setup/ permissions/ app_selection/ settings/ home/
 ├── shared/widgets/
 android/            Kotlin listener, overlay service, accessibility service
-test/               37 files · 288 tests
+test/               45 files · 345 tests
 docs/               zero-bill feature plan, README media
 tool/               preflight, agent_loop, ci_watch, see_screen, dep_check, make_media
 design/             mascot and icon explorations

@@ -10,6 +10,10 @@ class AppConstants {
   /// SharedPreferences keys (all prefixed to stay obvious in debugging).
   static const String prefOnboardingDone = 'replymate.onboarding_done';
 
+  /// True once the first-run setup was actually completed (not merely seen:
+  /// "Later" leaves it unset, so an unfinished setup comes back next launch).
+  static const String prefSetupDone = 'replymate.setup_done';
+
   /// Interface language ('en' / 'bn'). Independent of the reply language: a
   /// Bengali UI can draft English replies.
   static const String prefAppLanguage = 'replymate.app_language';

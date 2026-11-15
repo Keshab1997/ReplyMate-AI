@@ -8,7 +8,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../shared/widgets/brand_icon.dart';
 import '../../shared/widgets/mascot_face.dart';
-import '../home/home_screen.dart';
+import '../setup/setup_flow_screen.dart';
 
 /// FR-01: explain purpose, limitations and permissions before asking for
 /// anything. Honest claims only - the same limitations the README makes, in
@@ -41,12 +41,18 @@ class OnboardingScreen extends ConsumerWidget {
     ),
   ];
 
+  /// The welcome points are read; now the user actually sets the app up.
+  ///
+  /// This used to push `HomeScreen` directly, which mounted a tab body with no
+  /// shell around it and left every switch for the user to find. The setup flow
+  /// is where the choices happen, and it ends in the shell - the app as the tab
+  /// bar defines it.
   Future<void> _complete(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(AppConstants.prefOnboardingDone, true);
     if (context.mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute<void>(builder: (_) => const HomeScreen()),
+        MaterialPageRoute<void>(builder: (_) => const SetupFlowScreen()),
       );
     }
   }

@@ -226,6 +226,40 @@ abstract class AppStrings {
   String get permissionOpenOverlay;
   String get permissionManageOverlay;
   String get checkingNotificationAccess;
+
+  // ------------------------------------------------------------- setup flow
+  // The first-run setup (welcome -> style -> capture -> ready). Localised for
+  // the same reason the onboarding block is: this is the first screen a new
+  // user sees, so an English paragraph inside a Bengali session is the worst
+  // possible place to leak.
+  String get setupProgressLabel;
+  String setupStepCount(int step, int total);
+  String get setupWelcomeTitle;
+  String get setupWelcomeBody;
+  String get setupStart;
+  String get setupLater;
+  String get setupWelcomePointStyle;
+  String get setupWelcomePointCapture;
+  String get setupWelcomePointApps;
+  String get setupStyleTitle;
+  String get setupStyleBody;
+  String get setupUiLanguage;
+  String get setupReplyLanguage;
+  String get setupTone;
+  String get setupLength;
+  String get setupCaptureTitle;
+  String get setupCaptureBody;
+  String get setupCaptureOptional;
+  String get setupChooseApps;
+  String setupAppsChosen(int count);
+  String get setupAppsNone;
+  String get setupReadyTitle;
+  String get setupReadyBody;
+  String get setupReadySummary;
+  String get setupFinish;
+  String get setupNext;
+  String setupNotifications(int state);
+  String get setupChangeLater;
   String get checkingNotificationAccessBody;
   String get permissionGrantedTitle;
   String get permissionGrantedBody;
@@ -927,6 +961,75 @@ class EnglishStrings extends AppStrings {
   String get aboutSourceLabel => 'Source code';
   @override
   String get statusDevelopment => 'Development build';
+  // ------------------------------------------------------------- setup flow
+  @override
+  String get setupProgressLabel => 'SETUP';
+  @override
+  String setupStepCount(int step, int total) => 'Step $step of $total';
+  @override
+  String get setupWelcomeTitle => 'Let us set this up together';
+  @override
+  String get setupWelcomeBody =>
+      'Four short steps: your language and reply style, notification access, '
+      'then one last check. Everything can be changed later in Settings.';
+  @override
+  String get setupWelcomePointStyle => 'Language and reply style';
+  @override
+  String get setupWelcomePointCapture => 'Notification access';
+  @override
+  String get setupWelcomePointApps => 'Which apps may be read';
+  @override
+  String get setupStart => 'Start setup';
+  @override
+  String get setupLater => 'Later';
+  @override
+  String get setupStyleTitle => 'Your language and reply style';
+  @override
+  String get setupStyleBody =>
+      'The app language and the language your replies are written in are two '
+      'different things - pick both.';
+  @override
+  String get setupUiLanguage => 'App language';
+  @override
+  String get setupReplyLanguage => 'Reply language';
+  @override
+  String get setupTone => 'Tone';
+  @override
+  String get setupLength => 'Length';
+  @override
+  String get setupCaptureTitle => 'Let ReplyMate see notifications';
+  @override
+  String get setupCaptureBody =>
+      'ReplyMate needs notification access and the apps you allow. It reads '
+      'the notification you are answering and nothing else.';
+  @override
+  String get setupCaptureOptional =>
+      'The floating bubble is optional - without it you answer from the app.';
+  @override
+  String get setupChooseApps => 'Choose apps';
+  @override
+  String setupAppsChosen(int count) =>
+      count == 1 ? '1 app allowed' : '$count apps allowed';
+  @override
+  String get setupAppsNone => 'No apps chosen yet';
+  @override
+  String get setupReadyTitle => 'You are ready';
+  @override
+  String get setupReadyBody =>
+      'Nothing here is permanent. Every switch is in Settings, and the app '
+      'never sends a message on its own.';
+  @override
+  String get setupReadySummary => 'What you chose';
+  @override
+  String get setupFinish => 'Open ReplyMate';
+  @override
+  String get setupNext => 'Next';
+  @override
+  String setupNotifications(int state) => state == 1
+      ? 'Notification access: allowed'
+      : 'Notification access: not yet';
+  @override
+  String get setupChangeLater => 'Change any of this later in Settings';
 }
 
 class BengaliStrings extends AppStrings {
@@ -1553,6 +1656,73 @@ class BengaliStrings extends AppStrings {
   String get aboutSourceLabel => 'সোর্স কোড';
   @override
   String get statusDevelopment => 'ডেভেলপমেন্ট বিল্ড';
+  // ------------------------------------------------------------- setup flow
+  @override
+  String get setupProgressLabel => 'সেটআপ';
+  @override
+  String setupStepCount(int step, int total) => 'ধাপ $step/$total';
+  @override
+  String get setupWelcomeTitle => 'চলুন, একসাথে ঠিক করে নিই';
+  @override
+  String get setupWelcomeBody =>
+      'চারটে ছোট ধাপ: ভাষা আর উত্তরের ধরন, নোটিফিকেশন ব্যবহারের অনুমতি, আর শেষে '
+      'একবার মিলিয়ে নেওয়া। সব কিছু পরে সেটিংস থেকে বদলানো যাবে।';
+  @override
+  String get setupWelcomePointStyle => 'ভাষা আর উত্তরের ধরন';
+  @override
+  String get setupWelcomePointCapture => 'নোটিফিকেশন ব্যবহারের অনুমতি';
+  @override
+  String get setupWelcomePointApps => 'কোন অ্যাপগুলো পড়া যাবে';
+  @override
+  String get setupStart => 'সেটআপ শুরু করি';
+  @override
+  String get setupLater => 'পরে';
+  @override
+  String get setupStyleTitle => 'ভাষা আর উত্তরের ধরন';
+  @override
+  String get setupStyleBody =>
+      'অ্যাপের ভাষা আর যে ভাষায় উত্তর লেখা হবে - এই দুটো আলাদা। দুটোই বেছে নিন।';
+  @override
+  String get setupUiLanguage => 'অ্যাপের ভাষা';
+  @override
+  String get setupReplyLanguage => 'উত্তরের ভাষা';
+  @override
+  String get setupTone => 'সুর';
+  @override
+  String get setupLength => 'দৈর্ঘ্য';
+  @override
+  String get setupCaptureTitle => 'ReplyMate-কে বিজ্ঞপ্তি দেখতে দিন';
+  @override
+  String get setupCaptureBody =>
+      'ReplyMate-র দরকার নোটিফিকেশন ব্যবহারের অনুমতি আর আপনি কোন অ্যাপগুলো '
+      'অনুমোদন দিচ্ছেন। এটি শুধু যে বার্তার উত্তর দিচ্ছেন সেটাই পড়ে, আর কিছু নয়।';
+  @override
+  String get setupCaptureOptional =>
+      'ভাসমান বাবলটা নস্বতন্ত্র - ওটা ছাড়াও অ্যাপ থেকেই উত্তর দেওয়া যায়।';
+  @override
+  String get setupChooseApps => 'অ্যাপ বাছুন';
+  @override
+  String setupAppsChosen(int count) =>
+      count == 1 ? '১টি অ্যাপ অনুমোদিত' : '$countটি অ্যাপ অনুমোদিত';
+  @override
+  String get setupAppsNone => 'এখনো কোনো অ্যাপ বাছা হয়নি';
+  @override
+  String get setupReadyTitle => 'সব তৈরি';
+  @override
+  String get setupReadyBody =>
+      'এর কোনওটাই স্থায়ী নয়। প্রতিটা সুইচ সেটিংসে আছে, আর অ্যাপ নিজে থেকে '
+      'কখনো বার্তা পাঠায় না।';
+  @override
+  String get setupReadySummary => 'আপনি যা বেছেছেন';
+  @override
+  String get setupFinish => 'ReplyMate খুলুন';
+  @override
+  String get setupNext => 'পরের ধাপ';
+  @override
+  String setupNotifications(int state) =>
+      state == 1 ? 'নোটিফিকেশন: অনুমোদিত' : 'নোটিফিকেশন: এখনো অনুমোদিত নয়';
+  @override
+  String get setupChangeLater => 'সব কিছু পরে সেটিংস থেকে বদলাতে পারবেন';
 }
 
 final NotifierProvider<AppLanguageNotifier, AppLanguage> appLanguageProvider =
@@ -2181,6 +2351,73 @@ class HindiStrings extends AppStrings {
   String get aboutSourceLabel => 'सोर्स कोड';
   @override
   String get statusDevelopment => 'डेवलपमेंट बिल्ड';
+  // ------------------------------------------------------------- setup flow
+  @override
+  String get setupProgressLabel => 'सेटअप';
+  @override
+  String setupStepCount(int step, int total) => 'चरण $step/$total';
+  @override
+  String get setupWelcomeTitle => 'चलिए, मिलकर सेट कर लें';
+  @override
+  String get setupWelcomeBody =>
+      'चार छोटे चरण: भाषा और जवाब का अंदाज़, नोटिफ़िकेशन की अनुमति, और अंत में '
+      'एक बार मिलान। सब कुछ बाद में सेटिंग्स से बदला जा सकता है।';
+  @override
+  String get setupWelcomePointStyle => 'भाषा और जवाब का अंदाज़';
+  @override
+  String get setupWelcomePointCapture => 'नोटिफ़िकेशन की अनुमति';
+  @override
+  String get setupWelcomePointApps => 'कौन से ऐप्स पढ़े जा सकते हैं';
+  @override
+  String get setupStart => 'सेटअप शुरू करें';
+  @override
+  String get setupLater => 'बाद में';
+  @override
+  String get setupStyleTitle => 'भाषा और जवाब का अंदाज़';
+  @override
+  String get setupStyleBody =>
+      'ऐप की भाषा और जिस भाषा में जवाब लिखा जाएगा - दोनों अलग हैं। दोनों चुनें।';
+  @override
+  String get setupUiLanguage => 'ऐप की भाषा';
+  @override
+  String get setupReplyLanguage => 'जवाब की भाषा';
+  @override
+  String get setupTone => 'लहजा';
+  @override
+  String get setupLength => 'लंबाई';
+  @override
+  String get setupCaptureTitle => 'ReplyMate को नोटिफ़िकेशन देखने दें';
+  @override
+  String get setupCaptureBody =>
+      'ReplyMate को नोटिफ़िकेशन की अनुमति और आपके चुने ऐप्स चाहिए। यह सिर्फ़ उसी '
+      'नोटिफ़िकेशन को पढ़ता है जिसका जवाब दे रहे हैं, और कुछ नहीं।';
+  @override
+  String get setupCaptureOptional =>
+      'तैरता बबल वैकल्पिक है - उसके बिना भी ऐप से जवाब दे सकते हैं।';
+  @override
+  String get setupChooseApps => 'ऐप्स चुनें';
+  @override
+  String setupAppsChosen(int count) =>
+      count == 1 ? '1 ऐप स्वीकृत' : '$count ऐप्स स्वीकृत';
+  @override
+  String get setupAppsNone => 'अभी कोई ऐप नहीं चुना';
+  @override
+  String get setupReadyTitle => 'सब तैयार है';
+  @override
+  String get setupReadyBody =>
+      'इनमें से कुछ भी स्थायी नहीं है। हर स्विच सेटिंग्स में है, और ऐप कभी ख़ुद '
+      'से संदेश नहीं भेजता।';
+  @override
+  String get setupReadySummary => 'आपने क्या चुना';
+  @override
+  String get setupFinish => 'ReplyMate खोलें';
+  @override
+  String get setupNext => 'अगला';
+  @override
+  String setupNotifications(int state) =>
+      state == 1 ? 'नोटिफ़िकेशन: स्वीकृत' : 'नोटिफ़िकेशन: अभी स्वीकृत नहीं';
+  @override
+  String get setupChangeLater => 'यह सब बाद में सेटिंग्स से बदल सकते हैं';
 }
 
 class AppLanguageNotifier extends Notifier<AppLanguage> {

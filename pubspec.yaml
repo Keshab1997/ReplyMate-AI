@@ -93,6 +93,11 @@ flutter:
     - assets/mascot/mascot_face_blink.png
     - assets/mascot/mascot_face_happy.png
     - assets/mascot/mascot_face_alert.png
+    # The three setup illustrations, one per step that has a hero. Generated for
+    # this app, on the same navy/blue palette the dark theme uses.
+    - assets/setup/setup_welcome.png
+    - assets/setup/setup_capture.png
+    - assets/setup/setup_ready.png
 
   # Bundled fonts keep every interface language readable offline. Their OFL
   # licences live beside the font files; no network font fetch is needed.

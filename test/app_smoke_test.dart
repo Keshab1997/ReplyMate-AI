@@ -15,7 +15,14 @@ void main() {
   /// forever - the honest no-native-layer answers keep the UI under test.
   const channel = MethodChannel(AppConstants.channelName);
 
-  Future<void> boot(WidgetTester tester, {bool onboardingDone = false}) async {
+  /// `setupDone` is separate from `onboardingDone` on purpose: since the
+  /// first-run setup was added, "onboarded" alone lands on the setup, not on
+  /// Home. Tests that want Home have to say both.
+  Future<void> boot(
+    WidgetTester tester, {
+    bool onboardingDone = false,
+    bool setupDone = false,
+  }) async {
     binding.defaultBinaryMessenger.setMockMethodCallHandler(
       channel,
       (call) async => switch (call.method) {
@@ -34,6 +41,7 @@ void main() {
     );
     SharedPreferences.setMockInitialValues({
       if (onboardingDone) AppConstants.prefOnboardingDone: true,
+      if (setupDone) AppConstants.prefSetupDone: true,
     });
     await tester.pumpWidget(const ProviderScope(child: ReplyMateApp()));
     await tester.pumpAndSettle();
@@ -48,21 +56,51 @@ void main() {
     expect(find.textContaining('never'), findsWidgets);
   });
 
-  testWidgets('completing onboarding reaches Home with a not-granted card', (
+  testWidgets('completing onboarding lands in the setup, not on Home', (
     tester,
   ) async {
     await boot(tester);
     await tester.tap(find.text('Get started'));
     await tester.pumpAndSettle();
-    expect(find.text('Notification access not granted'), findsOneWidget);
+    // The welcome points are read; the choices and the permission come next.
+    expect(find.text('Let us set this up together'), findsOneWidget);
+    expect(find.text('Notification access not granted'), findsNothing);
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getBool(AppConstants.prefOnboardingDone), isTrue);
+    expect(prefs.getBool(AppConstants.prefSetupDone), isNull);
   });
 
-  testWidgets('returning users skip onboarding', (tester) async {
+  testWidgets('finishing the setup reaches Home with a not-granted card', (
+    tester,
+  ) async {
     await boot(tester, onboardingDone: true);
-    expect(find.text('Get started'), findsNothing);
+    await tester.tap(find.text('Start setup'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Open ReplyMate'));
+    await tester.pumpAndSettle();
+
     expect(find.text('Notification access not granted'), findsOneWidget);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool(AppConstants.prefSetupDone), isTrue);
+  });
+
+  testWidgets('returning users skip onboarding and the setup', (tester) async {
+    await boot(tester, onboardingDone: true, setupDone: true);
+    expect(find.text('Get started'), findsNothing);
+    expect(find.text('Start setup'), findsNothing);
+    expect(find.text('Notification access not granted'), findsOneWidget);
+  });
+
+  testWidgets('an unfinished setup is offered again on the next launch', (
+    tester,
+  ) async {
+    await boot(tester, onboardingDone: true);
+    expect(find.text('Start setup'), findsOneWidget);
+    expect(find.text('Notification access not granted'), findsNothing);
   });
 
   testWidgets(
@@ -73,7 +111,7 @@ void main() {
       tester.view.physicalSize = const Size(1080, 3600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);
-      await boot(tester, onboardingDone: true);
+      await boot(tester, onboardingDone: true, setupDone: true);
       await tester.tap(find.text('Generate a reply'));
       await tester.pumpAndSettle();
       expect(find.text('New reply'), findsOneWidget);
@@ -131,6 +169,7 @@ void main() {
 
     SharedPreferences.setMockInitialValues({
       AppConstants.prefOnboardingDone: true,
+      AppConstants.prefSetupDone: true,
     });
     await tester.pumpWidget(const ProviderScope(child: ReplyMateApp()));
     await tester.pumpAndSettle();

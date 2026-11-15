@@ -20,6 +20,7 @@ import 'package:replymate/features/settings/presentation/memory_screen.dart';
 import 'package:replymate/features/settings/presentation/privacy_screen.dart';
 import 'package:replymate/features/settings/presentation/reply_defaults_screen.dart';
 import 'package:replymate/features/settings/settings_screen.dart';
+import 'package:replymate/features/setup/setup_flow_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -103,6 +104,33 @@ final List<Shot> shots = <Shot>[
     build: () => const ReplyComposerScreen(embedded: true),
   ),
   Shot(name: 'create-message', build: () => const CreateMessageScreen()),
+
+  // The first-run setup, one shot per step. It is the first thing a new install
+  // sees, so it is also the screen most likely to break on a narrow phone or in
+  // Bengali - and the one nobody re-reads once they are past it.
+  Shot(name: 'setup-welcome', build: () => const SetupFlowScreen()),
+  Shot(
+    name: 'setup-style',
+    build: () => const SetupFlowScreen(startAt: SetupStep.style),
+  ),
+  Shot(
+    name: 'setup-style-bn',
+    build: () => const SetupFlowScreen(startAt: SetupStep.style),
+    preferences: <String, Object>{AppConstants.prefAppLanguage: 'bn'},
+  ),
+  Shot(
+    name: 'setup-capture',
+    build: () => const SetupFlowScreen(startAt: SetupStep.capture),
+  ),
+  Shot(
+    name: 'setup-ready',
+    build: () => const SetupFlowScreen(startAt: SetupStep.ready),
+  ),
+  Shot(
+    name: 'setup-ready-light',
+    build: () => const SetupFlowScreen(startAt: SetupStep.ready),
+    dark: false,
+  ),
 
   // The cases that catch what a comfortable phone hides.
   Shot(

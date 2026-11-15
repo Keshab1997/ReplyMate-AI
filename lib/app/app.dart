@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/constants/app_constants.dart';
 import '../features/onboarding/onboarding_screen.dart';
+import '../features/setup/setup_flow_screen.dart';
 import '../features/overlay/presentation/overlay_panel_screen.dart';
 import '../features/overlay/providers/overlay_providers.dart';
 import 'app_routes.dart';
@@ -68,6 +69,9 @@ class ReplyMateApp extends StatelessWidget {
   }
 }
 
+/// Which screen a launch opens on.
+enum StartupRoute { welcome, setup, app }
+
 /// Sends first-run users through onboarding (FR-01), a fallback-notification
 /// tap straight to the prefilled composer, and everyone else home.
 /// Both reads are local and cheap, and neither is allowed to hold the first
@@ -81,9 +85,20 @@ class ReplyMateApp extends StatelessWidget {
 class StartupGate extends ConsumerWidget {
   const StartupGate({super.key});
 
-  Future<bool> _onboardingDone() async {
+  /// The launch has three doors, so it gets three names instead of one boolean
+  /// and a comment. Reading them in order is the whole rule:
+  ///   * the welcome has not been read -> welcome (FR-01);
+  ///   * the welcome is read, the setup is not finished -> the setup;
+  ///   * both -> the app.
+  Future<StartupRoute> _route() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(AppConstants.prefOnboardingDone) ?? false;
+    if (prefs.getBool(AppConstants.prefOnboardingDone) != true) {
+      return StartupRoute.welcome;
+    }
+    if (prefs.getBool(AppConstants.prefSetupDone) != true) {
+      return StartupRoute.setup;
+    }
+    return StartupRoute.app;
   }
 
   @override
@@ -91,16 +106,22 @@ class StartupGate extends ConsumerWidget {
     // `.value` is null while loading - and stays null if the native side never
     // answers. No spinner, no blocked frame.
     final replyContext = ref.watch(overlayContextProvider).value;
-    return FutureBuilder<bool>(
-      future: _onboardingDone(),
+    return FutureBuilder<StartupRoute>(
+      future: _route(),
       builder: (context, snapshot) {
+        // One flag read is a local file: the spinner is a frame or two, and it
+        // is the honest answer - the alternative is guessing "not onboarded"
+        // and flashing the welcome at every launch.
         if (!snapshot.hasData) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        if (snapshot.data != true) {
+        if (snapshot.data == StartupRoute.welcome) {
           return const OnboardingScreen();
+        }
+        if (snapshot.data == StartupRoute.setup) {
+          return const SetupFlowScreen();
         }
         final reply = replyContext;
         // A fallback notification is a request to answer a message, so the app
