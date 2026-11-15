@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../tool/screenshots/shot_framework.dart';
 import '../tool/screenshots/shot_registry.dart';
 
 /// The screenshot tool lives outside `test/`, so nothing would notice if a
@@ -46,9 +47,9 @@ void main() {
 
   test('--shot selects by name, and an empty filter means everything', () {
     final first = shots.first.name;
-    expect(selectShots(first).map((shot) => shot.name), <String>[first]);
-    expect(selectShots('').length, shots.length);
-    expect(selectShots('  ').length, shots.length);
-    expect(selectShots('does-not-exist'), isEmpty);
+    expect(selectShots(shots, first).map((shot) => shot.name), <String>[first]);
+    expect(selectShots(shots, '').length, shots.length);
+    expect(selectShots(shots, '  ').length, shots.length);
+    expect(selectShots(shots, 'does-not-exist'), isEmpty);
   });
 }

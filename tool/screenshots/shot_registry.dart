@@ -1,4 +1,14 @@
+// The one file in tool/screenshots/ that belongs to THIS project.
+//
+// shot_framework.dart and shot_runner_test.dart are the pack's - re-running
+// install-agent-pack.sh replaces them, so a fix belongs upstream, not here.
+// This file is app code: it names the screens and tells the framework how to
+// dress them (real theme, real fonts, the native channel, Hive's temp box).
+import 'dart:io';
+
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:replymate/app/theme/app_theme.dart';
 import 'package:replymate/core/constants/app_constants.dart';
 import 'package:replymate/features/about/about_screen.dart';
 import 'package:replymate/features/home/home_screen.dart';
@@ -10,57 +20,68 @@ import 'package:replymate/features/settings/presentation/memory_screen.dart';
 import 'package:replymate/features/settings/presentation/privacy_screen.dart';
 import 'package:replymate/features/settings/presentation/reply_defaults_screen.dart';
 import 'package:replymate/features/settings/settings_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// One screen, rendered the way a phone would render it.
+import 'shot_framework.dart';
+
+/// The app as a screenshot sees it: its theme, its fonts, its native channel on
+/// the day nothing has been granted yet.
+final ShotEnv env = ShotEnv(
+  // The app's own shell. This import is why the pack leaves the shell to the
+  // project: Flutter's material move made `package:flutter/material.dart` and
+  // `package:material_ui/material_ui.dart` different ThemeData types, and
+  // ReplyMate is on the newer one.
+  app: (shot, home) => MaterialApp(
+    theme: shot.dark ? AppTheme.dark() : AppTheme.light(),
+    // The corner ribbon is a debug artefact, not part of the screen.
+    debugShowCheckedModeBanner: false,
+    home: home,
+  ),
+  wrap: (child) => ProviderScope(child: child),
+  fontAssets: const <String, String>{
+    'Inter': 'assets/fonts/Inter-Variable.ttf',
+    'NotoSansBengali': 'assets/fonts/NotoSansBengali-Variable.ttf',
+    'NotoSansDevanagari': 'assets/fonts/NotoSansDevanagari-Variable.ttf',
+  },
+  bridgeChannel: AppConstants.channelName,
+  // The honest "fresh install, nothing granted" answers - the same ones the
+  // widget tests use. A shot should show the empty state, not a red screen.
+  bridgeAnswers: const <String, Object?>{
+    'candidateApps': <Object?>[],
+    'installedApps': <Object?>[],
+    'isListenerEnabled': false,
+    'overlayGranted': false,
+    'consumeLaunchContext': null,
+    'screenReadingStatus': <Object?, Object?>{},
+    'bubbleStatus': <Object?, Object?>{},
+  },
+  // Conversation memory opens a Hive box as soon as its card is built; without
+  // one the memory screen photographs a red error instead of a settings page.
+  // The pack stays free of plugin imports so it can drop into any project, so
+  // seeding lives here: this app really does use shared_preferences.
+  seedPreferences: (values) async {
+    // The mock initialiser is @visibleForTesting and the analyzer only looks at
+    // the directory name, so tool/ has to say it means it.
+    // ignore: invalid_use_of_visible_for_testing_member
+    SharedPreferences.setMockInitialValues(values);
+  },
+  setUpAll: () async {
+    Hive.init(Directory.systemTemp.createTempSync('replymate-shots').path);
+  },
+);
+
+/// The screens worth looking at, and the awkward cases with them.
 ///
-/// `name` is what you pass to `tool/screenshots.py --shot <name>`, and it is
-/// also the file name of the PNG. Keep it kebab-case and stable: it is the only
-/// handle the tool has on a screen.
-class Shot {
-  const Shot({
-    required this.name,
-    required this.build,
-    this.prefs = const <String, Object>{},
-    this.logicalSize = const Size(390, 844),
-    this.dpr = 2,
-    this.dark = true,
-    this.textScale = 1,
-  });
-
-  final String name;
-  final Widget Function() build;
-
-  /// SharedPreferences values seeded before the pump. This is how a shot can
-  /// show a Bengali session, a professional tone, or a count of three without
-  /// anybody tapping anything.
-  final Map<String, Object> prefs;
-
-  /// Logical size. 390x844 is a modern phone; 320x568 and 360x640 are in the
-  /// registry as explicit narrow cases because that is where layouts break.
-  final Size logicalSize;
-  final double dpr;
-  final bool dark;
-  final double textScale;
-
-  String get sizeLabel =>
-      '${logicalSize.width.toInt()}x'
-      '${logicalSize.height.toInt()}@${dpr}x';
-}
-
-/// The screens worth looking at, and why each one is here.
-///
-/// This list is deliberately short. A screenshot tool that renders everything
-/// becomes a maintenance job of its own; these are the surfaces where a change
-/// is easy to describe and hard to picture - the Settings hub and its
-/// sub-screens (new structure), the composer (a conversation), the home screen
-/// (the first thing anybody sees).
+/// Short on purpose: a screenshot tool that renders everything becomes a
+/// maintenance job of its own.
 final List<Shot> shots = <Shot>[
   Shot(name: 'settings-hub', build: () => const SettingsScreen()),
   Shot(name: 'settings-reply', build: () => const ReplyDefaultsScreen()),
   Shot(
     name: 'settings-reply-bn',
     build: () => const ReplyDefaultsScreen(),
-    prefs: <String, Object>{
+    preferences: <String, Object>{
       AppConstants.prefAppLanguage: 'bn',
       AppConstants.prefDefaultTone: 'professional',
       AppConstants.prefSuggestionCount: 3,
@@ -74,7 +95,7 @@ final List<Shot> shots = <Shot>[
   Shot(
     name: 'about-bn',
     build: () => const AboutScreen(),
-    prefs: <String, Object>{AppConstants.prefAppLanguage: 'bn'},
+    preferences: <String, Object>{AppConstants.prefAppLanguage: 'bn'},
   ),
   Shot(name: 'home', build: () => const HomeScreen(embedded: true)),
   Shot(
@@ -83,7 +104,7 @@ final List<Shot> shots = <Shot>[
   ),
   Shot(name: 'create-message', build: () => const CreateMessageScreen()),
 
-  // The two cases that catch what a comfortable phone hides.
+  // The cases that catch what a comfortable phone hides.
   Shot(
     name: 'settings-hub-narrow',
     build: () => const SettingsScreen(),
@@ -100,15 +121,3 @@ final List<Shot> shots = <Shot>[
     dark: false,
   ),
 ];
-
-/// `--dart-define=SHOT=a,b` selects; no value means every shot, which is the
-/// right default for a tool a human runs on purpose.
-List<Shot> selectShots(String requested) {
-  final wanted = requested
-      .split(',')
-      .map((name) => name.trim())
-      .where((name) => name.isNotEmpty)
-      .toSet();
-  if (wanted.isEmpty) return shots;
-  return shots.where((shot) => wanted.contains(shot.name)).toList();
-}
