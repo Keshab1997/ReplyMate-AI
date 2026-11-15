@@ -1,88 +1,256 @@
-# ReplyMate AI
+<div align="center">
 
-**Your AI-powered reply assistant for everyday conversations.**
+<img src="docs/media/hero.jpg" alt="ReplyMate AI — AI replies in Bengali, Hindi and English. You read every draft; nothing is sent for you." width="100%">
 
-ReplyMate AI helps users generate smart, contextual replies to messages from supported messaging apps. It is designed for multilingual communication, with support for Bengali, Hindi, and English.
+<br>
 
-## Vision
+**Your AI reply assistant for everyday conversations.**
+Reads the message you were already sent, drafts a reply in **বাংলা · हिन्दी · English**,
+and hands it to you. You edit it. **You** press send.
 
-Make replying to messages faster, easier, and more natural without taking control away from the user.
+<br>
 
-## Core Features
+[![Status: in development](https://img.shields.io/badge/status-in_development-FFB545?style=flat-square&labelColor=0C1220)](#-honest-status)
+[![Platform: Android](https://img.shields.io/badge/platform-Android-1B6EF3?style=flat-square&labelColor=0C1220)](#-build-and-run)
+[![Flutter](https://img.shields.io/badge/Flutter-3.x-38D9F8?style=flat-square&labelColor=0C1220)](pubspec.yaml)
+[![Kotlin](https://img.shields.io/badge/native-Kotlin-43E0A0?style=flat-square&labelColor=0C1220)](android/)
+[![Tests](https://img.shields.io/badge/tests-288_passing-43E0A0?style=flat-square&labelColor=0C1220)](test/)
+[![Version](https://img.shields.io/badge/version-1.5.0%2B5-4A94FF?style=flat-square&labelColor=0C1220)](CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-TBD-8FA3C8?style=flat-square&labelColor=0C1220)](#-license)
 
-- AI-generated contextual reply suggestions (choose one to three)
-- Conservative on-device language detection for supported scripts and clear Latin-script phrases; uncertain text keeps the user's selected language
-- Intent-based one-tap offline replies for common message types
-- Locally saved user-authored reply templates
-- On-demand draft refinement (shorter, softer, or polite decline), plus an optional context-aware follow-up question
-- Bengali, Hindi, and English reply output
-- Multiple reply tones: Friendly, Professional, Casual, Polite, Funny, and Short and direct
-- Android notification-based message assistance
-- Optional floating reply bubble: a bubble over the app
-  you are in, a panel to draft the reply, and a fallback notification when the
-  bubble cannot be drawn
-- Copy, edit, and share generated suggestions
-- Optional screen reading: draft a reply to the chat you already have open,
-  where the app posts no notification
-- User reviews and sends every reply
-- Privacy-first design
-- No automatic message sending
+<sub><a href="#-honest-status">Status</a> · <a href="#-features">Features</a> · <a href="#-how-it-works">How it works</a> · <a href="#-privacy-by-design">Privacy</a> · <a href="#-build-and-run">Build</a> · <a href="ROADMAP.md">Roadmap</a> · <a href="AGENTS.md">Agent playbook</a></sub>
 
-## Supported Workflow
+</div>
 
-1. A supported messaging app displays a notification.
-2. ReplyMate AI receives the notification after the user grants notification access.
-3. The user requests AI reply suggestions.
-4. ReplyMate AI generates suitable replies.
-5. The user reviews, edits, copies, or uses a supported quick-reply action.
+---
 
-**Important:** ReplyMate AI cannot guarantee access to every message or the ability to reply directly in every app. These capabilities depend on the source app and Android notification actions.
+## ✨ The one-line version
 
-## Technology
+> Android gives ReplyMate a notification. ReplyMate gives you three replies worth reading.
+> It never sends one for you.
 
-- Flutter for the application UI
-- Kotlin for Android-native integrations
-- Firestore-backed API-key pool and OpenAI-compatible provider client in the current MVP
-- Server-side provider proxy and rate limiting remain planned hardening
+<div align="center">
 
-## Development Status
+<table>
+<tr>
+<td align="center" width="33%" valign="top">
+<img src="docs/media/feature-notification.jpg" width="250" alt="A notification arrives and ReplyMate picks up the context"><br>
+<strong>Catches the moment</strong><br>
+<sub>Notification, share sheet, selected text, or the bubble over the app you are already in.</sub>
+</td>
+<td align="center" width="33%" valign="top">
+<img src="docs/media/feature-bubble.jpg" width="250" alt="A floating bubble over the app you are already in"><br>
+<strong>Drafts where you are</strong><br>
+<sub>The bubble opens a panel with the message and the suggestions — no app switching.</sub>
+</td>
+<td align="center" width="33%" valign="top">
+<img src="docs/media/feature-private.jpg" width="250" alt="Nothing is sent automatically and the key stays on the device"><br>
+<strong>Keeps you in charge</strong><br>
+<sub>No auto-send in any layer. Your key stays on your phone — never in Firestore.</sub>
+</td>
+</tr>
+</table>
 
-The core app prototype is implemented: Flutter onboarding, home, settings and reply flows; the Kotlin notification listener and platform bridge; and Firebase-backed admin/key-pool integration for AI reply generation. 261 Dart unit/widget tests cover the Dart side.
+</div>
 
-On 2026-11-06, Keshab reported a real-device smoke check confirming that the admin flow, API request and reply generation work. Device/build details and individual test steps were not recorded. This does **not** verify every notification, quick-reply, share/selection or OEM behavior; the Phase 1 device checklist has not been completed or recorded.
+## 🎯 Features
 
-A floating reply bubble — the answer to "why does nothing appear when a WhatsApp message arrives?" — is implemented: tap the bubble, get a panel with the message and the same generation flow. It is **optional and off by default**, needs the "Display over other apps" permission, keeps the message in memory only, and shows an icon in the bubble — an opt-in *Show a preview* switch can add the sender and the first line beside it, off by default and never on the lock screen. When it cannot run (no permission, switched off, or the app process was dead in the background) the honest fallback is a "New message from \<app\>" notification that opens the composer prefilled. **The bubble may not survive aggressive OEM battery managers**; the fallback notification is the reliable path. Device evidence for rows 17–24 of the Phase 1 checklist is still pending, so treat the bubble as code-complete, not field-proven.
+<table>
+<tr><td width="50%" valign="top">
 
-Reading the open chat uses an Android `AccessibilityService`, and it asks for
-that access explicitly: the switch is off by default, shows a disclosure before
-it moves, and stays inert until Android grants the access itself. It reads the
-apps you selected and reports what it saw - it never types into another app,
-never sends anything, and keeps nothing on disk. It also cannot run on a device
-with Android's Advanced Protection Mode switched on, because the system will not
-grant accessibility access to an app it does not classify as an accessibility
-tool; ReplyMate is not one and does not claim to be. Rows 25-34 of the Phase 1
-checklist are still pending, so this is code-complete, not field-proven.
+**Drafting**
+- Contextual suggestions — one to three, your choice
+- Six tones: friendly, professional, casual, polite, funny, short & direct
+- On-demand refinement — *shorter*, *softer*, *polite decline*
+- Optional context-aware follow-up question
+- Conservative on-device language detection; uncertain text keeps your setting
+- Intent-based one-tap **offline** replies — no key, no network, no Firebase
 
-The app is not release-ready. The current AI design lets signed-in clients read a Firestore key pool and call providers directly; the planned server-side proxy and rate limiting are not implemented. See API security and the [roadmap](ROADMAP.md) for remaining work.
+**Where it works**
+- Android notification capture (allowlist only)
+- Share sheet and text-selection entry points
+- Optional floating bubble over any app
+- Optional screen reading for chats that post no notification
+- Copy, edit, share — or a real RemoteInput quick reply
 
-## Development
+</td><td width="50%" valign="top">
 
-The repository intentionally ships **without `google-services.json`**. Without it the app builds and runs as a full guest shell: every screen works, and AI generation plus the admin section explain that they are not configured instead of failing. Dropping the file from your Firebase project into `android/app/` enables Firebase Auth, the Firestore key pool and the admin gate; see for the exact console steps, collections and rules.
+**Cost & keys**
+- **BYOK** — paste your own OpenRouter / Google AI Studio / OpenAI-compatible key
+- Stored in its own Hive box on this phone: never Firestore, never a backup, never logged
+- Reply cache by message hash (labelled *from cache*, with a bypass)
+- Per-device daily budget with an honest stopped state
+- No Firebase at all? The app still drafts offline
 
-Real-device verification for the notification prototype is still outstanding (the Phase 1 device checklist has no record yet); the agent workflow and check policy live in [AGENTS.md](AGENTS.md).
+**Memory (opt-in, bounded)**
+- Locally saved reply templates you wrote yourself
+- Conversation memory: 40 lines/contact, 50 contacts, 7 days
+- Turning it off **deletes** — it does not just stop
+- Per-contact delete, on this device only (`allowBackup` is false)
 
-## Privacy Principles
+</td></tr>
+</table>
 
-- No automatic sending
-- No unnecessary message storage; saved reply templates are explicitly user-authored and stay on this device
-- No message-content logging
-- Explicit user permission for notification access
-- Clear disclosure before sending message content to an AI service
+## 🔄 How it works
 
-## Repository Structure
+```text
+  ┌──────────────┐   notification / share / selection / bubble
+  │ messaging app│ ───────────────────────────────────────────┐
+  └──────────────┘                                            ▼
+                                        ┌───────────────────────────────┐
+                                        │  ReplyMate (Flutter + Kotlin) │
+                                        │  context → prompt → reply     │
+                                        └───────────────┬───────────────┘
+                     your key  ─────────────────────────┤
+                     key pool (or) ─────────────────────┤
+                     on-device offline suggestions ─────┘
+                                                        │
+                                                        ▼
+                                        ┌───────────────────────────────┐
+                                        │  You: read · edit · copy ·    │
+                                        │  share · or quick-reply       │
+                                        │  — you press send, always     │
+                                        └───────────────────────────────┘
+```
 
-See [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) and [PRODUCT_REQUIREMENTS.md](PRODUCT_REQUIREMENTS.md).
+1. A supported app shows a notification — or you share text, select text, or tap the bubble.
+2. ReplyMate receives it **only after you grant notification access**, and **only** for apps on your allowlist.
+3. You ask for suggestions. ReplyMate picks the cheapest path that can answer: cache → offline heuristics → your key → key pool.
+4. You get one to three drafts in your language and tone.
+5. You edit, copy, share, or use the app's own quick-reply action. **The app never types into another app and never sends.**
 
-## License
+> **Honest limits.** ReplyMate cannot guarantee access to every message or a quick-reply action in every app — that depends on the source app and Android's notification actions. Missing, grouped, redacted and truncated notifications are **shown as such**, never quietly filled in.
+
+## 🔒 Privacy by design
+
+| The promise | How it is actually enforced |
+|---|---|
+| **No automatic sending** | No send path exists in any layer. Quick reply is attempted only against a live `RemoteInput` action, and only after you tap. |
+| **No message logging** | Message text lives in memory and is dropped when the panel closes. The single exception is conversation memory — opt-in, bounded, deletable, local. |
+| **Nothing on disk you did not ask for** | Screen reading stores nothing. Conversation memory is the only place text may be written, and switching it off deletes it. |
+| **No cloud backup** | `android:allowBackup` is `false`. A phone backup cannot carry your key or your memory off the device. |
+| **Your key is yours** | BYOK keys live in a local Hive box. Never Firestore, never rendered back on screen ("set" is the whole state shown), never logged. |
+| **Nothing hidden** | `google-services.json` is never in git, and its absence never breaks a build or a screen — the app runs as a full guest shell and says what is not configured. |
+| **Admin is not a public door** | Admin access requires membership of the Firestore `admin_config/access` allowlist. |
+
+## 📊 Honest status
+
+This is a **development build**, not a release. The README says so because the app's own
+copy rules say capability claims must stay honest.
+
+**What is verified**
+
+- The Dart side is covered by **288 unit and widget tests** across 37 files; CI runs `dart format` → `flutter analyze --fatal-infos` → `flutter test` on every push to `main`.
+- On **2026-11-06** Keshab reported a real-device smoke check confirming the admin flow, the API request and reply generation. Build details and per-step records were not captured, so this is a report, not a checklist.
+
+**What is not verified**
+
+- **Phase 1 device checklist — incomplete.** Quick-reply delivery, permission revocation, OEM lifecycle behaviour and the share/selection paths have no recorded device evidence.
+- **Floating bubble — code-complete, not field-proven.** Rows 17–24 are still open. It may not survive aggressive OEM battery managers; the fallback notification is the reliable path.
+- **Screen reading — code-complete, not field-proven.** Rows 25–34 are open. It is off by default, allowlist-bound, reads only, and cannot run under Android's Advanced Protection Mode because the system will not grant accessibility access to an app it does not classify as an accessibility tool — ReplyMate is not one and does not claim to be.
+- **Hindi interface translation** needs a native speaker's review before release. The Bengali is the owner's own.
+- **Release gates are unstarted**: privacy policy not published, Play Console declarations for notification-listener access and AI processing not filed, closed testing not opened.
+
+**Known architecture debt**
+
+The current MVP lets a signed-in client read a Firestore key pool and call AI providers
+directly. The server-side proxy and rate limiting are **planned hardening, not implemented**.
+That trade-off is why BYOK shipped first: a key in your own storage cannot leak out of a
+shared pool, has no Firestore rules to get wrong, and burns nobody else's quota. See
+[API security in the roadmap](ROADMAP.md) and [`docs/ZERO_BILL_FEATURES.md`](docs/ZERO_BILL_FEATURES.md).
+
+## 🛠 Build and run
+
+```bash
+flutter pub get
+flutter run          # guest shell: every screen works, AI + admin explain what is missing
+```
+
+The repo intentionally ships **without `google-services.json`**. Drop your own Firebase
+file into `android/app/` and Firebase Auth, the Firestore key pool and the admin gate come
+online. Nothing else changes — and with a BYOK key set, replies generate with no Firebase at all.
+
+**Checks that are worth your time**
+
+```bash
+python3 tool/preflight.py        # ~1 s   before every push
+python3 tool/dep_check.py        # ~2 s   are the two pinned dependencies still current?
+flutter test test/<name>_test.dart   # the one test file that covers your change
+flutter analyze                  # for shared surfaces and risky diffs
+python3 tool/see_screen.py --route /settings   # actually look at the screen
+```
+
+No local `flutter build apk|aab|web` "just to check" — that is minutes for an artifact only
+CI needs, and the signing secrets live in CI anyway. Full policy: [AGENTS.md](AGENTS.md).
+
+## 🧱 Tech stack
+
+| Layer | Choice |
+|---|---|
+| App UI | Flutter (Dart SDK `^3.13.7`), Material 3, custom navy/blue theme |
+| Native | Kotlin `NotificationListenerService`, overlay bubble + foreground service, `AccessibilityService` for screen reading |
+| Local storage | Hive — own-key box, templates, bounded conversation memory |
+| Cloud (optional) | Firebase Auth + Firestore key pool; admin gate via `admin_config/access` |
+| AI | OpenAI-compatible and Gemini `generateContent` wire formats, one shared prompt builder |
+| CI | `Keshab1997/flutter-builder` reusable workflows, pinned by tag |
+| Pinned deps | `admin_api_key_manager` (commit pin), `flutter-builder` (`@v1.15.2`) — `tool/dep_check.py` tells you when the pins are behind |
+
+## 📁 Repository map
+
+```text
+lib/
+├── app/            app shell, routes, tabs, theme (seed #1B6EF3)
+├── core/           firebase, l10n (en/bn/hi), platform bridge, constants
+├── features/
+│   ├── reply/      generation, cache, budget, BYOK, offline heuristics
+│   ├── notifications/  capture + allowlist
+│   ├── overlay/    floating bubble panel
+│   ├── screen_reading/ off by default, allowlist-bound, read-only
+│   ├── memory/     bounded, deletable, on-device only
+│   ├── admin/      allowlisted operator screens
+│   └── onboarding/ permissions/ app_selection/ settings/ home/
+├── shared/widgets/
+android/            Kotlin listener, overlay service, accessibility service
+test/               37 files · 288 tests
+docs/               zero-bill feature plan, README media
+tool/               preflight, agent_loop, ci_watch, see_screen, dep_check, make_media
+design/             mascot and icon explorations
+```
+
+## 📚 Documentation
+
+| Read this | For |
+|---|---|
+| [ROADMAP.md](ROADMAP.md) | phases, what is done, what is honestly not |
+| [AGENTS.md](AGENTS.md) | check policy and the batch loop for AI agents |
+| [PRODUCT_REQUIREMENTS.md](PRODUCT_REQUIREMENTS.md) | what the product is meant to do |
+| [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) | architecture at a glance |
+| [CHANGELOG.md](CHANGELOG.md) | what shipped, release by release |
+| [docs/ZERO_BILL_FEATURES.md](docs/ZERO_BILL_FEATURES.md) | features that cost nothing to run |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | how to land a change |
+
+## 🇧🇩 বাংলায়
+
+**ReplyMate AI** — বাংলা, হিন্দি আর ইংরেজিতে রিপ্লাই লিখে দেয়। নোটিফিকেশন, শেয়ার,
+সিলেক্ট করা টেক্সট বা ফোনের উপরে ভাসা বাবল থেকে মেসেজটা নেয়, কয়েকটা ড্রাফট বানায় —
+**পাঠানোটা আপনি নিজে করবেন**, অ্যাপ কখনো নিজে পাঠায় না।
+
+- নিজের API key দিতে পারেন — ফোনেই থাকে, Firestore-এ যায় না, ব্যাকআপেও ওঠে না।
+- ইন্টারনেট বা key ছাড়াও অফলাইনে সাধারণ রিপ্লাই বানায়।
+- কথোপকথনের মেমরি ডিফল্টে বন্ধ; বন্ধ করলে মুছে যায়, শুধু থামে না।
+- **এটা এখনো রিলিজ নয়।** ফোনে সব যাচাই শেষ হয়নি — বিস্তারিত উপরের *Honest status* অংশে।
+
+## 🙏 Credits
+
+Mascot and app theme are the project's own. Interface type is
+[Inter](assets/fonts/Inter-OFL.txt), with [Noto Sans Bengali](assets/fonts/NotoSansBengali-OFL.txt)
+and [Noto Sans Devanagari](assets/fonts/NotoSansDevanagari-OFL.txt) for the scripts Inter
+does not cover — all SIL Open Font License.
+
+## 📄 License
 
 License to be decided before public distribution.
+
+<div align="center">
+<sub>Built by <a href="https://github.com/Keshab1997">Keshab Sarkar</a> · drafts, never sends.</sub>
+</div>
