@@ -129,6 +129,22 @@ void main() {
     expect(repository.calls, 0);
   });
 
+  testWidgets('the premium composer stays clean on a narrow phone', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      const ProviderScope(child: MaterialApp(home: ReplyComposerScreen())),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(const Key('writeSomethingNewEntry')), findsOneWidget);
+    expect(find.byKey(const ValueKey('reply-intent-agree')), findsOneWidget);
+  });
+
   testWidgets('an empty session explains itself instead of a blank composer', (
     tester,
   ) async {
@@ -184,6 +200,8 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'Can we meet tomorrow?');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('No message was captured'), findsNothing);
     await tester.tap(find.text('Generate suggestions'));
     await tester.pumpAndSettle();
 
@@ -285,7 +303,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Update this chat’s style'), findsOneWidget);
+    expect(find.byTooltip('Update this chat’s style'), findsOneWidget);
     await tester.tap(find.text('Generate suggestions'));
     await tester.pumpAndSettle();
 
@@ -325,7 +343,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Save style for this chat'));
+    await tester.tap(find.byTooltip('Save style for this chat'));
     await tester.pumpAndSettle();
     expect(find.text('Save reply style?'), findsOneWidget);
     expect(find.textContaining('no message text is stored'), findsOneWidget);
@@ -340,7 +358,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     final serialized = prefs.getString(AppConstants.prefChatReplyStyles)!;
     expect(serialized, isNot(contains('A private message')));
-    expect(find.text('Update this chat’s style'), findsOneWidget);
+    expect(find.byTooltip('Update this chat’s style'), findsOneWidget);
   });
 
   testWidgets('closing the composer clears transient notification context', (

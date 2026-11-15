@@ -483,20 +483,77 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                             ),
                           ),
                           const SizedBox(height: AppTheme.spaceMd),
-                          Card(
-                            margin: EdgeInsets.zero,
-                            child: ListTile(
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
                               key: const Key('writeSomethingNewEntry'),
-                              leading: Icon(
-                                Icons.auto_awesome_rounded,
-                                color: scheme.primary,
+                              borderRadius: BorderRadius.circular(
+                                AppTheme.tileRadius,
                               ),
-                              title: Text(_strings.writeSomethingNew),
-                              subtitle: Text(
-                                _strings.writeSomethingNewSubtitle,
-                              ),
-                              trailing: const Icon(Icons.chevron_right_rounded),
                               onTap: _openCreateMessage,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppTheme.spaceMd,
+                                  vertical: AppTheme.spaceSm + 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: scheme.primary.withValues(
+                                    alpha: theme.brightness == Brightness.dark
+                                        ? 0.10
+                                        : 0.055,
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    AppTheme.tileRadius,
+                                  ),
+                                  border: Border.all(
+                                    color: scheme.primary.withValues(
+                                      alpha: theme.brightness == Brightness.dark
+                                          ? 0.22
+                                          : 0.13,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    AppSurfaces.iconBadge(
+                                      context,
+                                      icon: Icons.auto_awesome_rounded,
+                                      size: 38,
+                                    ),
+                                    const SizedBox(width: AppTheme.spaceSm + 2),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            _strings.writeSomethingNew,
+                                            style: theme.textTheme.titleSmall,
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            _strings.writeSomethingNewSubtitle,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: theme.textTheme.bodySmall
+                                                ?.copyWith(
+                                                  color:
+                                                      scheme.onSurfaceVariant,
+                                                  fontSize: 11.5,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: AppTheme.spaceSm),
+                                    Icon(
+                                      Icons.arrow_forward_ios_rounded,
+                                      size: 14,
+                                      color: scheme.primary,
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(height: AppTheme.spaceMd),
@@ -593,37 +650,46 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (_context != null) ...[
-            Text(
-              _context!.displayTitle,
-              style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppTheme.brandBright,
-              ),
-            ),
-            if ((_context!.title ?? '').trim().isNotEmpty)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: _saveChatStyle,
-                  icon: Icon(
-                    _savedChatStyle == null
-                        ? Icons.bookmark_add_outlined
-                        : Icons.bookmark_added_outlined,
-                    size: 16,
-                  ),
-                  label: Text(
-                    _savedChatStyle == null
-                        ? _strings.saveChatStyle
-                        : _strings.updateChatStyle,
-                  ),
-                  style: TextButton.styleFrom(
-                    minimumSize: const Size(0, 32),
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    textStyle: const TextStyle(fontSize: 11),
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 17,
+                  backgroundColor: scheme.primary.withValues(alpha: 0.14),
+                  foregroundColor: scheme.primary,
+                  child: Text(
+                    _context!.displayTitle.characters.first.toUpperCase(),
+                    style: theme.textTheme.labelLarge,
                   ),
                 ),
-              ),
-            const SizedBox(height: 4),
+                const SizedBox(width: AppTheme.spaceSm + 2),
+                Expanded(
+                  child: Text(
+                    _context!.displayTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                ),
+                if ((_context!.title ?? '').trim().isNotEmpty)
+                  IconButton(
+                    tooltip: _savedChatStyle == null
+                        ? _strings.saveChatStyle
+                        : _strings.updateChatStyle,
+                    visualDensity: VisualDensity.compact,
+                    onPressed: _saveChatStyle,
+                    icon: Icon(
+                      _savedChatStyle == null
+                          ? Icons.bookmark_add_outlined
+                          : Icons.bookmark_added_rounded,
+                      color: scheme.primary,
+                      size: 20,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.spaceSm),
             if (_context!.contextWarnings.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
@@ -696,7 +762,9 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
     );
 
     return [
-      if (_context == null && (launch == null || !launch.hasText))
+      if (_context == null &&
+          (launch == null || !launch.hasText) &&
+          _messageController.text.trim().isEmpty)
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Row(
@@ -855,10 +923,9 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
   );
 
-  /// Pinned bottom bar: the one action that changes what is on screen, and the
-  /// line that says nothing leaves the phone until it is pressed. It never
-  /// scrolls away, and it holds no controls of its own - language, tone, length
-  /// and count live in Settings, one tab away, where they already were.
+  /// Pinned bottom bar: the primary action stays visible, with optional intent
+  /// shortcuts in a single horizontal rail. Language, tone, length and count
+  /// remain in Settings, one tab away.
   Widget _buildComposerBar(
     BuildContext context,
     ThemeData theme,
@@ -911,25 +978,28 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
               ),
             ),
             const SizedBox(height: 2),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 4,
-              runSpacing: 0,
-              children: [
-                _intentChip(ReplyIntent.agree, _strings.intentAgree),
-                _intentChip(
-                  ReplyIntent.politeDecline,
-                  _strings.intentPoliteDecline,
-                ),
-                _intentChip(
-                  ReplyIntent.askForDetails,
-                  _strings.intentAskForDetails,
-                ),
-                _intentChip(
-                  ReplyIntent.suggestAnotherTime,
-                  _strings.intentSuggestAnotherTime,
-                ),
-              ],
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _intentChip(ReplyIntent.agree, _strings.intentAgree),
+                  const SizedBox(width: AppTheme.spaceXs),
+                  _intentChip(
+                    ReplyIntent.politeDecline,
+                    _strings.intentPoliteDecline,
+                  ),
+                  const SizedBox(width: AppTheme.spaceXs),
+                  _intentChip(
+                    ReplyIntent.askForDetails,
+                    _strings.intentAskForDetails,
+                  ),
+                  const SizedBox(width: AppTheme.spaceXs),
+                  _intentChip(
+                    ReplyIntent.suggestAnotherTime,
+                    _strings.intentSuggestAnotherTime,
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 4),
             Text(
