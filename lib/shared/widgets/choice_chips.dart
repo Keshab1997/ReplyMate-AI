@@ -22,18 +22,36 @@ class ChoiceChips<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Wrap(
       spacing: AppTheme.spaceSm,
       runSpacing: AppTheme.spaceSm,
       children: [
         for (final option in options)
-          ChoiceChip(
-            materialTapTargetSize: MaterialTapTargetSize.padded,
-            avatar: iconOf == null ? null : Icon(iconOf!(option), size: 16),
-            showCheckmark: iconOf == null,
-            label: Text(labelOf(option)),
-            selected: option == selected,
-            onSelected: (_) => onSelected(option),
+          Builder(
+            builder: (context) {
+              final isSelected = option == selected;
+              return ChoiceChip(
+                materialTapTargetSize: MaterialTapTargetSize.padded,
+                // A chip with an icon loses its checkmark, so the icon carries
+                // the selection instead: brand colour when chosen, muted when
+                // not. Without this, ten identical grey glyphs and one tinted
+                // pill is the only thing saying which tone is live.
+                avatar: iconOf == null
+                    ? null
+                    : Icon(
+                        iconOf!(option),
+                        size: 16,
+                        color: isSelected
+                            ? scheme.primary
+                            : scheme.onSurfaceVariant,
+                      ),
+                showCheckmark: iconOf == null,
+                label: Text(labelOf(option)),
+                selected: isSelected,
+                onSelected: (_) => onSelected(option),
+              );
+            },
           ),
       ],
     );
