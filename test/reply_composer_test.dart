@@ -76,18 +76,6 @@ class _ControlledNotificationsBridge extends NotificationsBridge {
   }
 }
 
-/// Opens the style sheet from the pinned bar and taps [option]. The composer no
-/// longer shows the four chip rows inline - that is the point of the redesign,
-/// so every test that changes style goes through the same door a user does.
-Future<void> chooseStyle(WidgetTester tester, String option) async {
-  await tester.tap(find.text('Change'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text(option));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Done'));
-  await tester.pumpAndSettle();
-}
-
 void main() {
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -144,13 +132,18 @@ void main() {
     );
   });
 
-  testWidgets('selected suggestion count is sent with the request', (
+  testWidgets('the suggestion count from Settings is sent with the request', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final repository = _RecordingReplyRepository();
+    // The count is Settings' business now: the composer has no second copy to
+    // read from, so a stored preference is the whole input.
+    SharedPreferences.setMockInitialValues({
+      AppConstants.prefSuggestionCount: 2,
+    });
 
     await tester.pumpWidget(
       ProviderScope(
@@ -161,7 +154,6 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'Can we meet tomorrow?');
-    await chooseStyle(tester, '2');
     await tester.tap(find.text('Generate suggestions'));
     await tester.pumpAndSettle();
 
@@ -370,9 +362,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Quick replies'), findsOneWidget);
-    // The detected language is stated in the pinned bar; the chips live in the
-    // sheet, one tap away.
-    expect(find.textContaining('Bengali'), findsOneWidget);
+    // Detection shows up as Bengali one-tap replies. It is *not* announced as a
+    // style label any more: the composer states no style of its own, so nothing
+    // on this screen names a language, a tone or a length.
+    expect(find.textContaining('Bengali'), findsNothing);
     await tester.tap(find.text('স্বাগতম!'));
     await tester.pumpAndSettle();
 
@@ -411,7 +404,7 @@ void main() {
     expect(find.text('I will get back to you soon.'), findsOneWidget);
   });
 
-  testWidgets('a hindi session renders hindi, including the style labels', (
+  testWidgets('a hindi session renders hindi, and no second settings form', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({
@@ -435,13 +428,10 @@ void main() {
 
     expect(find.text('नया जवाब'), findsOneWidget);
     expect(find.text('सुझाव बनाएँ'), findsOneWidget);
-    // The style labels moved into the sheet - so the sheet has to be Hindi too.
-    final changeHindi = const HindiStrings().change;
-    expect(find.text(changeHindi), findsOneWidget);
-    await tester.tap(find.text(changeHindi));
-    await tester.pumpAndSettle();
-    expect(find.text('भाषा'), findsOneWidget);
-    expect(find.text(const HindiStrings().toneLabel), findsOneWidget);
-    expect(find.text('हो गया'), findsOneWidget);
+    // Language, tone, length and count are Settings' business. This screen is a
+    // conversation: it must not re-ask any of them, in Hindi or otherwise.
+    expect(find.byType(ChoiceChip), findsNothing);
+    expect(find.text(const HindiStrings().change), findsNothing);
+    expect(find.text(const HindiStrings().toneLabel), findsNothing);
   });
 }

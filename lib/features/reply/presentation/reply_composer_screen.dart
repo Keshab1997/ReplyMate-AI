@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/app_icons.dart';
 import '../../../app/theme/app_theme.dart';
-import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/reply_options.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../shared/widgets/mascot_face.dart';
@@ -22,7 +21,6 @@ import '../data/reply_language_detector.dart';
 import '../data/reply_repository.dart';
 import '../domain/reply_request.dart';
 import '../providers/saved_replies_provider.dart';
-import 'reply_style_sheet.dart';
 import 'suggestions_screen.dart';
 
 /// Screen 6 of. Context arrives from one of
@@ -61,11 +59,12 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
 
   final TextEditingController _messageController = TextEditingController();
 
-  ReplyLanguage _language = ReplyLanguage.english;
-  ReplyTone _tone = ReplyTone.friendly;
-  ReplyLength _length = ReplyLength.short;
-  int _count = AppConstants.defaultSuggestionCount;
-  bool _languageManuallySelected = false;
+  /// The language the message itself appears to be written in, when the
+  /// detector is confident. Null means "not sure", and the user's Settings
+  /// choice is used: uncertain text keeps the setting, it does not guess.
+  /// Tone, length and count have no local copy at all - they are Settings'
+  /// business, and this screen is a conversation, not a second settings form.
+  ReplyLanguage? _detectedLanguage;
 
   CapturedNotification? _context;
   bool _initialised = false;
@@ -90,16 +89,9 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
   /// by the same frame, and calling setState during build is an error. It
   /// waits until the one-shot launch-context read has resolved so that text
   /// arriving through an intent is never dropped.
-  void _initialise(
-    ReplyPreferences preferences,
-    LaunchContext? launch, {
-    required bool launchResolved,
-  }) {
+  void _initialise(LaunchContext? launch, {required bool launchResolved}) {
     if (_initialised || !launchResolved) return;
     _initialised = true;
-    _language = preferences.language;
-    _tone = preferences.tone;
-    _length = preferences.length;
     final captured = ref.read(capturedNotificationsProvider);
     if (launch != null && launch.hasText) {
       _messageController.text = launch.text;
@@ -111,29 +103,28 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
       _context = captured.first;
       _messageController.text = captured.first.displayText;
     }
-    _language =
-        ReplyLanguageDetector.detect(_messageController.text) ??
-        preferences.language;
+    _detectedLanguage = ReplyLanguageDetector.detect(_messageController.text);
   }
 
   void _messageChanged() {
     final detected = ReplyLanguageDetector.detect(_messageController.text);
     setState(() {
       _failure = null;
-      if (!_languageManuallySelected && detected != null) {
-        _language = detected;
-      }
+      if (detected != null) _detectedLanguage = detected;
     });
   }
 
-  ReplyRequest _localReplyRequest() => ReplyRequest(
-    message: _messageController.text,
-    language: _language,
-    tone: _tone,
-    length: _length,
-    count: 1,
-    priorMessages: _context?.priorMessages ?? const <String>[],
-  );
+  ReplyRequest _localReplyRequest() {
+    final preferences = ref.read(preferencesProvider);
+    return ReplyRequest(
+      message: _messageController.text,
+      language: _detectedLanguage ?? preferences.language,
+      tone: preferences.tone,
+      length: preferences.length,
+      count: 1,
+      priorMessages: _context?.priorMessages ?? const <String>[],
+    );
+  }
 
   Future<void> _openLocalReply(String reply) => Navigator.of(context).push(
     MaterialPageRoute<void>(
@@ -183,12 +174,13 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
               .read(conversationMemoryControllerProvider)
               .rememberCapture(capture);
     if (!mounted) return;
+    final preferences = ref.read(preferencesProvider);
     final request = ReplyRequest(
       message: _messageController.text,
-      language: _language,
-      tone: _tone,
-      length: _length,
-      count: _count,
+      language: _detectedLanguage ?? preferences.language,
+      tone: preferences.tone,
+      length: preferences.length,
+      count: preferences.suggestionCount,
       priorMessages:
           memory?.contextLines() ?? capture?.priorMessages ?? const <String>[],
       styleExamples: memory?.styleExamples() ?? const <String>[],
@@ -311,52 +303,27 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
     _context = null;
   }
 
-  /// Present the style in one tap, and keep the composer's copy in step.
-  Future<void> _editStyle() async {
-    final choice = await ReplyStyleSheet.show(
-      context,
-      strings: _strings,
-      language: _language,
-      tone: _tone,
-      length: _length,
-      count: _count,
-    );
-    if (choice == null || !mounted) return;
-    setState(() {
-      _language = choice.language;
-      _tone = choice.tone;
-      _length = choice.length;
-      _count = choice.count;
-      // A manual choice outranks what the detector thinks the text is written
-      // in - that is the whole point of choosing it.
-      _languageManuallySelected = true;
-    });
-    await ref
-        .read(preferencesProvider.notifier)
-        .setSuggestionCount(choice.count);
-  }
-
   @override
   Widget build(BuildContext context) {
     final launchState = ref.watch(launchContextProvider);
     final preferences = ref.watch(preferencesProvider);
     final captured = ref.watch(capturedNotificationsProvider);
     final savedReplies = ref.watch(savedRepliesProvider);
-    _initialise(
-      preferences,
-      launchState.value,
-      launchResolved: launchState.hasValue,
-    );
+    _initialise(launchState.value, launchResolved: launchState.hasValue);
     final launch = launchState.value;
+    // Confident detection wins over the setting; everything else *is* the
+    // setting. No copy is kept here, so changing tone in Settings shows up on
+    // this screen on the way back instead of being frozen until a restart.
+    final language = _detectedLanguage ?? preferences.language;
     final hasKnownIntent =
         OfflineSuggestions.intentOf(_messageController.text) !=
         OfflineIntent.unknown;
     final quickReplies = hasKnownIntent
         ? OfflineSuggestions.forMessage(
             _messageController.text,
-            language: _language,
-            tone: _tone,
-            length: _length,
+            language: language,
+            tone: preferences.tone,
+            length: preferences.length,
             count: 2,
           ).toSet().toList()
         : const <String>[];
@@ -734,14 +701,15 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
     ];
   }
 
-  /// Pinned bottom bar: the style in one line, and the action that changes what
-  /// is on screen. It never scrolls away.
+  /// Pinned bottom bar: the one action that changes what is on screen, and the
+  /// line that says nothing leaves the phone until it is pressed. It never
+  /// scrolls away, and it holds no controls of its own - language, tone, length
+  /// and count live in Settings, one tab away, where they already were.
   Widget _buildComposerBar(
     BuildContext context,
     ThemeData theme,
     ColorScheme scheme,
   ) {
-    final style = '${_language.label} · ${_tone.label} · ${_length.label}';
     return Container(
       padding: EdgeInsets.fromLTRB(
         AppTheme.spaceMd,
@@ -759,48 +727,6 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(10),
-                onTap: _editStyle,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 6,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.auto_awesome_outlined,
-                        size: 15,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        style,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _strings.change,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: scheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
             AppSurfaces.primaryAction(
               context,
               onPressed: _generating ? null : _generate,
