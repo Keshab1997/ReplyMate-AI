@@ -106,6 +106,29 @@ void main() {
     );
   });
 
+  testWidgets('the new-message writer is separate from replying to a chat', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final repository = _RecordingReplyRepository();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+        child: const MaterialApp(home: ReplyComposerScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repository.calls, 0);
+    await tester.tap(find.byKey(const Key('writeSomethingNewEntry')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('createMessagePromptField')), findsOneWidget);
+    expect(repository.calls, 0);
+  });
+
   testWidgets('an empty session explains itself instead of a blank composer', (
     tester,
   ) async {

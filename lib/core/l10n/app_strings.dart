@@ -113,6 +113,17 @@ abstract class AppStrings {
   String get intentPoliteDecline;
   String get intentAskForDetails;
   String get intentSuggestAnotherTime;
+  String get writeSomethingNew;
+  String get writeSomethingNewSubtitle;
+  String get createMessageTitle;
+  String get createMessagePromptLabel;
+  String get createMessagePromptHint;
+  String get createMessageExamples;
+  String get createMessageEmpty;
+  String get exampleRomanticQuote;
+  String get exampleGoodMorning;
+  String get exampleMissYou;
+  String get exampleMakeHerSmile;
   String get noMessageCaptured;
   String get newReply;
   String get messageLabel;
@@ -456,6 +467,31 @@ class EnglishStrings extends AppStrings {
   String get intentAskForDetails => 'Ask for details';
   @override
   String get intentSuggestAnotherTime => 'Suggest another time';
+  @override
+  String get writeSomethingNew => 'Write something new';
+  @override
+  String get writeSomethingNewSubtitle =>
+      'Make a message from your own idea, without needing an incoming chat.';
+  @override
+  String get createMessageTitle => 'Create a message';
+  @override
+  String get createMessagePromptLabel => 'What would you like to write?';
+  @override
+  String get createMessagePromptHint =>
+      'For example: write a short, sweet quote for my girlfriend…';
+  @override
+  String get createMessageExamples => 'Quick ideas';
+  @override
+  String get createMessageEmpty =>
+      'Write an idea first, or choose a quick idea.';
+  @override
+  String get exampleRomanticQuote => 'Romantic quote';
+  @override
+  String get exampleGoodMorning => 'Good morning';
+  @override
+  String get exampleMissYou => 'I miss you';
+  @override
+  String get exampleMakeHerSmile => 'Make her smile';
   @override
   String get noMessageCaptured =>
       'No message was captured. ReplyMate only keeps a message while the app is open, so paste the text below to reply to something yourself.';
@@ -1076,6 +1112,31 @@ class BengaliStrings extends AppStrings {
   @override
   String get intentSuggestAnotherTime => 'অন্য সময় প্রস্তাব করুন';
   @override
+  String get writeSomethingNew => 'নতুন কিছু লিখুন';
+  @override
+  String get writeSomethingNewSubtitle =>
+      'কোনো আসা মেসেজ ছাড়াই নিজের ভাবনা থেকে জবাব লিখুন।';
+  @override
+  String get createMessageTitle => 'একটি মেসেজ লিখুন';
+  @override
+  String get createMessagePromptLabel => 'কী লিখতে চান?';
+  @override
+  String get createMessagePromptHint =>
+      'যেমন: আমার প্রেমিকার জন্য ছোট্ট, মিষ্টি একটি উক্তি লিখে দাও…';
+  @override
+  String get createMessageExamples => 'দ্রুত আইডিয়া';
+  @override
+  String get createMessageEmpty =>
+      'আগে একটি ভাবনা লিখুন, বা দ্রুত আইডিয়া বেছে নিন।';
+  @override
+  String get exampleRomanticQuote => 'রোমান্টিক উক্তি';
+  @override
+  String get exampleGoodMorning => 'সুপ্রভাত';
+  @override
+  String get exampleMissYou => 'মিস করছি';
+  @override
+  String get exampleMakeHerSmile => 'হাসিমুখে রাখুন';
+  @override
   String get noMessageCaptured =>
       'কোনো মেসেজ ধরা পড়েনি। ReplyMate মেসেজ রাখে শুধু অ্যাপ খোলা থাকা পর্যন্ত, তাই নিচে টেক্সট পেস্ট করে নিজে উত্তর দিন।';
   @override
@@ -1685,6 +1746,31 @@ class HindiStrings extends AppStrings {
   String get intentAskForDetails => 'और जानकारी पूछें';
   @override
   String get intentSuggestAnotherTime => 'कोई और समय सुझाएँ';
+  @override
+  String get writeSomethingNew => 'कुछ नया लिखें';
+  @override
+  String get writeSomethingNewSubtitle =>
+      'किसी आए हुए चैट संदेश के बिना, अपने विचार से संदेश बनाएँ।';
+  @override
+  String get createMessageTitle => 'एक संदेश लिखें';
+  @override
+  String get createMessagePromptLabel => 'आप क्या लिखना चाहते हैं?';
+  @override
+  String get createMessagePromptHint =>
+      'जैसे: मेरी प्रेमिका के लिए एक छोटा, प्यारा सा कथन लिखो…';
+  @override
+  String get createMessageExamples => 'झटपट सुझाव';
+  @override
+  String get createMessageEmpty =>
+      'पहले अपना विचार लिखें या कोई झटपट सुझाव चुनें।';
+  @override
+  String get exampleRomanticQuote => 'रोमांटिक कथन';
+  @override
+  String get exampleGoodMorning => 'शुभ प्रभात';
+  @override
+  String get exampleMissYou => 'याद आ रही है';
+  @override
+  String get exampleMakeHerSmile => 'उसे मुस्कुराएँ';
   @override
   String get noMessageCaptured =>
       'कोई संदेश कैप्चर नहीं हुआ। ReplyMate संदेश केवल ऐप खुला रहने तक रखता है, इसलिए नीचे पाठ पेस्ट करके खुद जवाब दें।';

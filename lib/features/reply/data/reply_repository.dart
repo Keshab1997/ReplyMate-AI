@@ -150,9 +150,12 @@ class BudgetedReplyRepository implements ReplyRepository {
 
     // A failed rewrite cannot honestly fall back to an unrelated offline reply
     // to the incoming message. Keep the original draft and report the failure.
-    // Intent chips also require intent-aware wording; generic offline candidates
-    // could contradict a selected purpose, so preserve the honest failure.
-    if (request.draftToRefine != null || request.replyIntent != null) {
+    // Intent chips and standalone writing briefs need task-aware wording;
+    // generic offline candidates could contradict either request, so keep the
+    // honest failure instead of returning an unrelated draft.
+    if (request.draftToRefine != null ||
+        request.replyIntent != null ||
+        request.mode == ReplyMode.createMessage) {
       return result;
     }
 
@@ -175,7 +178,8 @@ class BudgetedReplyRepository implements ReplyRepository {
   /// The offline candidates for a request, without attempting a paid call.
   /// Used when the allowance is spent, so the screen can still offer something
   /// rather than a dead end.
-  List<String> offlineOnly(ReplyRequest request) => request.replyIntent != null
+  List<String> offlineOnly(ReplyRequest request) =>
+      request.replyIntent != null || request.mode == ReplyMode.createMessage
       ? const <String>[]
       : OfflineSuggestions.forMessage(
           request.trimmedMessage,

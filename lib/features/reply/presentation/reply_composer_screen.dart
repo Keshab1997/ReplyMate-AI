@@ -23,6 +23,7 @@ import '../data/reply_repository.dart';
 import '../domain/reply_intent.dart';
 import '../domain/reply_request.dart';
 import '../providers/saved_replies_provider.dart';
+import 'create_message_screen.dart';
 import 'suggestions_screen.dart';
 
 /// Screen 6 of. Context arrives from one of
@@ -215,6 +216,12 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
           offline: true,
         ),
       ),
+    );
+  }
+
+  Future<void> _openCreateMessage() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const CreateMessageScreen()),
     );
   }
 
@@ -473,6 +480,23 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
                               mood: _generating
                                   ? MascotMood.thinking
                                   : MascotMood.listening,
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.spaceMd),
+                          Card(
+                            margin: EdgeInsets.zero,
+                            child: ListTile(
+                              key: const Key('writeSomethingNewEntry'),
+                              leading: Icon(
+                                Icons.auto_awesome_rounded,
+                                color: scheme.primary,
+                              ),
+                              title: Text(_strings.writeSomethingNew),
+                              subtitle: Text(
+                                _strings.writeSomethingNewSubtitle,
+                              ),
+                              trailing: const Icon(Icons.chevron_right_rounded),
+                              onTap: _openCreateMessage,
                             ),
                           ),
                           const SizedBox(height: AppTheme.spaceMd),

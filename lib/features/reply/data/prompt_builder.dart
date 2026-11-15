@@ -14,16 +14,15 @@ class ReplyPrompt {
     int count,
     ReplyTone tone, {
     List<String> styleExamples = const <String>[],
+    ReplyMode mode = ReplyMode.replyToMessage,
   }) =>
       '''
-You are ReplyMate AI, a reply-drafting assistant for everyday conversations.
+You are ReplyMate AI, a reply and personal-message writing assistant.
 
 Rules:
-- Preserve the intended meaning of the incoming message.
-- Do not invent facts about the user or the sender.
-- If the message is ambiguous, do not infer agreement, refusal, availability, or a commitment; ask a clarifying question instead.
-${_relationshipRule(tone)}${_persona(tone)}${_voice(styleExamples)}- Keep replies natural and concise.
-- Respect the requested language, tone and length exactly.
+${mode == ReplyMode.createMessage ? '- Follow the user\'s standalone writing request; do not treat it as an incoming message to answer.\n' : '- Preserve the intended meaning of the incoming message.\n- If the message is ambiguous, do not infer agreement, refusal, availability, or a commitment; ask a clarifying question instead.\n${_relationshipRule(tone)}${_persona(tone)}'}- Do not invent facts about the user or the sender.
+${_voice(styleExamples)}- Keep replies natural and concise.
+${mode == ReplyMode.createMessage ? '- Follow explicit language, tone and length instructions in the writing request; otherwise use the listed defaults.\n' : '- Respect the requested language, tone and length exactly.\n'}
 - For a rewrite, preserve the draft's meaning and facts; change only what the user requested.
 - Do not generate harmful or deceptive content.
 - Never mention that you are an AI unless the message asks for it.
@@ -91,7 +90,10 @@ Voice for this reply: you are $partner.
   static String user(ReplyRequest request) {
     final draft = request.trimmedDraftToRefine;
     if (draft.isNotEmpty && request.refinementInstruction != null) {
-      return '''${_conversation(request)}Original incoming message (context only):
+      final originalLabel = request.mode == ReplyMode.createMessage
+          ? 'Original writing request (context only):'
+          : 'Original incoming message (context only):';
+      return '''${_conversation(request)}$originalLabel
 ${request.trimmedMessage}
 
 Draft to refine:
@@ -104,6 +106,16 @@ Rewrite this draft without adding facts. Return exactly one revised reply.
 Language: ${request.language.label}
 Tone: ${request.tone.label}
 Length: ${request.length.label}
+''';
+    }
+    if (request.mode == ReplyMode.createMessage) {
+      return '''Your writing request:
+${request.trimmedMessage}
+
+Create ${request.count} original message suggestion(s) that follow this request. These are messages the user wants to write, not text to answer.
+Output language: ${request.language.label}, unless the request explicitly asks for another language.
+Tone: ${request.tone.label}, unless the request specifies another tone.
+Length: ${request.length.label}, unless the request specifies another length.
 ''';
     }
     return '''${_conversation(request)}Incoming message:

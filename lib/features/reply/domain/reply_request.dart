@@ -2,6 +2,10 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/reply_options.dart';
 import 'reply_intent.dart';
 
+/// Whether a request answers an incoming message or creates a fresh message
+/// from the user's own writing brief.
+enum ReplyMode { replyToMessage, createMessage }
+
 /// A validated request for reply suggestions (FR-05 to FR-07).
 /// Validation lives in the domain layer so every entry point - composer,
 /// PROCESS_TEXT, share sheet - gets the same guarantees, and so the rules are
@@ -18,6 +22,7 @@ class ReplyRequest {
     this.draftToRefine,
     this.refinementInstruction,
     this.replyIntent,
+    this.mode = ReplyMode.replyToMessage,
   });
 
   final String message;
@@ -49,6 +54,10 @@ class ReplyRequest {
   /// Optional purpose selected by the user before generating this draft.
   final ReplyIntent? replyIntent;
 
+  /// Defaults to the existing incoming-message flow; createMessage is the
+  /// separate, prompt-based writing tool.
+  final ReplyMode mode;
+
   String get trimmedMessage => message.trim();
   String get trimmedDraftToRefine => draftToRefine?.trim() ?? '';
 
@@ -60,6 +69,7 @@ class ReplyRequest {
     String? draftToRefine,
     String? refinementInstruction,
     ReplyIntent? replyIntent,
+    ReplyMode? mode,
   }) => ReplyRequest(
     message: message,
     language: language ?? this.language,
@@ -71,6 +81,7 @@ class ReplyRequest {
     draftToRefine: draftToRefine ?? this.draftToRefine,
     refinementInstruction: refinementInstruction ?? this.refinementInstruction,
     replyIntent: replyIntent ?? this.replyIntent,
+    mode: mode ?? this.mode,
   );
 
   /// All problems with this request, empty when it is sendable. Returning a
@@ -122,5 +133,6 @@ class ReplyRequest {
     if (refinementInstruction != null)
       'refinementInstruction': refinementInstruction,
     if (replyIntent != null) 'replyIntent': replyIntent?.name,
+    if (mode != ReplyMode.replyToMessage) 'mode': mode.name,
   };
 }

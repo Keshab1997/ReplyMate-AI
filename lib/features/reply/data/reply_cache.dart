@@ -72,6 +72,7 @@ class ReplyCache {
       // content enough to justify a cache miss on every new example.
       request.priorMessages.join('\u0001'),
       request.replyIntent?.name ?? '',
+      request.mode.name,
     ];
     return base64Url.encode(utf8.encode(parts.join('\u0002')));
   }

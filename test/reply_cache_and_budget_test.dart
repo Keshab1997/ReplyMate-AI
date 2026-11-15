@@ -102,6 +102,13 @@ void main() {
         ),
         isNot(base),
       );
+      expect(
+        ReplyCache.keyFor(
+          _request(message: 'hello there')
+              .copyWith(mode: ReplyMode.createMessage),
+        ),
+        isNot(base),
+      );
     });
 
     test('surrounding whitespace does not split the cache', () {
@@ -350,6 +357,11 @@ void main() {
 
         expect(result, isA<ReplyFailure>());
         expect(repo.offlineOnly(intended), isEmpty);
+
+        final standalone = _request(message: 'Write a love note.')
+            .copyWith(mode: ReplyMode.createMessage);
+        expect(await repo.generate(standalone), isA<ReplyFailure>());
+        expect(repo.offlineOnly(standalone), isEmpty);
       },
     );
 

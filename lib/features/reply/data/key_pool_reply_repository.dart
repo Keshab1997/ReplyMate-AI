@@ -47,6 +47,7 @@ class KeyPoolReplyRepository implements ReplyRepository {
           request.count,
           request.tone,
           styleExamples: request.styleExamples,
+          mode: request.mode,
         ),
         userPrompt: ReplyPrompt.user(request),
       );

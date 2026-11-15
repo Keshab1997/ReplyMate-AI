@@ -54,6 +54,55 @@ void main() {
     expect(system, contains('ask a clarifying question instead'));
   });
 
+  test(
+    'standalone mode treats the text as a writing brief, not a chat to answer',
+    () {
+      const request = ReplyRequest(
+        message: 'Write a tiny romantic quote for my girlfriend in Bengali.',
+        language: ReplyLanguage.english,
+        tone: ReplyTone.friendly,
+        length: ReplyLength.short,
+        count: 2,
+        mode: ReplyMode.createMessage,
+      );
+      final system = ReplyPrompt.system(
+        2,
+        ReplyTone.friendly,
+        mode: ReplyMode.createMessage,
+      );
+      final user = ReplyPrompt.user(request);
+
+      expect(system, contains('standalone writing request'));
+      expect(
+        system,
+        contains('Follow explicit language, tone and length instructions'),
+      );
+      expect(
+        system,
+        isNot(
+          contains('Preserve the intended meaning of the incoming message'),
+        ),
+      );
+      expect(system, isNot(contains('If the message is ambiguous')));
+      expect(system, isNot(contains('Do not assume a relationship')));
+      expect(user, contains('Your writing request:'));
+      expect(user, contains('Create 2 original message suggestion(s)'));
+      expect(
+        user,
+        contains('unless the request explicitly asks for another language'),
+      );
+      expect(user, isNot(contains('Incoming message:')));
+      final rewrite = ReplyPrompt.user(
+        request.copyWith(
+          draftToRefine: 'তুমি আমার দিনের আলো।',
+          refinementInstruction: 'Make it even shorter.',
+        ),
+      );
+      expect(rewrite, contains('Original writing request (context only):'));
+      expect(rewrite, isNot(contains('Original incoming message')));
+    },
+  );
+
   test('the user prompt carries message, language, tone and length', () {
     final user = ReplyPrompt.user(request);
     expect(user, contains('Can we meet tomorrow?'));

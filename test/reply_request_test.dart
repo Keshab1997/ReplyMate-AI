@@ -85,6 +85,10 @@ void main() {
         );
         expect(intended.toJson()['replyIntent'], 'politeDecline');
         expect(request().toJson().containsKey('replyIntent'), isFalse);
+
+        final compose = intended.copyWith(mode: ReplyMode.createMessage);
+        expect(compose.toJson()['mode'], 'createMessage');
+        expect(intended.toJson().containsKey('mode'), isFalse);
       },
     );
   });
