@@ -104,11 +104,12 @@ class ReplyDefaultsScreen extends ConsumerWidget {
           ),
         ),
 
-        // One card, four labelled groups, rules between them. No uppercase
-        // "REPLY STYLE" heading above it any more: the screen is already called
-        // that, and a label that repeats the title is decoration, not structure.
-        SettingsSection(
-          label: strings.replyStyle,
+        // One card, four labelled groups, rules between them. There is no
+        // uppercase "REPLY STYLE" heading above it: the screen is already
+        // called that, and a label that repeats the title is decoration, not
+        // structure. (The screenshot said so before the code review did.)
+        Padding(
+          padding: const EdgeInsets.only(top: AppTheme.spaceLg),
           child: Card(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),

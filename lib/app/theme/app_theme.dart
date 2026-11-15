@@ -218,6 +218,8 @@ class AppTheme {
         checkmarkColor: isDark ? brandBright : brand,
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
         labelStyle: TextStyle(
+          fontFamily: fontFamily,
+          fontFamilyFallback: fontFamilyFallback,
           fontSize: 12.5,
           fontWeight: FontWeight.w600,
           color: scheme.onSurface,
@@ -229,11 +231,15 @@ class AppTheme {
           vertical: AppTheme.spaceXs,
         ),
         titleTextStyle: TextStyle(
+          fontFamily: fontFamily,
+          fontFamilyFallback: fontFamilyFallback,
           color: scheme.onSurface,
           fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
         subtitleTextStyle: TextStyle(
+          fontFamily: fontFamily,
+          fontFamilyFallback: fontFamilyFallback,
           color: scheme.onSurfaceVariant,
           fontSize: 12.5,
           height: 1.4,
