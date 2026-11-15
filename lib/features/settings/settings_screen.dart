@@ -8,12 +8,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme/app_icons.dart';
 import '../../app/theme/app_theme.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/constants/app_info.dart';
 import '../../core/constants/reply_options.dart';
 import '../../core/l10n/app_strings.dart';
 import '../../core/firebase/firebase_providers.dart';
 import '../../shared/widgets/brand_icon.dart';
 import '../../shared/widgets/choice_chips.dart';
 import '../../shared/widgets/mascot_face.dart';
+import '../about/about_screen.dart';
 import '../admin/admin_gate_screen.dart';
 import '../../shared/widgets/permission_status_card.dart';
 import '../../shared/widgets/screen_header.dart';
@@ -252,14 +254,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                 ),
                 const SizedBox(height: AppTheme.spaceMd),
 
-                // The helper, small, with its state in words: the same face the
-                // bubble shows, so the settings screen and the bubble feel like
-                // one thing.
+                // Identity, not a control: the face, the name, and the two
+                // facts a bug report needs. It used to be a "Your helper" card
+                // in English that repeated the bubble switch's state one card
+                // below it - a duplicate *and* an untranslated island.
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(AppTheme.spaceMd - 2),
                     child: Row(
-                      children: [
+                      children: <Widget>[
                         MascotFace(
                           size: 44,
                           glow: false,
@@ -272,34 +275,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                            children: <Widget>[
                               Text(
-                                'Your helper',
+                                AppInfo.name,
                                 style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.2,
                                 ),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                bubbleEnabled
-                                    ? 'Bubble on · waits over your chats'
-                                    : 'Bubble off · replies still work here',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  fontSize: 12.5,
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
+                              const SizedBox(height: 3),
+                              // A Wrap, not a Row: at a large text scale on a
+                              // narrow phone the version and the status must
+                              // fall onto two lines instead of overflowing.
+                              Wrap(
+                                spacing: AppTheme.spaceSm,
+                                runSpacing: 2,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: <Widget>[
+                                  Text(
+                                    strings.versionLine(AppInfo.versionLabel),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      fontSize: 11.5,
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  Text(
+                                    strings.statusDevelopment,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.amber,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ),
-                        Icon(
-                          bubbleEnabled
-                              ? AppIcons.bubble
-                              : AppIcons.bubbleOutlined,
-                          size: 20,
-                          color: bubbleEnabled
-                              ? AppTheme.mint
-                              : theme.colorScheme.onSurfaceVariant,
                         ),
                       ],
                     ),
@@ -752,6 +763,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
                           ),
                         ],
                       ),
+                    ),
+                  ),
+                ),
+
+                // The row every Android user looks for. It opens a screen
+                // rather than dumping six paragraphs into Settings: the version
+                // and the honest status belong together, and neither belongs
+                // between the switches.
+                section(
+                  strings.aboutTitle,
+                  Card(
+                    clipBehavior: Clip.antiAlias,
+                    child: ListTile(
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const AboutScreen(),
+                        ),
+                      ),
+                      leading: const Icon(Icons.info_outline_rounded, size: 20),
+                      title: Text(strings.aboutOpenTitle),
+                      subtitle: Text(
+                        strings.aboutOpenSubtitle,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 12,
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
                     ),
                   ),
                 ),

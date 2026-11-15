@@ -242,6 +242,27 @@ abstract class AppStrings {
   String readerLastScan(String summary);
   String get readerNothingYet;
   String readerSeen(String text);
+
+  // About this app (Settings → About). The version is a real value shown to a
+  // user who is about to file a bug report, not decoration: it must match
+  // pubspec.yaml, and test/app_info_test.dart is what holds the two together.
+  String get aboutTitle;
+  String get aboutOpenTitle;
+  String get aboutOpenSubtitle;
+  String get aboutTagline;
+  String versionLine(String version);
+  String get aboutDoesTitle;
+  String get aboutDoesBody;
+  String get aboutNeverTitle;
+  String get aboutNeverBody;
+  String get aboutStatusTitle;
+  String get aboutStatusBody;
+  String get aboutLicenseTitle;
+  String get aboutLicenseBody;
+  String get aboutCreditsTitle;
+  String get aboutCreditsBody;
+  String get aboutSourceLabel;
+  String get statusDevelopment;
 }
 
 class EnglishStrings extends AppStrings {
@@ -785,6 +806,59 @@ class EnglishStrings extends AppStrings {
 
   @override
   String readerSeen(String text) => 'Seen: "$text"';
+
+  @override
+  String get aboutTitle => 'About this app';
+  @override
+  String get aboutOpenTitle => 'About ReplyMate';
+  @override
+  String get aboutOpenSubtitle =>
+      'Version, what it does, and what it never does';
+  @override
+  String get aboutTagline =>
+      'Drafts replies in Bengali, Hindi and English. You send them.';
+  @override
+  String versionLine(String version) => 'Version $version';
+  @override
+  String get aboutDoesTitle => 'What it does';
+  @override
+  String get aboutDoesBody =>
+      'Reads the message you were already sent - from a notification, the '
+      'share sheet, text you selected, or the bubble over the app you are in - '
+      'and drafts one to three replies in the language and tone you chose. '
+      'Offline suggestions work with no key, no network and no Firebase.';
+  @override
+  String get aboutNeverTitle => 'What it never does';
+  @override
+  String get aboutNeverBody =>
+      'It never sends a message for you, never types into another app, never '
+      'clicks anything, and never keeps a copy of your conversations unless '
+      'you switch conversation memory on - and switching it off deletes it.';
+  @override
+  String get aboutStatusTitle => 'Status';
+  @override
+  String get aboutStatusBody =>
+      'A development build. The floating bubble, screen reading and quick '
+      'reply are code-complete but not verified on a real device, the Hindi '
+      'interface has not had a native speaker review it, and the app is not '
+      'release-ready. Say so when you report a bug: it is the useful context.';
+  @override
+  String get aboutLicenseTitle => 'License';
+  @override
+  String get aboutLicenseBody =>
+      'GNU Affero General Public License v3.0. You may use, study and modify '
+      'it; if you ship a modified version, its source has to be published '
+      'under the same licence.';
+  @override
+  String get aboutCreditsTitle => 'Credits';
+  @override
+  String get aboutCreditsBody =>
+      'Interface type Inter, with Noto Sans Bengali and Noto Sans Devanagari '
+      'for the scripts Inter does not cover - all SIL Open Font License.';
+  @override
+  String get aboutSourceLabel => 'Source code';
+  @override
+  String get statusDevelopment => 'Development build';
 }
 
 class BengaliStrings extends AppStrings {
@@ -1317,6 +1391,56 @@ class BengaliStrings extends AppStrings {
 
   @override
   String readerSeen(String text) => 'দেখা গেছে: "$text"';
+
+  @override
+  String get aboutTitle => 'অ্যাপ পরিচিতি';
+  @override
+  String get aboutOpenTitle => 'ReplyMate সম্পর্কে';
+  @override
+  String get aboutOpenSubtitle => 'ভার্সন, কী করে আর কী কখনোই করে না';
+  @override
+  String get aboutTagline =>
+      'বাংলা, হিন্দি আর ইংরেজিতে রিপ্লাই লিখে দেয়। পাঠান আপনি।';
+  @override
+  String versionLine(String version) => 'ভার্সন $version';
+  @override
+  String get aboutDoesTitle => 'যা করে';
+  @override
+  String get aboutDoesBody =>
+      'আপনার কাছে আগেই আসা মেসেজটা পড়ে - নোটিফিকেশন, শেয়ার শিট, সিলেক্ট করা '
+      'টেক্সট, বা যে অ্যাপে আছেন তার উপরে ভাসা বাবল থেকে - আর আপনার বেছে নেওয়া '
+      'ভাষা আর সুরে এক থেকে তিনটে রিপ্লাই লিখে দেয়। key, নেটওয়ার্ক বা Firebase '
+      'ছাড়াও অফলাইন সাজেশন কাজ করে।';
+  @override
+  String get aboutNeverTitle => 'যা কখনোই করে না';
+  @override
+  String get aboutNeverBody =>
+      'আপনার হয়ে মেসেজ পাঠায় না, অন্য অ্যাপে টাইপ করে না, কোথাও ক্লিক করে না, '
+      'আর আপনি কথোপকথনের মেমরি চালু না করলে কোনো কপিও রাখে না - বন্ধ করলে মুছে যায়।';
+  @override
+  String get aboutStatusTitle => 'অবস্থা';
+  @override
+  String get aboutStatusBody =>
+      'এটা এখনো ডেভেলপমেন্ট বিল্ড। ভাসা বাবল, স্ক্রিন রিডিং আর কুইক রিপ্লাই কোডে '
+      'সম্পূর্ণ, কিন্তু আসল ফোনে যাচাই হয়নি; হিন্দি ইন্টারফেস কোনো মাতৃভাষীর '
+      'রিভিউ পায়নি; আর অ্যাপটা রিলিজের জন্য তৈরি নয়। বাগ জানানোর সময় এটা লিখুন - '
+      'এটাই কাজের তথ্য।';
+  @override
+  String get aboutLicenseTitle => 'লাইসেন্স';
+  @override
+  String get aboutLicenseBody =>
+      'GNU Affero General Public License v3.0। ব্যবহার, পড়া আর বদল করা যাবে; '
+      'কিন্তু বদলানো ভার্সন প্রকাশ করলে তার সোর্সও একই লাইসেন্সে দিতে হবে।';
+  @override
+  String get aboutCreditsTitle => 'কৃতিত্ব';
+  @override
+  String get aboutCreditsBody =>
+      'ইন্টারফেসের ফন্ট Inter, আর Inter যেসব লিপি কভার করে না তার জন্য Noto Sans '
+      'Bengali ও Noto Sans Devanagari - সবই SIL Open Font License।';
+  @override
+  String get aboutSourceLabel => 'সোর্স কোড';
+  @override
+  String get statusDevelopment => 'ডেভেলপমেন্ট বিল্ড';
 }
 
 final NotifierProvider<AppLanguageNotifier, AppLanguage> appLanguageProvider =
@@ -1850,6 +1974,58 @@ class HindiStrings extends AppStrings {
 
   @override
   String readerSeen(String text) => 'देखा गया: "$text"';
+
+  @override
+  String get aboutTitle => 'ऐप के बारे में';
+  @override
+  String get aboutOpenTitle => 'ReplyMate के बारे में';
+  @override
+  String get aboutOpenSubtitle => 'वर्ज़न, क्या करता है और क्या कभी नहीं करता';
+  @override
+  String get aboutTagline =>
+      'बांग्ला, हिंदी और अंग्रेज़ी में जवाब लिखता है। भेजते आप हैं।';
+  @override
+  String versionLine(String version) => 'वर्ज़न $version';
+  @override
+  String get aboutDoesTitle => 'क्या करता है';
+  @override
+  String get aboutDoesBody =>
+      'आपको पहले से मिला संदेश पढ़ता है - सूचना, शेयर शीट, चुना हुआ टेक्स्ट, या '
+      'जिस ऐप में आप हैं उसके ऊपर तैरता बबल - और आपकी चुनी भाषा व लहजे में एक से '
+      'तीन जवाब लिख देता है। बिना key, बिना नेटवर्क और बिना Firebase भी ऑफ़लाइन '
+      'सुझाव काम करते हैं।';
+  @override
+  String get aboutNeverTitle => 'क्या कभी नहीं करता';
+  @override
+  String get aboutNeverBody =>
+      'आपकी ओर से संदेश नहीं भेजता, किसी दूसरे ऐप में टाइप नहीं करता, कहीं क्लिक '
+      'नहीं करता, और जब तक आप बातचीत की मेमोरी चालू न करें किसी बातचीत की कॉपी '
+      'नहीं रखता - बंद करने पर वह मिट जाती है।';
+  @override
+  String get aboutStatusTitle => 'स्थिति';
+  @override
+  String get aboutStatusBody =>
+      'यह अभी डेवलपमेंट बिल्ड है। तैरता बबल, स्क्रीन रीडिंग और क्विक रिप्लाई कोड '
+      'में पूरे हैं, पर असली फ़ोन पर जाँचे नहीं गए; हिंदी इंटरफ़ेस को किसी '
+      'मातृभाषी ने नहीं देखा; और ऐप रिलीज़ के लिए तैयार नहीं है। बग बताते समय यह '
+      'भी लिखें - यही काम की जानकारी है।';
+  @override
+  String get aboutLicenseTitle => 'लाइसेंस';
+  @override
+  String get aboutLicenseBody =>
+      'GNU Affero General Public License v3.0। इस्तेमाल, अध्ययन और बदलाव की '
+      'अनुमति है; पर बदला हुआ संस्करण जारी करने पर उसका सोर्स भी इसी लाइसेंस में '
+      'देना होगा।';
+  @override
+  String get aboutCreditsTitle => 'श्रेय';
+  @override
+  String get aboutCreditsBody =>
+      'इंटरफ़ेस का फ़ॉन्ट Inter, और जिन लिपियों को Inter कवर नहीं करता उनके लिए '
+      'Noto Sans Bengali व Noto Sans Devanagari - सभी SIL Open Font License।';
+  @override
+  String get aboutSourceLabel => 'सोर्स कोड';
+  @override
+  String get statusDevelopment => 'डेवलपमेंट बिल्ड';
 }
 
 class AppLanguageNotifier extends Notifier<AppLanguage> {
