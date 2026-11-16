@@ -122,16 +122,13 @@ void main() {
     final repository = _RecordingCreateRepository();
     await pumpCreateScreen(tester, repository);
 
-    // Chat is the default, and it is what the screen shipped as.
-    expect(
-      tester
-          .widget<ChoiceChip>(
-            find.byKey(const ValueKey<String>('writingFormat-chat')),
-          )
-          .selected,
-      isTrue,
-    );
+    // Chat is the default, and it is what the screen shipped as - stated on
+    // the toolbar pill, so no menu has to be opened to find that out.
+    expect(find.byKey(const Key('openWritingFormatMenu')), findsOneWidget);
+    expect(find.text(const EnglishStrings().formatChat), findsWidgets);
 
+    await tester.tap(find.byKey(const Key('openWritingFormatMenu')));
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey<String>('writingFormat-application')),
     );
@@ -160,6 +157,8 @@ void main() {
       findsOneWidget,
     );
 
+    await tester.tap(find.byKey(const Key('openWritingFormatMenu')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey<String>('writingFormat-email')));
     await tester.pumpAndSettle();
 
@@ -387,19 +386,16 @@ void main() {
 
     expect(repository.requests, hasLength(2));
     expect(repository.requests[1].tone, ReplyTone.funny);
-    // The draft states its own style, so a wrong-looking reply can be traced to
-    // the style it was asked for.
+    // The style is stated once, on the toolbar pill - a draft written in
+    // exactly that style carries no label of its own.
+    expect(find.byKey(const Key('chatStyleSummary')), findsOneWidget);
     expect(
-      find.byKey(const ValueKey<String>('createMessageDraftStyle-1-0')),
-      findsOneWidget,
+      tester.widget<Text>(find.byKey(const Key('chatStyleSummary'))).data,
+      contains(ReplyTone.funny.label),
     );
     expect(
-      tester
-          .widget<Text>(
-            find.byKey(const ValueKey<String>('createMessageDraftStyle-1-0')),
-          )
-          .data,
-      contains(ReplyTone.funny.label),
+      find.byKey(const ValueKey<String>('createMessageDraftStyle-1-0')),
+      findsNothing,
     );
   });
 

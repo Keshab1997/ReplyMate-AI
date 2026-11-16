@@ -59,7 +59,13 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
   /// saved chat carries its own style) the screen stops reading it.
   bool _styleSeeded = false;
 
-  int get _suggestionCount => ref.read(preferencesProvider).suggestionCount;
+  /// One message per prompt, deliberately.
+  ///
+  /// The writer is a conversation, not a suggestion list: two drafts for the
+  /// same brief made the screen look like it could not decide, and the user has
+  /// to read both before picking. The reply panel still offers several, because
+  /// there the choice is the point - here the user already said what they want.
+  static const int _suggestionCount = 1;
 
   @override
   void dispose() {
@@ -570,32 +576,34 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
               ),
           ],
         ),
-        const SizedBox(height: AppTheme.spaceLg),
-        // A quick idea sends straight away, so say what it will be written in
-        // before it is tapped rather than leaving the answer's style to be
-        // discovered afterwards.
-        Row(
-          children: [
-            Icon(
-              Icons.tune_rounded,
-              size: 15,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                [_language.label, _tone.label, _length.label].join(' · '),
-                key: const Key('createMessageStyleSummary'),
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
       ],
     );
+  }
+
+  /// The label a draft needs, or null when it was written in exactly the style
+  /// the toolbar promised.
+  ///
+  /// A repeated `Bengali · Premika · Medium` under every draft was noise - the
+  /// pill above the input already said it, and saying it twice made the screen
+  /// busier without telling anyone anything. This reports only the surprise.
+  String? _draftStyleNote(_ChatTurn turn) {
+    final request = turn.request;
+    final asked = [_language, _tone, _length];
+    final got = [request.language, request.tone, request.length];
+    if (request.format != _format) {
+      return 'Written as ${_formatLabel(request.format)}';
+    }
+    for (var i = 0; i < asked.length; i++) {
+      if (asked[i] != got[i]) {
+        final actual = switch (i) {
+          0 => request.language.label,
+          1 => request.tone.label,
+          _ => request.length.label,
+        };
+        return 'Written in $actual, not what the style asks for';
+      }
+    }
+    return null;
   }
 
   Widget _buildTurn(BuildContext context, _ChatTurn turn, int turnIndex) {
@@ -725,53 +733,47 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
                                   ),
                                 ),
                               ),
-                              // The style the draft was actually written with,
-                              // stated on the draft itself: a row above the input
-                              // says what will be asked for, this says what came
-                              // back - and they are not always the same, because
-                              // an explicit request inside the brief wins.
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  AppTheme.spaceSm,
-                                  0,
-                                  AppTheme.spaceXs,
-                                  AppTheme.spaceXs,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        [
-                                          turn.request.language.label,
-                                          turn.request.tone.label,
-                                          turn.request.length.label,
-                                        ].join(' · '),
-                                        key: ValueKey<String>(
-                                          'createMessageDraftStyle-$turnIndex-$replyIndex',
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: theme.textTheme.labelSmall
-                                            ?.copyWith(
-                                              color: scheme.onSurfaceVariant,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                      ),
+                              // The style is stated once, in the pill. This
+                              // line appears only when the draft came back in
+                              // something else - because an explicit request
+                              // inside the brief ("write it in English") wins
+                              // over the chip - which is exactly when a silent
+                              // difference would look like a bug.
+                              if (_draftStyleNote(turn) != null)
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    AppTheme.spaceMd,
+                                    0,
+                                    AppTheme.spaceSm,
+                                    AppTheme.spaceXs,
+                                  ),
+                                  child: Text(
+                                    _draftStyleNote(turn)!,
+                                    key: ValueKey<String>(
+                                      'createMessageDraftStyle-$turnIndex-$replyIndex',
                                     ),
-                                    IconButton(
-                                      key: ValueKey<String>(
-                                        'copyCreateMessageDraft-$turnIndex-$replyIndex',
-                                      ),
-                                      tooltip: _strings.copyDraft,
-                                      visualDensity: VisualDensity.compact,
-                                      onPressed: () => _copyDraft(reply),
-                                      icon: const Icon(
-                                        Icons.copy_rounded,
-                                        size: 17,
-                                      ),
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                      fontWeight: FontWeight.w600,
                                     ),
-                                  ],
+                                  ),
                                 ),
+                              Row(
+                                children: [
+                                  const Spacer(),
+                                  IconButton(
+                                    key: ValueKey<String>(
+                                      'copyCreateMessageDraft-$turnIndex-$replyIndex',
+                                    ),
+                                    tooltip: _strings.copyDraft,
+                                    visualDensity: VisualDensity.compact,
+                                    onPressed: () => _copyDraft(reply),
+                                    icon: const Icon(
+                                      Icons.copy_rounded,
+                                      size: 17,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -930,7 +932,7 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(
         AppTheme.spaceMd,
-        AppTheme.spaceSm,
+        AppTheme.spaceXs + 2,
         AppTheme.spaceMd,
         AppTheme.spaceSm,
       ),
@@ -943,98 +945,44 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Four formats, always visible: this is the difference between "a
-          // message" and "an application", and hiding it behind a menu made the
-          // screen look like it could only write one of them.
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppTheme.spaceSm),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Wrap(
-                spacing: AppTheme.spaceXs,
-                runSpacing: AppTheme.spaceXs,
-                children: [
-                  for (final format in WritingFormat.values)
-                    ChoiceChip(
-                      key: ValueKey<String>('writingFormat-${format.id}'),
-                      label: Text(_formatLabel(format)),
-                      selected: _format == format,
-                      onSelected: _generating
-                          ? null
-                          : (_) => setState(() => _format = format),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          // The style, on the screen that writes the message. It seeds itself
-          // from Settings and then belongs to this chat: a chat app keeps one
-          // voice per conversation, and the tone you *reply* with is not
-          // necessarily the tone you *open* a conversation with.
+          // One toolbar, not three rows of chips.
           //
-          // It is a single pill, not nine chips: eight tones and three lengths
-          // spelled out inline ran to 1600 logical pixels and pushed the chips
-          // the user needed off the edge of the screen. The pill states the
-          // current style in full and the sheet holds the choices.
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppTheme.spaceSm),
-            child: Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    key: const Key('openChatStyleSheet'),
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: _generating ? null : _openStyleSheet,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppTheme.spaceSm + 2,
-                        vertical: 7,
+          // The composer used to carry four format chips, nine tone chips and a
+          // style pill above the input - about 180 logical pixels of controls
+          // for a text box, which on a phone reads as a wall of buttons. The
+          // format, the style and the history are all reachable, but each is one
+          // small target and the input is the part that gets the room.
+          Row(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      // Format: "Letter" alone. Which four exist is a menu, not
+                      // a row - a user picks a format once per message.
+                      _ComposerPill(
+                        key: const Key('openWritingFormatMenu'),
+                        icon: _formatIcon(_format),
+                        label: _formatCompactLabel(_format),
+                        onTap: _generating ? null : _openFormatMenu,
                       ),
-                      decoration: BoxDecoration(
-                        color: scheme.surfaceContainerHighest.withValues(
-                          alpha: 0.6,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: scheme.outlineVariant.withValues(alpha: 0.6),
-                        ),
+                      const SizedBox(width: AppTheme.spaceXs),
+                      // Style: the whole current style in one pill.
+                      _ComposerPill(
+                        key: const Key('openChatStyleSheet'),
+                        labelKey: const Key('chatStyleSummary'),
+                        icon: Icons.tune_rounded,
+                        label: _styleSummary,
+                        onTap: _generating ? null : _openStyleSheet,
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.tune_rounded,
-                            size: 15,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              [
-                                _language.label,
-                                _tone.label,
-                                _length.label,
-                              ].join(' · '),
-                              key: const Key('chatStyleSummary'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.labelMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          Icon(
-                            Icons.expand_more_rounded,
-                            size: 17,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ],
-                      ),
-                    ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+          const SizedBox(height: AppTheme.spaceXs + 2),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -1106,6 +1054,67 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  /// The label the toolbar has room for. The menu still spells every format
+  /// out in full - it is the place a user goes to read the choices.
+  String _formatCompactLabel(WritingFormat format) {
+    final strings = _strings;
+    return switch (format) {
+      WritingFormat.chat => strings.formatChat,
+      WritingFormat.email => strings.formatEmail,
+      WritingFormat.letter => strings.formatLetter,
+      WritingFormat.application => strings.formatApplication,
+    };
+  }
+
+  IconData _formatIcon(WritingFormat format) => switch (format) {
+    WritingFormat.chat => Icons.chat_bubble_outline_rounded,
+    WritingFormat.email => Icons.mail_outline_rounded,
+    WritingFormat.letter => Icons.article_outlined,
+    WritingFormat.application => Icons.description_outlined,
+  };
+
+  /// `বাংলা · Premika · Medium` - the style the next message will use.
+  String get _styleSummary =>
+      [_language.label, _tone.label, _length.label].join(' · ');
+
+  Future<void> _openFormatMenu() async {
+    final strings = _strings;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppTheme.spaceXs),
+              child: Text(
+                strings.formatTitle,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+            for (final format in WritingFormat.values)
+              ListTile(
+                key: ValueKey<String>('writingFormat-${format.id}'),
+                leading: Icon(_formatIcon(format)),
+                title: Text(_formatLabel(format)),
+                trailing: format == _format
+                    ? Icon(
+                        Icons.check_rounded,
+                        color: Theme.of(sheetContext).colorScheme.primary,
+                      )
+                    : null,
+                onTap: () {
+                  setState(() => _format = format);
+                  Navigator.of(sheetContext).pop();
+                },
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1191,4 +1200,63 @@ class _ChatTurn {
     offline: offline ?? this.offline,
     isGenerating: isGenerating ?? this.isGenerating,
   );
+}
+
+/// A small labelled pill in the composer toolbar.
+///
+/// Deliberately quieter than a chip: no border, no fill until pressed. The
+/// composer is a place to type, and a toolbar that competes with the text box
+/// is the thing this replaced.
+class _ComposerPill extends StatelessWidget {
+  const _ComposerPill({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.labelKey,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  final Key? labelKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: scheme.outlineVariant.withValues(alpha: 0.55),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                key: labelKey,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

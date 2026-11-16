@@ -4,6 +4,25 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### A quieter chat screen: one reply per prompt, one toolbar
+
+- **One reply per prompt.** Two drafts for the same brief made the screen look
+  undecided and doubled the reading before a choice. The writer is a
+  conversation, so it writes one message; the reply panel still offers several,
+  because there choosing *is* the feature.
+- **The chips are gone from the screen.** Four format chips, nine tone chips and
+  a style row took ~180 logical pixels above the text box. They are now two
+  compact pills on one toolbar line — `Chat message` and
+  `English · Friendly · Short` — each opening a sheet with the choices. Nothing
+  was removed, only moved.
+- **The style is stated once.** `Bengali · Premika · Medium` used to repeat under
+  every draft; it now appears only when the draft came back in a different style
+  than asked (`Written in English, not what the style asks for`), which is
+  exactly when the difference would otherwise look like a bug.
+- **Format menu is new**, and its title is `Write as` rather than the first
+  format's name. Three new strings in English, Bengali and Hindi.
+- The style list in the welcome panel is gone — it is on the toolbar pill now.
+
 ### The chat answers in the style you choose — fixed
 
 - The writer chat used to ignore the style it was showing. Language, tone and

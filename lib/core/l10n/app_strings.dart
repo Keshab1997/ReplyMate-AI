@@ -142,6 +142,7 @@ abstract class AppStrings {
   String get exampleMissYou;
   String get exampleMakeHerSmile;
   String get writingFormatLabel;
+  String get formatTitle;
   String get formatChat;
   String get formatEmail;
   String get formatLetter;
@@ -585,6 +586,8 @@ class EnglishStrings extends AppStrings {
   String get exampleMakeHerSmile => 'Make her smile';
   @override
   String get writingFormatLabel => 'Write as';
+  @override
+  String get formatTitle => 'Write as';
   @override
   String get formatChat => 'Chat message';
   @override
@@ -1339,6 +1342,8 @@ class BengaliStrings extends AppStrings {
   @override
   String get writingFormatLabel => 'কী হিসেবে লিখবে';
   @override
+  String get formatTitle => 'যেভাবে লিখবে';
+  @override
   String get formatChat => 'চ্যাট মেসেজ';
   @override
   String get formatEmail => 'ইমেইল';
@@ -2080,6 +2085,8 @@ class HindiStrings extends AppStrings {
   String get exampleMakeHerSmile => 'उसे मुस्कुराएँ';
   @override
   String get writingFormatLabel => 'किस रूप में लिखें';
+  @override
+  String get formatTitle => 'किस रूप में लिखें';
   @override
   String get formatChat => 'चैट संदेश';
   @override
