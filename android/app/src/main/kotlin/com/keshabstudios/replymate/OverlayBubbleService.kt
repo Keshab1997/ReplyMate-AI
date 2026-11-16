@@ -153,6 +153,18 @@ class OverlayBubbleService : Service() {
         stopSelf()
     }
 
+    /**
+     * A full-size bubble nobody has touched for a few seconds steps aside on
+     * its own, as the slim edge tab the drag gesture would have produced.
+     *
+     * Tucking used to be gesture-only: drag it near an edge, or wait for the
+     * notification to be withdrawn. Both work, neither is discoverable, and a
+     * bubble parked in the middle of a chat is exactly the thing people
+     * complain about. The tab is still one tap away from the full bubble, so
+     * nothing is lost by moving it out of the way by itself.
+     */
+    private val idleTuck = Runnable { tuck() }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
@@ -218,6 +230,7 @@ class OverlayBubbleService : Service() {
                 }
                 updateBadge(animate = true)
                 showPreview()
+                scheduleIdleTuck()
             }
             return
         }
@@ -235,6 +248,7 @@ class OverlayBubbleService : Service() {
             startIdleAnimation()
             showPreview()
             scheduleAutoHide()
+            scheduleIdleTuck()
         } catch (error: Exception) {
             // A refused window (permission race, OEM quirk) must not take the
             // process down: nothing is drawn and the fallback notification is
@@ -245,6 +259,7 @@ class OverlayBubbleService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacks(autoHide)
+        cancelIdleTuck()
         hideUndoPill()
         hidePreview()
         stopIdleAnimation()
@@ -712,6 +727,26 @@ class OverlayBubbleService : Service() {
     }
 
     /**
+     * (Re)starts the idle-tuck timer. Called every time the bubble becomes
+     * full-size or is touched, so the countdown always means "a few seconds
+     * since the user last showed interest", never "a few seconds since the
+     * window was created".
+     *
+     * Nothing is scheduled while the bubble is already a tab, while the panel
+     * covers it, or while the long-press menu is open: in all three the user is
+     * mid-interaction and a shape change under their finger would be the bug.
+     */
+    private fun scheduleIdleTuck() {
+        handler.removeCallbacks(idleTuck)
+        if (bubbleView == null || collapsed || panelOpen || menuView != null) return
+        handler.postDelayed(idleTuck, IDLE_TUCK_MILLIS)
+    }
+
+    private fun cancelIdleTuck() {
+        handler.removeCallbacks(idleTuck)
+    }
+
+    /**
      * Leaving a bubble on a screen the user has turned off (or locked) is both
      * pointless and a privacy leak on the lock screen: it goes away, and comes
      * back on unlock while the message is still pending.
@@ -790,6 +825,7 @@ class OverlayBubbleService : Service() {
         val tabWidth = resources.getDimensionPixelSize(R.dimen.overlay_bubble_collapsed_width)
         val metrics = resources.displayMetrics
         collapsed = true
+        cancelIdleTuck()
         stopIdleAnimation()
         hidePreview()
         applyBubbleAppearance(view, collapsed = true)
@@ -823,6 +859,7 @@ class OverlayBubbleService : Service() {
             updateBadge()
             startIdleAnimation()
             showPreview()
+            scheduleIdleTuck()
             if (showMoodAfterExpand) {
                 showMoodAfterExpand = false
                 showMessageMood()
@@ -899,6 +936,7 @@ class OverlayBubbleService : Service() {
                 collapse(toRight = true)
             else -> {
                 rememberPosition(params)
+                scheduleIdleTuck()
                 if (!collapsed) startIdleAnimation()
                 // A tab dragged into the middle of the screen would just look
                 // broken, so letting go of it restores the full bubble.
@@ -1215,6 +1253,9 @@ class OverlayBubbleService : Service() {
     private fun hideMenu() {
         menuTimeout?.let { handler.removeCallbacks(it) }
         menuTimeout = null
+        // The menu blocked the timer while it was open; whatever the user did
+        // or did not do, the bubble is theirs again and may step aside later.
+        scheduleIdleTuck()
         val view = menuView
         val manager = windowManager
         menuView = null
@@ -1261,6 +1302,9 @@ class OverlayBubbleService : Service() {
                     if (motionEnabled()) {
                         view.animate().scaleX(0.96f).scaleY(0.96f).setDuration(90L).start()
                     }
+                    // A finger on the bubble is the strongest possible signal
+                    // that it must not change shape right now.
+                    cancelIdleTuck()
                     scheduleLongPress { longPressFired = true; showMenu() }
                     return true
                 }
@@ -1271,6 +1315,9 @@ class OverlayBubbleService : Service() {
                         dragging = true
                         cancelLongPress()
                         hideMenu()
+                        // hideMenu() restarts the countdown; a long drag must
+                        // not have the bubble collapse under the finger.
+                        cancelIdleTuck()
                         stopIdleAnimation()
                         view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                         if (motionEnabled()) {
@@ -1345,7 +1392,10 @@ class OverlayBubbleService : Service() {
                             // Window is gone; the next show positions it again.
                         }
                     }
-                    if (!collapsed && !panelOpen) startIdleAnimation()
+                    if (!collapsed && !panelOpen) {
+                        startIdleAnimation()
+                        scheduleIdleTuck()
+                    }
                     return true
                 }
             }
@@ -1573,6 +1623,7 @@ class OverlayBubbleService : Service() {
     /** Invisible, not removed: the panel is drawn in front of this window. */
     private fun hideForPanel() {
         panelOpen = true
+        cancelIdleTuck()
         hideMenu()
         hidePreview()
         stopIdleAnimation()
@@ -1604,6 +1655,7 @@ class OverlayBubbleService : Service() {
         startIdleAnimation()
         showPreview()
         scheduleAutoHide()
+        scheduleIdleTuck()
     }
 
     private fun removeBubble() {
@@ -1627,6 +1679,7 @@ class OverlayBubbleService : Service() {
         shownRevision = -1L
         messagesWhileShowing = 0
         handler.removeCallbacks(autoHide)
+        cancelIdleTuck()
         if (view != null && manager != null) {
             try {
                 manager.removeView(view)
@@ -1751,6 +1804,14 @@ class OverlayBubbleService : Service() {
 
         /** Long enough to be deliberate, short enough not to feel stuck. */
         private const val LONG_PRESS_MILLIS = 450L
+
+        /**
+         * How long an untouched bubble stays full size before it tucks itself
+         * against the nearest edge. Five seconds is "a few": long enough to
+         * read the preview pill beside it, short enough that it is out of the
+         * way before the user starts reading the chat behind it.
+         */
+        private const val IDLE_TUCK_MILLIS = 5_000L
 
         /** The menu closes itself if it is ignored. */
         private const val MENU_TIMEOUT_MILLIS = 6_000L

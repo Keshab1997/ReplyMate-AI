@@ -4,6 +4,18 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### The bubble tucks itself away
+
+- A full-size bubble nobody has touched for five seconds now slides to the
+  nearest edge on its own, as the slim tab the drag gesture used to be the only
+  way to reach. Tapping the tab brings it back as before.
+- The countdown restarts on every sign of interest (a new message, a tap, a
+  drag, the long-press menu, closing the reply panel) and is suspended on
+  `ACTION_DOWN`, so the bubble never changes shape under a finger. Nothing is
+  scheduled while the menu or the panel is open.
+- Auto-hide (5/10/30 min or never) is unchanged and still removes the bubble
+  entirely; the tuck is the earlier, gentler step before it.
+
 ### The admin key pool is the only AI path
 
 - Removed Settings → **Your own AI key** (BYOK). The card, its Hive box, the
