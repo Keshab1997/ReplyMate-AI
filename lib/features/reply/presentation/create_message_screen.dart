@@ -238,50 +238,79 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
     };
   }
 
+  /// Starting points for a chat message.
+  ///
+  /// The first four were all addressed to a girlfriend, which told every new
+  /// user with a mother, a boss or a friend that this screen was not for them.
+  /// Two romantic ideas stay (they are the reason many people install it), and
+  /// the rest cover the relationships the earlier list quietly excluded.
   List<({String label, String prompt})> _quickIdeas() {
     final strings = _strings;
     if (_format != WritingFormat.chat) return _documentIdeas();
+    final language = strings.language;
+    String pick(String en, String bn, String hi) => switch (language) {
+      AppLanguage.english => en,
+      AppLanguage.bengali => bn,
+      AppLanguage.hindi => hi,
+    };
     return [
       (
-        label: strings.exampleRomanticQuote,
-        prompt: switch (strings.language) {
-          AppLanguage.english =>
-            'Write a short, sweet romantic quote for my girlfriend.',
-          AppLanguage.bengali =>
-            'আমার প্রেমিকার জন্য ছোট্ট, মিষ্টি একটি রোমান্টিক উক্তি লিখে দাও।',
-          AppLanguage.hindi =>
-            'मेरी प्रेमिका के लिए एक छोटा, प्यारा रोमांटिक कथन लिखो।',
-        },
-      ),
-      (
         label: strings.exampleGoodMorning,
-        prompt: switch (strings.language) {
-          AppLanguage.english =>
-            'Write a warm good morning message for my girlfriend.',
-          AppLanguage.bengali => 'আমার প্রেমিকাকে পাঠানোর জন্য সুন্দর একটি সুপ্রভাতের মেসেজ লিখে দাও।',
-          AppLanguage.hindi =>
-            'मेरी प्रेमिका के लिए एक प्यारा सा सुप्रभात संदेश लिखो।',
-        },
+        prompt: pick(
+          'Write a warm good morning message for my girlfriend.',
+          'আমার প্রেমিকাকে পাঠানোর জন্য সুন্দর একটি সুপ্রভাতের মেসেজ লিখে দাও।',
+          'मेरी प्रेमिका के लिए एक प्यारा सा सुप्रभात संदेश लिखो।',
+        ),
       ),
       (
         label: strings.exampleMissYou,
-        prompt: switch (strings.language) {
-          AppLanguage.english =>
-            'Write a short message telling my girlfriend I miss her.',
-          AppLanguage.bengali =>
-            'আমার প্রেমিকাকে মিস করছি—এমন ছোট্ট একটি মিষ্টি মেসেজ লিখে দাও।',
-          AppLanguage.hindi =>
-            'मेरी प्रेमिका को याद करने के बारे में एक छोटा, प्यारा संदेश लिखो।',
-        },
+        prompt: pick(
+          'Write a short message telling my girlfriend I miss her.',
+          'আমার প্রেমিকাকে মিস করছি—এমন ছোট্ট একটি মিষ্টি মেসেজ লিখে দাও।',
+          'मेरी प्रेमिका को याद करने के बारे में एक छोटा, प्यारा संदेश लिखो।',
+        ),
       ),
       (
-        label: strings.exampleMakeHerSmile,
-        prompt: switch (strings.language) {
-          AppLanguage.english =>
-            'Write a light, affectionate message to make my girlfriend smile.',
-          AppLanguage.bengali => 'আমার প্রেমিকার মুখে হাসি ফোটানোর জন্য হালকা, আদুরে একটা কথা লিখে দাও।',
-          AppLanguage.hindi => 'मेरी प्रेमिका के चेहरे पर मुस्कान लाने के लिए एक हल्का-फुल्का, प्यारा संदेश लिखो।',
-        },
+        label: strings.exampleThankSomeone,
+        prompt: pick(
+          'Write a short, sincere thank-you message for a friend who helped me '
+              'move house last weekend.',
+          'গত সপ্তাহান্তে বাড়ি বদলাতে সাহায্য করা এক বন্ধুকে ধন্যবাদ জানিয়ে '
+              'ছোট্ট একটি আন্তরিক মেসেজ লিখে দাও।',
+          'पिछले सप्ताहांत घर बदलने में मदद करने वाले मित्र को धन्यवाद देते हुए '
+              'एक छोटा, सच्चा संदेश लिखो।',
+        ),
+      ),
+      (
+        label: strings.exampleAskForLeave,
+        prompt: pick(
+          'Write a polite message to my manager asking for one day off tomorrow '
+              'because I have a doctor appointment.',
+          'আগামীকাল ডাক্তারের Appointment থাকায় একদিনের ছুটি চেয়ে ম্যানেজারকে '
+              'একটি ভদ্র মেসেজ লিখে দাও।',
+          'कल डॉक्टर के अपॉइंटमेंट के कारण एक दिन की छुट्टी माँगते हुए मैनेजर को '
+              'विनम्र संदेश लिखो।',
+        ),
+      ),
+      (
+        label: strings.exampleCheckOnSomeone,
+        prompt: pick(
+          'Write a caring message to my mother asking how she is feeling after '
+              'her fever.',
+          'জ্বরের পর মা কেমন আছেন জিজ্ঞেস করে একটি যত্নশীল মেসেজ লিখে দাও।',
+          'बुखार के बाद माँ कैसी हैं, यह पूछते हुए एक स्नेही संदेश लिखो।',
+        ),
+      ),
+      (
+        label: strings.exampleApologise,
+        prompt: pick(
+          'Write a sincere apology to a friend I kept waiting for an hour '
+              'yesterday.',
+          'কাল এক ঘণ্টা অপেক্ষা করিয়ে দেওয়ার জন্য এক বন্ধুর কাছে আন্তরিকভাবে '
+              'ক্ষমা চেয়ে একটি মেসেজ লিখে দাও।',
+          'कल एक घंटा इंतज़ार कराने के लिए मित्र से सच्चे मन से माफ़ी माँगते हुए '
+              'संदेश लिखो।',
+        ),
       ),
     ];
   }

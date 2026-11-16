@@ -4,6 +4,19 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### Quick ideas for more than one kind of relationship
+
+- All four starting points were addressed to a girlfriend, which told every new
+  user with a mother, a manager or a friend that this screen was not for them.
+  Two romantic ideas stay (they are why many people install it); four replace
+  the rest: **Thank a friend**, **Ask for leave**, **Check on someone**,
+  **Say sorry**.
+- Each idea's *label* is now localized too - the prompts already switched by
+  language, the chips did not, so a Bengali UI showed English chips.
+- Removed the two strings that no longer have a chip (`exampleRomanticQuote`,
+  `exampleMakeHerSmile`); `app_language_test` checks every language is complete,
+  so a missing translation fails there rather than on a device.
+
 ### Write another, without retyping the brief
 
 - One draft per prompt made "none of these" the common case, and the only way

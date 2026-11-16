@@ -173,10 +173,10 @@ void main() {
     final repository = _RecordingCreateRepository();
     await pumpCreateScreen(tester, repository);
 
-    // A chat format's inspiration is romantic lines; an application's is
+    // A chat format's inspiration is chat messages; an application's is
     // applications. Showing the wrong one is how a feature looks broken.
     expect(
-      find.text(const EnglishStrings().exampleRomanticQuote),
+      find.text(const EnglishStrings().exampleThankSomeone),
       findsOneWidget,
     );
 
@@ -185,10 +185,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey<String>('writingFormat-email')));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text(const EnglishStrings().exampleRomanticQuote),
-      findsNothing,
-    );
+    expect(find.text(const EnglishStrings().exampleThankSomeone), findsNothing);
     expect(find.text('Email to a teacher'), findsOneWidget);
 
     await tester.tap(find.text('Email to a teacher'));
@@ -237,7 +234,9 @@ void main() {
 
     expect(repository.calls, 1);
     expect(repository.request?.mode, ReplyMode.createMessage);
-    expect(repository.request?.message, contains('romantic quote'));
+    // The first quick idea is a good morning message; the list deliberately
+    // leads with a relationship most users have.
+    expect(repository.request?.message, contains('good morning'));
     expect(find.text('তুমি আমার দিনের সবচেয়ে সুন্দর ভাবনা।'), findsOneWidget);
   });
 

@@ -137,10 +137,12 @@ abstract class AppStrings {
   String get createMessagePromptHint;
   String get createMessageExamples;
   String get createMessageEmpty;
-  String get exampleRomanticQuote;
   String get exampleGoodMorning;
   String get exampleMissYou;
-  String get exampleMakeHerSmile;
+  String get exampleThankSomeone;
+  String get exampleAskForLeave;
+  String get exampleCheckOnSomeone;
+  String get exampleApologise;
   String get writingFormatLabel;
   String get formatTitle;
   String get formatChat;
@@ -579,13 +581,19 @@ class EnglishStrings extends AppStrings {
   String get createMessageEmpty =>
       'Write an idea first, or choose a quick idea.';
   @override
-  String get exampleRomanticQuote => 'Romantic quote';
   @override
   String get exampleGoodMorning => 'Good morning';
   @override
   String get exampleMissYou => 'I miss you';
   @override
-  String get exampleMakeHerSmile => 'Make her smile';
+  @override
+  String get exampleThankSomeone => 'Thank a friend';
+  @override
+  String get exampleAskForLeave => 'Ask for leave';
+  @override
+  String get exampleCheckOnSomeone => 'Check on someone';
+  @override
+  String get exampleApologise => 'Say sorry';
   @override
   String get writingFormatLabel => 'Write as';
   @override
@@ -1338,13 +1346,19 @@ class BengaliStrings extends AppStrings {
   String get createMessageEmpty =>
       'আগে একটি ভাবনা লিখুন, বা দ্রুত আইডিয়া বেছে নিন।';
   @override
-  String get exampleRomanticQuote => 'রোমান্টিক উক্তি';
   @override
   String get exampleGoodMorning => 'সুপ্রভাত';
   @override
   String get exampleMissYou => 'মিস করছি';
   @override
-  String get exampleMakeHerSmile => 'হাসিমুখে রাখুন';
+  @override
+  String get exampleThankSomeone => 'বন্ধুকে ধন্যবাদ';
+  @override
+  String get exampleAskForLeave => 'ছুটি চাওয়া';
+  @override
+  String get exampleCheckOnSomeone => 'খোঁজ নেওয়া';
+  @override
+  String get exampleApologise => 'ক্ষমা চাওয়া';
   @override
   String get writingFormatLabel => 'কী হিসেবে লিখবে';
   @override
@@ -2086,13 +2100,19 @@ class HindiStrings extends AppStrings {
   String get createMessageEmpty =>
       'पहले अपना विचार लिखें या कोई झटपट सुझाव चुनें।';
   @override
-  String get exampleRomanticQuote => 'रोमांटिक कथन';
   @override
   String get exampleGoodMorning => 'शुभ प्रभात';
   @override
   String get exampleMissYou => 'याद आ रही है';
   @override
-  String get exampleMakeHerSmile => 'उसे मुस्कुराएँ';
+  @override
+  String get exampleThankSomeone => 'मित्र को धन्यवाद';
+  @override
+  String get exampleAskForLeave => 'छुट्टी माँगें';
+  @override
+  String get exampleCheckOnSomeone => 'हाल पूछें';
+  @override
+  String get exampleApologise => 'माफ़ी मांगें';
   @override
   String get writingFormatLabel => 'किस रूप में लिखें';
   @override
