@@ -2,7 +2,7 @@
 
 All notable project changes are recorded here.
 
-## [Unreleased]
+## [1.5.8] - 2026-11-16
 
 ### Build
 
