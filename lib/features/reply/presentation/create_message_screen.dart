@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/app_theme.dart';
 import '../../../core/constants/reply_options.dart';
+import '../../notifications/providers/notification_providers.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../shared/widgets/screen_header.dart';
 import '../../settings/providers/preferences_provider.dart';
@@ -562,6 +563,24 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
         .showSnackBar(SnackBar(content: Text(_strings.replyCopied)));
   }
 
+  /// Opens Android's share chooser for a draft.
+  ///
+  /// Opening the chooser is not sending: the user picks an app and confirms
+  /// there. This keeps the invariant in AGENTS.md - the app never sends a
+  /// message on the user's behalf, in any layer - while saving the copy/paste
+  /// step for people who send from Gmail or a chat app rather than this one.
+  Future<void> _shareDraft(String text) async {
+    final opened = await ref.read(notificationsBridgeProvider).shareText(text);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          opened ? _strings.shareOpened : _strings.shareUnavailable,
+        ),
+      ),
+    );
+  }
+
   Future<void> _reviewDrafts(_ChatTurn turn) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -884,6 +903,18 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
                                     ),
                                   ),
                                   const Spacer(),
+                                  IconButton(
+                                    key: ValueKey<String>(
+                                      'shareCreateMessageDraft-$turnIndex-$replyIndex',
+                                    ),
+                                    tooltip: _strings.shareDraft,
+                                    visualDensity: VisualDensity.compact,
+                                    onPressed: () => _shareDraft(reply),
+                                    icon: const Icon(
+                                      Icons.ios_share_rounded,
+                                      size: 17,
+                                    ),
+                                  ),
                                   IconButton(
                                     key: ValueKey<String>(
                                       'copyCreateMessageDraft-$turnIndex-$replyIndex',

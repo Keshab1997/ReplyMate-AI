@@ -4,6 +4,16 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### A draft can be shared, not just copied
+
+- Every draft now has **Share**, which hands the text to Android's share chooser
+  through the existing `shareText` bridge. Opening the chooser is not sending -
+  the user picks the app and confirms there - so the rule that the app never
+  sends anything on the user's behalf still holds in this layer.
+- The bridge method already existed (the reply panel and the composer use it);
+  the writer screen simply never offered it, which left copy-and-paste as the
+  only way out of a screen whose whole job is producing text.
+
 ### Quick ideas for more than one kind of relationship
 
 - All four starting points were addressed to a girlfriend, which told every new

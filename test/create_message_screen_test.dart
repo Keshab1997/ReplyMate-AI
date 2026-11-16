@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:replymate/core/constants/app_constants.dart';
 import 'package:replymate/core/constants/reply_options.dart';
 import 'package:replymate/core/l10n/app_strings.dart';
 import 'package:replymate/features/reply/data/reply_repository.dart';
@@ -431,6 +432,43 @@ void main() {
       find.byKey(const ValueKey<String>('createMessageDraft-1-0')),
       findsNothing,
     );
+  });
+
+  testWidgets('a draft can be shared, and sharing only opens the chooser', (
+    tester,
+  ) async {
+    final repository = _RecordingCreateRepository();
+    Map<Object?, Object?>? shareArgs;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel(AppConstants.channelName),
+          (call) async => call.method == 'shareText'
+              ? (shareArgs = call.arguments as Map<Object?, Object?>, true).$2
+              : null,
+        );
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            const MethodChannel(AppConstants.channelName),
+            null,
+          ),
+    );
+    await pumpCreateScreen(tester, repository);
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Write something sweet.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('shareCreateMessageDraft-0-0')),
+    );
+    await tester.pumpAndSettle();
+
+    // The draft reaches Android's chooser with its exact text. Nothing here
+    // sends: the chooser is where the user picks an app and confirms.
+    expect(shareArgs?['text'], 'তুমি আমার দিনের সবচেয়ে সুন্দর ভাবনা।');
   });
 
   testWidgets('the chat answers in the style its chips say, not Settings', (

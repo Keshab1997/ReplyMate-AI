@@ -110,6 +110,7 @@ abstract class AppStrings {
   String get clipboardEmpty;
   String get replyCopied;
   String get shareOpened;
+  String get shareDraft;
   String get shareUnavailable;
   String get nothingToReplyTo;
   String get close;
@@ -517,6 +518,8 @@ class EnglishStrings extends AppStrings {
   String get replyCopied => 'Reply copied.';
   @override
   String get shareOpened => 'Share sheet opened. Choose an app to continue.';
+  @override
+  String get shareDraft => 'Share';
   @override
   String get shareUnavailable =>
       'Sharing is unavailable here. Copy the reply instead.';
@@ -1285,6 +1288,8 @@ class BengaliStrings extends AppStrings {
   @override
   String get shareOpened => 'শেয়ার শিট খুলেছে। কোন অ্যাপে পাঠাবেন বেছে নিন।';
   @override
+  String get shareDraft => 'শেয়ার';
+  @override
   String get shareUnavailable =>
       'এখানে শেয়ার করা যাচ্ছে না। জবাবটি কপি করে নিন।';
   @override
@@ -2039,6 +2044,8 @@ class HindiStrings extends AppStrings {
   String get replyCopied => 'जवाब कॉपी हो गया।';
   @override
   String get shareOpened => 'शेयर शीट खुल गई। जारी रखने के लिए ऐप चुनें।';
+  @override
+  String get shareDraft => 'साझा करें';
   @override
   String get shareUnavailable => 'यहाँ शेयर उपलब्ध नहीं है। जवाब कॉपी कर लें।';
   @override
