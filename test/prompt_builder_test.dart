@@ -18,8 +18,25 @@ void main() {
     final system = ReplyPrompt.system(3, ReplyTone.professional);
     expect(system, contains('Preserve the intended meaning'));
     expect(system, contains('Do not invent facts'));
-    expect(system, contains('exactly 3 replies'));
+    expect(system, contains('array of exactly 3 strings'));
+    expect(system, contains('one valid JSON object and nothing else'));
+    expect(system, contains('ready-to-send message'));
+    expect(
+      system,
+      contains('Respect the requested language, tone and length exactly'),
+    );
+    expect(system, contains('native script'));
     expect(system, contains('{"replies":'));
+  });
+
+  test('JSON shape example matches the exact requested suggestion count', () {
+    for (final count in [1, 2, 3]) {
+      final system = ReplyPrompt.system(count, ReplyTone.friendly);
+      expect(system, contains('array of exactly $count strings'));
+      final shape =
+          '{"replies": [${List<String>.generate(count, (index) => '"reply ${index + 1}"').join(', ')}]}';
+      expect(system, contains(shape));
+    }
   });
 
   test(
@@ -217,7 +234,7 @@ void main() {
 
     expect(system, contains('Preserve the intended meaning'));
     expect(system, contains('Do not invent facts'));
-    expect(system, contains('exactly 2 replies'));
+    expect(system, contains('array of exactly 2 strings'));
     expect(system, contains('{"replies":'));
   });
 
@@ -266,7 +283,7 @@ void main() {
       );
 
       expect(system, contains('Preserve the intended meaning'));
-      expect(system, contains('exactly 3 replies'));
+      expect(system, contains('array of exactly 3 strings'));
       expect(system, contains('Do not assume a relationship'));
     });
   });

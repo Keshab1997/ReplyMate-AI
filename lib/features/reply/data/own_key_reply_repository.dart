@@ -163,6 +163,19 @@ class OwnKeyReplyRepository implements ReplyRepository {
               ],
               'generationConfig': {
                 'maxOutputTokens': OpenAiCompatibleClient.maxTokens,
+                // Gemini supports constrained JSON output; the shared prompt
+                // and parser keep all configured providers on the same shape.
+                'responseMimeType': 'application/json',
+                'responseSchema': {
+                  'type': 'OBJECT',
+                  'properties': {
+                    'replies': {
+                      'type': 'ARRAY',
+                      'items': {'type': 'STRING'},
+                    },
+                  },
+                  'required': ['replies'],
+                },
               },
             }),
           )

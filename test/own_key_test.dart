@@ -172,6 +172,12 @@ void main() {
         keys: OwnKeyStore(box: box),
         httpClient: MockClient((request) async {
           expect(request.url.path, contains(':generateContent'));
+          final sent = jsonDecode(request.body) as Map<String, dynamic>;
+          final config = sent['generationConfig'] as Map<String, dynamic>;
+          expect(config['responseMimeType'], 'application/json');
+          final schema = config['responseSchema'] as Map<String, dynamic>;
+          final properties = schema['properties'] as Map<String, dynamic>;
+          expect(properties['replies'], isNotNull);
           return http.Response(
             jsonEncode({
               'candidates': [

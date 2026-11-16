@@ -176,4 +176,54 @@ void main() {
       'b',
     ]);
   });
+
+  test('parseReplies unwraps fenced and double-encoded JSON', () {
+    expect(
+      KeyPoolReplyRepository.parseReplies(
+        '```json\n{"replies":["ঠিক আছে"]}\n```',
+        2,
+      ),
+      ['ঠিক আছে'],
+    );
+    expect(
+      KeyPoolReplyRepository.parseReplies(
+        jsonEncode('{"replies":["আচ্ছা, বলো কী হয়েছে?"]}'),
+        2,
+      ),
+      ['আচ্ছা, বলো কী হয়েছে?'],
+    );
+  });
+
+  test('parseReplies extracts JSON wrapped in brief provider prose', () {
+    expect(
+      KeyPoolReplyRepository.parseReplies(
+        'Here are the suggestions: {"replies":["Sure, that works."]}',
+        2,
+      ),
+      ['Sure, that works.'],
+    );
+  });
+
+  test(
+    'parseReplies salvages replies from truncated JSON, not its wrapper',
+    () {
+      const malformed =
+          '{"replies": ["এই তো, কী হয়েছে বলো?", "বলতে চাইলে আমি শুনছি."';
+      expect(KeyPoolReplyRepository.parseReplies(malformed, 2), [
+        'এই তো, কী হয়েছে বলো?',
+        'বলতে চাইলে আমি শুনছি.',
+      ]);
+      expect(
+        KeyPoolReplyRepository.parseReplies('{"replies": [broken', 2),
+        isEmpty,
+      );
+    },
+  );
+
+  test('plain-text fallback strips list numbering', () {
+    expect(
+      KeyPoolReplyRepository.parseReplies('1. Sure.\n2) Sounds good.', 2),
+      ['Sure.', 'Sounds good.'],
+    );
+  });
 }
