@@ -143,15 +143,30 @@ class CachedReplyRepository implements ReplyRepository {
     // Intent chips and standalone writing briefs need task-aware wording;
     // generic offline candidates could contradict either request, so keep the
     // honest failure instead of returning an unrelated draft.
-    if (request.draftToRefine != null ||
-        request.replyIntent != null ||
-        request.mode == ReplyMode.createMessage) {
+    if (request.draftToRefine != null || request.replyIntent != null) {
       return result;
     }
 
     // The paid path failed. Before giving up, offer what the rules can write:
     // no key, no network, no tokens. They are labelled offline by the caller,
     // so the user knows exactly what they are looking at.
+    //
+    // A standalone writing brief gets the same treatment: a first-run user with
+    // no key used to get "no provider" and nothing else, which made the writer
+    // look broken rather than unconfigured. On-device openers are not a model's
+    // writing and are labelled as such - but they are something to start from.
+    if (request.mode == ReplyMode.createMessage) {
+      final starters = OfflineSuggestions.forBrief(
+        request.trimmedMessage,
+        language: request.language,
+        tone: request.tone,
+        length: request.length,
+        count: request.count,
+      );
+      if (starters.isNotEmpty) return ReplySuccess(starters, offline: true);
+      return result;
+    }
+
     final offline = OfflineSuggestions.forMessage(
       request.trimmedMessage,
       language: request.language,
@@ -168,16 +183,27 @@ class CachedReplyRepository implements ReplyRepository {
   /// The offline candidates for a request, without attempting a paid call.
   /// Used after provider failures so the screen can still offer something
   /// rather than a dead end.
-  List<String> offlineOnly(ReplyRequest request) =>
-      request.replyIntent != null || request.mode == ReplyMode.createMessage
-      ? const <String>[]
-      : OfflineSuggestions.forMessage(
-          request.trimmedMessage,
-          language: request.language,
-          tone: request.tone,
-          length: request.length,
-          count: request.count,
-        );
+  List<String> offlineOnly(ReplyRequest request) {
+    if (request.replyIntent != null) return const <String>[];
+    // A standalone brief has its own on-device starters; the reply table would
+    // be answering a message that does not exist.
+    if (request.mode == ReplyMode.createMessage) {
+      return OfflineSuggestions.forBrief(
+        request.trimmedMessage,
+        language: request.language,
+        tone: request.tone,
+        length: request.length,
+        count: request.count,
+      );
+    }
+    return OfflineSuggestions.forMessage(
+      request.trimmedMessage,
+      language: request.language,
+      tone: request.tone,
+      length: request.length,
+      count: request.count,
+    );
+  }
 }
 
 /// The repository the UI talks to. `main()` selects the key-pool

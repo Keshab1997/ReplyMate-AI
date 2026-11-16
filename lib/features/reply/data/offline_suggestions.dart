@@ -61,6 +61,41 @@ class OfflineSuggestions {
     return candidates.take(count).toList();
   }
 
+  /// A starter line for a message that has not been written yet.
+  ///
+  /// Different job from [forMessage]: there is no incoming message to classify,
+  /// so the intent is unknown by definition and only the greeting/thanks/
+  /// apology-style openers make sense. These are openers, not whole messages -
+  /// the user finishes them. Labelled offline wherever they are shown, exactly
+  /// like the reply path, because an on-device line must never pass for a model's
+  /// writing.
+  static List<String> forBrief(
+    String brief, {
+    required ReplyLanguage language,
+    required ReplyTone tone,
+    required ReplyLength length,
+    int count = 1,
+  }) {
+    final text = brief.toLowerCase();
+    // The brief can still hint at the kind of message: "thank my friend" is a
+    // thanks, even though nothing arrived.
+    final hinted = _thanks.hasMatch(text)
+        ? OfflineIntent.thanks
+        : _apology.hasMatch(text)
+        ? OfflineIntent.apology
+        : _greeting.hasMatch(text)
+        ? OfflineIntent.greeting
+        : OfflineIntent.unknown;
+    final table = _tables[language] ?? _tables[ReplyLanguage.english]!;
+    final candidates = <String>[
+      ...?table[hinted],
+      ...?table[_toneKey(tone)],
+      ...?table[OfflineIntent.greeting],
+    ];
+    if (candidates.isEmpty) return const [];
+    return candidates.take(count).toList(growable: false);
+  }
+
   static OfflineIntent _toneKey(ReplyTone tone) => switch (tone) {
     ReplyTone.polite => OfflineIntent.polite,
     ReplyTone.funny => OfflineIntent.funny,

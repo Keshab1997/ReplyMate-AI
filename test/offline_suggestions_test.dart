@@ -157,4 +157,44 @@ void main() {
       }
     });
   });
+
+  group('a standalone brief gets starters', () {
+    test('a brief that hints at thanks gets a thanks opener', () {
+      final lines = OfflineSuggestions.forBrief(
+        'thank my friend for helping me move',
+        language: ReplyLanguage.english,
+        tone: ReplyTone.friendly,
+        length: ReplyLength.short,
+      );
+      expect(lines, isNotEmpty);
+    });
+
+    test('it never returns more than asked for', () {
+      final lines = OfflineSuggestions.forBrief(
+        'write something',
+        language: ReplyLanguage.bengali,
+        tone: ReplyTone.casual,
+        length: ReplyLength.short,
+        count: 1,
+      );
+      expect(lines.length, lessThanOrEqualTo(1));
+    });
+
+    test('every language has something to offer', () {
+      for (final language in ReplyLanguage.values) {
+        final lines = OfflineSuggestions.forBrief(
+          'write a message',
+          language: language,
+          tone: ReplyTone.friendly,
+          length: ReplyLength.short,
+        );
+        expect(lines, isNotEmpty, reason: 'no starters for ${language.label}');
+      }
+    });
+  });
 }
+
+// --- the writer's fallback path -------------------------------------------
+// A standalone brief used to get nothing when no provider answered, which made
+// the writer look broken on a first run. It gets on-device openers instead,
+// labelled offline by the screen.

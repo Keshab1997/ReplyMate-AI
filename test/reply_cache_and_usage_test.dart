@@ -386,10 +386,14 @@ void main() {
         expect(result, isA<ReplyFailure>());
         expect(repo.offlineOnly(intended), isEmpty);
 
+        // A standalone brief is different: nothing to contradict, so it gets
+        // its own on-device openers instead of an empty screen.
         final standalone = _request(message: 'Write a love note.')
             .copyWith(mode: ReplyMode.createMessage);
-        expect(await repo.generate(standalone), isA<ReplyFailure>());
-        expect(repo.offlineOnly(standalone), isEmpty);
+        final fallback = await repo.generate(standalone);
+        expect(fallback, isA<ReplySuccess>());
+        expect((fallback as ReplySuccess).offline, isTrue);
+        expect(repo.offlineOnly(standalone), isNotEmpty);
       },
     );
 
