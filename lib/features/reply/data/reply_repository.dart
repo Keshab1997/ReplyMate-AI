@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/reply_request.dart';
-import 'ai_budget.dart';
+import 'ai_usage_tracker.dart';
 import 'offline_suggestions.dart';
 import 'reply_cache.dart';
 
@@ -82,29 +82,30 @@ class NotConfiguredReplyRepository implements ReplyRepository {
   }
 }
 
-/// Wraps a [ReplyRepository] with the two things that keep an app free:
-/// a cache in front of it and a daily ceiling behind it.
+/// Wraps a [ReplyRepository] with a cache and a non-blocking local usage
+/// counter. The counter is informational; it never limits provider calls.
 ///
-/// Order matters and is the whole design:
-/// 1. **validate** — a bad request must not spend anything,
-/// 2. **cache** — a repeat must not reach the provider at all,
-/// 3. **budget** — only a call that is about to be made is counted,
-/// 4. **inner** — the real repository.
+/// Order matters:
+/// 1. **validate** — bad requests do not reach the provider,
+/// 2. **cache** — a repeat does not reach the provider,
+/// 3. **count** — only an uncached generation attempt is recorded,
+/// 4. **inner** — call the configured provider.
 ///
-/// A cache hit therefore costs neither a request nor a penny of allowance,
-/// while a miss is counted *before* it is attempted so a failed call still
-/// counts: the provider was reached either way, and a counter that forgets
-/// failures is a counter that can be farmed by retrying.
-class BudgetedReplyRepository implements ReplyRepository {
-  BudgetedReplyRepository({required this.inner, ReplyCache? cache, this.budget})
-    : _cache = cache ?? ReplyCache.disabled();
+/// A cache hit costs neither a request nor a count. An uncached attempt is
+/// counted before it starts, including failed provider calls, because the
+/// attempt still reached the paid path.
+class CachedReplyRepository implements ReplyRepository {
+  CachedReplyRepository({
+    required this.inner,
+    ReplyCache? cache,
+    this.usageTracker,
+  }) : _cache = cache ?? ReplyCache.disabled();
 
   final ReplyRepository inner;
   final ReplyCache _cache;
 
-  /// Exposed so a settings row can show "N of 50 used today" without knowing
-  /// about the composer.
-  final AiBudget? budget;
+  /// Exposed so Settings can show an informational local count.
+  final AiUsageTracker? usageTracker;
 
   @override
   Future<ReplyResult> generate(
@@ -130,18 +131,7 @@ class BudgetedReplyRepository implements ReplyRepository {
       );
     }
 
-    final budget = this.budget;
-    if (budget != null && !budget.canSpend) {
-      final snapshot = budget.snapshot();
-      return ReplyFailure(
-        'Today\'s AI allowance is used up (${snapshot.used} of '
-        '${snapshot.limit} replies). It resets tomorrow, and the offline '
-        'suggestions below still work without any AI.',
-        isRetryable: false,
-      );
-    }
-
-    await budget?.record();
+    await usageTracker?.recordAttempt();
     final result = await inner.generate(request, bypassCache: bypassCache);
     if (result is ReplySuccess && result.replies.isNotEmpty) {
       if (cacheEligible) await _cache.store(request, result.replies);
@@ -176,7 +166,7 @@ class BudgetedReplyRepository implements ReplyRepository {
   }
 
   /// The offline candidates for a request, without attempting a paid call.
-  /// Used when the allowance is spent, so the screen can still offer something
+  /// Used after provider failures so the screen can still offer something
   /// rather than a dead end.
   List<String> offlineOnly(ReplyRequest request) =>
       request.replyIntent != null || request.mode == ReplyMode.createMessage

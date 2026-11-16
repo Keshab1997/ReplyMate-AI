@@ -3,9 +3,9 @@ import '../../../core/constants/reply_options.dart';
 /// Rule-based reply candidates that cost nothing at all.
 ///
 /// Not a model, and it must never be dressed as one. This is the layer that
-/// keeps the app useful when there is no key, no Firebase, no network, or the
-/// day's AI allowance is gone — the four moments when a reply assistant that
-/// cannot write a reply is simply broken.
+/// keeps the app useful when there is no key, no Firebase, or no network —
+/// the moments when a reply assistant that cannot write a reply is simply
+/// broken.
 ///
 /// It reads the incoming message with plain heuristics and returns a small,
 /// honest set of candidates. Where the message says nothing it can answer, it

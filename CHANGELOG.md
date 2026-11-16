@@ -4,6 +4,12 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### AI generation has no app-enforced daily cap
+
+- Removed the per-device 50-request hard stop. An informational local count
+  remains in AI settings, but only the configured provider's own billing and
+  rate limits can restrict usage.
+
 ### The admin screen stops blaming the network
 
 - Bumped `admin_api_key_manager` to `594dc3c`, which classifies a failed

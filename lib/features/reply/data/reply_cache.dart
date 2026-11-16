@@ -58,7 +58,7 @@ class ReplyCache {
   }
 
   /// The cache key for a normal generation request. Rewrites are deliberately
-  /// excluded by `BudgetedReplyRepository`, so their draft text is not persisted
+  /// excluded by `CachedReplyRepository`, so their draft text is not persisted
   /// in a cache key. No timestamps or session ids participate in a normal key.
   static String keyFor(ReplyRequest request) {
     final parts = <String>[

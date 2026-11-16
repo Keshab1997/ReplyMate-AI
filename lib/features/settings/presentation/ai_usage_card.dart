@@ -4,16 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../reply/data/ai_budget.dart';
+import '../../reply/data/ai_usage_tracker.dart';
 import '../../reply/data/reply_cache.dart';
 import '../../reply/data/reply_repository.dart';
 
-/// Today's paid-AI allowance, and the way to clear the reply cache.
+/// Informational AI request count and the way to clear the reply cache.
 ///
-/// The budget is the app's promise that "free" stays free, so the number is
-/// shown rather than hidden until it bites. Reading it also tells the user the
-/// truth people usually learn the hard way: the count is per device, not per
-/// account.
+/// This local count is not a daily limit or a provider billing meter; it helps
+/// the user see their own activity without blocking a request.
 class AiUsageCard extends ConsumerStatefulWidget {
   const AiUsageCard({super.key});
 
@@ -22,7 +20,7 @@ class AiUsageCard extends ConsumerStatefulWidget {
 }
 
 class _AiUsageCardState extends ConsumerState<AiUsageCard> {
-  AiBudgetSnapshot? _snapshot;
+  AiUsageSnapshot? _snapshot;
   int _cachedReplies = 0;
   bool _clearing = false;
 
@@ -34,10 +32,10 @@ class _AiUsageCardState extends ConsumerState<AiUsageCard> {
 
   Future<void> _read() async {
     final repo = ref.read(replyRepositoryProvider);
-    final budget = repo is BudgetedReplyRepository ? repo.budget : null;
+    final tracker = repo is CachedReplyRepository ? repo.usageTracker : null;
     if (!mounted) return;
     setState(() {
-      _snapshot = budget?.snapshot();
+      _snapshot = tracker?.snapshot();
       _cachedReplies = _cacheLength();
     });
   }
@@ -91,30 +89,15 @@ class _AiUsageCardState extends ConsumerState<AiUsageCard> {
               )
             else ...[
               Text(
-                '${snapshot.used} of ${snapshot.limit} AI replies used today',
+                '${snapshot.used} AI generation attempts today',
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(99),
-                child: LinearProgressIndicator(
-                  value: snapshot.fraction,
-                  minHeight: 6,
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                  color: snapshot.exhausted
-                      ? theme.colorScheme.error
-                      : theme.colorScheme.primary,
-                ),
-              ),
-              const SizedBox(height: 8),
               Text(
-                snapshot.exhausted
-                    ? 'The allowance is used up. It resets tomorrow.'
-                    : 'Counting requests, not tokens — this is a per-device '
-                          'guard, not a billing system for an AI provider '
-                          'account.',
+                'Informational local count only — there is no daily app cap. '
+                'Your AI provider may still apply its own billing and rate limits.',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

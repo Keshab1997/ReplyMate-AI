@@ -8,12 +8,11 @@ import '../../reply/presentation/own_key_card.dart';
 import 'ai_usage_card.dart';
 import 'settings_sub_screen.dart';
 
-/// Settings → AI key & usage. Where the key comes from, what today has cost, and
-/// the styles saved per chat.
+/// Settings → AI key & usage. Where the key comes from, today's local request
+/// count, and the styles saved per chat.
 ///
-/// These three cards answer the same question - "what is allowed to spend a
-/// request on my behalf, and on what" - so they sit together instead of being
-/// three separate stops in one long scroll.
+/// These cards keep the AI controls together instead of scattering them across
+/// several separate stops in one long scroll.
 class AiScreen extends ConsumerWidget {
   const AiScreen({super.key});
 

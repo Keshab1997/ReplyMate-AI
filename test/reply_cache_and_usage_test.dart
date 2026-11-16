@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:replymate/core/constants/reply_options.dart';
-import 'package:replymate/features/reply/data/ai_budget.dart';
+import 'package:replymate/features/reply/data/ai_usage_tracker.dart';
 import 'package:replymate/features/reply/data/reply_cache.dart';
 import 'package:replymate/features/reply/data/reply_repository.dart';
 import 'package:replymate/features/reply/domain/reply_intent.dart';
@@ -205,61 +205,52 @@ void main() {
     });
   });
 
-  group('AiBudget', () {
-    test('starts empty and counts up', () async {
-      final box = await freshBox('budget_count');
-      final budget = AiBudget(
+  group('AiUsageTracker', () {
+    test('starts empty and counts generation attempts', () async {
+      final box = await freshBox('usage_count');
+      final tracker = AiUsageTracker(
         box: box,
-        limit: 3,
         clock: () => DateTime(2026, 5, 1),
       );
 
-      expect(budget.snapshot().used, 0);
-      expect(budget.canSpend, isTrue);
+      expect(tracker.snapshot().used, 0);
 
-      await budget.record();
-      await budget.record();
-      expect(budget.snapshot().used, 2);
-      expect(budget.canSpend, isTrue);
-
-      await budget.record();
-      expect(budget.canSpend, isFalse);
-      expect(budget.snapshot().remaining, 0);
+      await tracker.recordAttempt();
+      await tracker.recordAttempt();
+      expect(tracker.snapshot().used, 2);
     });
 
-    test('a new day is a new allowance, without a write', () async {
-      final box = await freshBox('budget_rollover');
+    test('the informational count rolls over at local midnight', () async {
+      final box = await freshBox('usage_rollover');
       var now = DateTime(2026, 5, 1, 23);
-      final budget = AiBudget(box: box, limit: 2, clock: () => now);
+      final tracker = AiUsageTracker(box: box, clock: () => now);
 
-      await budget.record();
-      await budget.record();
-      expect(budget.canSpend, isFalse);
+      await tracker.recordAttempt();
+      await tracker.recordAttempt();
+      expect(tracker.snapshot().used, 2);
 
       now = DateTime(2026, 5, 2, 0, 1);
-      expect(budget.snapshot().used, 0);
-      expect(budget.canSpend, isTrue);
+      expect(tracker.snapshot().used, 0);
     });
 
-    test('fails open when the box cannot be read', () async {
-      // No box at all: the app must still work, the counter just does nothing.
-      final budget = AiBudget(box: null, limit: 1);
-      expect(budget.canSpend, isTrue);
-      await budget.record();
-      expect(budget.snapshot().used, 0);
+    test('tracking failure does not block generation', () async {
+      // No box at all: the app still works, the informational count is absent.
+      final tracker = AiUsageTracker(box: null);
+      await tracker.recordAttempt();
+      expect(tracker.snapshot().used, 0);
     });
   });
 
-  group('BudgetedReplyRepository', () {
-    test('a cache hit costs neither a call nor allowance', () async {
+  group('CachedReplyRepository', () {
+    test('a cache hit does not add a generation attempt', () async {
       final box = await freshBox('repo_cache');
       final cache = ReplyCache(box: box);
-      final budget = AiBudget(box: await freshBox('repo_budget'), limit: 5);
+      final tracker = AiUsageTracker(box: await freshBox('repo_usage'));
       final inner = _CountingRepository();
-      final repo = BudgetedReplyRepository(
+      final repo = CachedReplyRepository(
         inner: inner,
         cache: cache,
-        budget: budget,
+        usageTracker: tracker,
       );
       final request = _request(message: 'thanks a lot');
 
@@ -267,20 +258,20 @@ void main() {
       expect(first, isA<ReplySuccess>());
       expect((first as ReplySuccess).fromCache, isFalse);
       expect(inner.calls, 1);
-      expect(budget.snapshot().used, 1);
+      expect(tracker.snapshot().used, 1);
 
       final second = await repo.generate(request);
       expect((second as ReplySuccess).fromCache, isTrue);
       expect(second.cachedAt, isNotNull);
-      // The whole point: the provider was not called and nothing was spent.
+      // The provider was not called, so the local attempt count stays put.
       expect(inner.calls, 1);
-      expect(budget.snapshot().used, 1);
+      expect(tracker.snapshot().used, 1);
     });
 
     test('rewrites are never persisted in the reply cache', () async {
       final box = await freshBox('repo_refinement_cache');
       final inner = _CountingRepository();
-      final repo = BudgetedReplyRepository(
+      final repo = CachedReplyRepository(
         inner: inner,
         cache: ReplyCache(box: box),
       );
@@ -299,15 +290,12 @@ void main() {
 
     test('bypassCache reaches the provider and replaces the entry', () async {
       final box = await freshBox('repo_bypass');
-      final budget = AiBudget(
-        box: await freshBox('repo_bypass_budget'),
-        limit: 5,
-      );
+      final tracker = AiUsageTracker(box: await freshBox('repo_bypass_budget'));
       final inner = _CountingRepository('first');
-      final repo = BudgetedReplyRepository(
+      final repo = CachedReplyRepository(
         inner: inner,
         cache: ReplyCache(box: box),
-        budget: budget,
+        usageTracker: tracker,
       );
       final request = _request(message: 'thanks a lot');
 
@@ -319,32 +307,31 @@ void main() {
       expect(inner.lastBypassed, isTrue);
       expect((fresh as ReplySuccess).replies, ['second']);
       expect(fresh.fromCache, isFalse);
-      expect(budget.snapshot().used, 2);
+      expect(tracker.snapshot().used, 2);
     });
 
-    test('an exhausted budget refuses before calling the provider', () async {
-      final budget = AiBudget(box: await freshBox('repo_limit'), limit: 1);
+    test('calls continue beyond the former daily cap', () async {
+      final tracker = AiUsageTracker(box: await freshBox('repo_no_cap'));
       final inner = _CountingRepository();
-      final repo = BudgetedReplyRepository(
+      final repo = CachedReplyRepository(
         inner: inner,
         cache: ReplyCache.disabled(),
-        budget: budget,
+        usageTracker: tracker,
       );
 
-      await repo.generate(_request(message: 'one'));
-      final second = await repo.generate(_request(message: 'two'));
+      for (var index = 0; index < 51; index++) {
+        final result = await repo.generate(_request(message: 'message $index'));
+        expect(result, isA<ReplySuccess>());
+      }
 
-      expect(second, isA<ReplyFailure>());
-      expect((second as ReplyFailure).message, contains('allowance'));
-      // Refused, not attempted: no provider call, and no extra allowance spent.
-      expect(inner.calls, 1);
-      expect(budget.snapshot().used, 1);
+      expect(inner.calls, 51);
+      expect(tracker.snapshot().used, 51);
     });
 
     test(
       'generic offline fallback never contradicts a selected intent',
       () async {
-        final repo = BudgetedReplyRepository(
+        final repo = CachedReplyRepository(
           inner: FailingRepository(),
           cache: ReplyCache.disabled(),
         );
@@ -365,20 +352,20 @@ void main() {
       },
     );
 
-    test('an invalid request spends nothing', () async {
-      final budget = AiBudget(box: await freshBox('repo_invalid'), limit: 5);
+    test('an invalid request is neither called nor counted', () async {
+      final tracker = AiUsageTracker(box: await freshBox('repo_invalid'));
       final inner = _CountingRepository();
-      final repo = BudgetedReplyRepository(
+      final repo = CachedReplyRepository(
         inner: inner,
         cache: ReplyCache.disabled(),
-        budget: budget,
+        usageTracker: tracker,
       );
 
       final result = await repo.generate(_request(message: '   '));
 
       expect(result, isA<ReplyFailure>());
       expect(inner.calls, 0);
-      expect(budget.snapshot().used, 0);
+      expect(tracker.snapshot().used, 0);
     });
   });
 }

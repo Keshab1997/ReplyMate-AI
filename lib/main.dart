@@ -5,7 +5,7 @@ import 'app/app.dart';
 import 'core/firebase/firebase_bootstrap.dart';
 import 'core/firebase/firebase_providers.dart';
 
-import 'features/reply/data/ai_budget.dart';
+import 'features/reply/data/ai_usage_tracker.dart';
 import 'features/reply/data/own_key_reply_repository.dart';
 import 'features/reply/data/own_key_store.dart';
 import 'features/reply/data/key_pool_reply_repository.dart';
@@ -20,12 +20,11 @@ void main() async {
   // or the app continues as a full guest shell.
   final firebaseReady = await bootstrapFirebase();
 
-  // The reply cache and the daily allowance are local files, not Firebase, and
-  // they wrap the provider call in both modes: guest mode still enforces the
-  // budget (it just never spends it) and a cache written in one mode is not
-  // served in the other unless the request is identical.
+  // The reply cache and local usage counter are not Firebase-backed. A cache
+  // written in one mode is not served in the other unless the request matches.
+  // Usage is informational only and never limits paid provider calls.
   final cache = ReplyCache(box: await _openBox(ReplyCache.openBox));
-  final budget = AiBudget(box: await _openBox(AiBudget.openBox));
+  final usage = AiUsageTracker(box: await _openBox(AiUsageTracker.openBox));
   final ownKeyBox = await _openBox(OwnKeyStore.openBox);
   final ownKeys = OwnKeyStore(box: ownKeyBox);
 
@@ -34,7 +33,7 @@ void main() async {
       overrides: [
         firebaseReadyProvider.overrideWithValue(firebaseReady),
         replyRepositoryProvider.overrideWithValue(
-          BudgetedReplyRepository(
+          CachedReplyRepository(
             // A key the user pasted is tried first: it is theirs, it cannot
             // leak from Firestore, and it is the only path that works with no
             // Firebase project at all. `generate` returns a failure when no key
@@ -45,7 +44,7 @@ void main() async {
                 ? KeyPoolReplyRepository()
                 : const NotConfiguredReplyRepository(),
             cache: cache,
-            budget: budget,
+            usageTracker: usage,
           ),
         ),
       ],
