@@ -116,6 +116,28 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('opens standalone message creation from the bubble panel', (
+    tester,
+  ) async {
+    final repository = _RecordingRepository();
+    await pumpPanel(
+      tester,
+      _context(),
+      overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+    );
+
+    await tester.tap(find.byKey(const Key('overlayCreateMessageButton')));
+    await tester.pumpAndSettle();
+    expect(find.text('Create a message'), findsOneWidget);
+    expect(repository.calls, 0);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Generate a reply'), findsOneWidget);
+    expect(find.text('Can we meet tomorrow?'), findsOneWidget);
+    expect(repository.calls, 0);
+  });
+
   testWidgets('the reply surface is a centered glass card, not a sheet', (
     tester,
   ) async {

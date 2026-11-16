@@ -16,6 +16,7 @@ import '../../reply/data/chat_reply_style_store.dart';
 import '../../reply/data/reply_repository.dart';
 import '../../reply/domain/reply_intent.dart';
 import '../../reply/domain/reply_request.dart';
+import '../../reply/presentation/create_message_screen.dart';
 import '../../reply/presentation/widgets/suggestion_card.dart';
 import '../../settings/providers/preferences_provider.dart';
 import '../../settings/settings_screen.dart';
@@ -96,6 +97,15 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
   Future<void> _openSettings() async {
     await Navigator.of(context)
         .push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen()));
+  }
+
+  /// Opens the standalone writer in this overlay activity's Navigator. This
+  /// does not launch MainActivity, and the current reply panel stays underneath
+  /// so Back returns to the same notification and draft state.
+  Future<void> _openCreateMessage() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => const CreateMessageScreen()),
+    );
   }
 
   Future<void> _generate(OverlayContext overlay, {ReplyIntent? intent}) async {
@@ -733,7 +743,15 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
       ),
       children: [
         ..._buildSwitcher(overlay),
-        const SizedBox(height: AppTheme.spaceMd),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            key: const Key('overlayCreateMessageButton'),
+            onPressed: _openCreateMessage,
+            icon: const Icon(Icons.edit_note_rounded, size: 18),
+            label: Text(_strings.writeSomethingNew),
+          ),
+        ),
         _buildMessageBlock(overlay),
         // Only real limitations appear here. A single-chat WhatsApp
         // notification is not "grouped", and text that arrived is not
