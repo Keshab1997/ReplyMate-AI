@@ -81,9 +81,11 @@ void main() {
     ReplyRepository repository, {
     bool memoryEnabled = false,
     WriterChatHistoryStore? historyStore,
+    Map<String, Object> extraPrefs = const <String, Object>{},
   }) async {
     SharedPreferences.setMockInitialValues({
       if (memoryEnabled) 'conversation_memory_enabled': true,
+      ...extraPrefs,
     });
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1;
@@ -658,6 +660,86 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('writerHistoryNoMatch')), findsOneWidget);
     expect(find.textContaining('birthday message'), findsNothing);
+  });
+
+  testWidgets('a new visit reopens the chat the user was writing', (
+    tester,
+  ) async {
+    final repository = _RecordingCreateRepository();
+    final backend = _MemoryBackend();
+    final history = WriterChatHistoryStore(backend: backend);
+
+    // First visit: write something, which saves the chat and its pointer.
+    await pumpCreateScreen(
+      tester,
+      repository,
+      memoryEnabled: true,
+      historyStore: history,
+    );
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Write a birthday message for Rahim.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+    expect(find.text('তুমি আমার দিনের সবচেয়ে সুন্দর ভাবনা।'), findsOneWidget);
+
+    // Second visit: a fresh widget tree, same stores, and the pointer that
+    // survived on disk - the way a relaunch looks.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    final savedId = (await history.all()).single.id;
+    await pumpCreateScreen(
+      tester,
+      repository,
+      memoryEnabled: true,
+      historyStore: history,
+      extraPrefs: <String, Object>{'writer_last_chat_id': savedId},
+    );
+    await tester.pumpAndSettle();
+
+    // The brief and the draft are back without a trip through history.
+    expect(find.text('Write a birthday message for Rahim.'), findsOneWidget);
+    expect(find.text('তুমি আমার দিনের সবচেয়ে সুন্দর ভাবনা।'), findsOneWidget);
+    // And it is a restore, not a regeneration.
+    expect(repository.calls, 1);
+  });
+
+  testWidgets('a restore never overwrites a brief already being typed', (
+    tester,
+  ) async {
+    final repository = _RecordingCreateRepository();
+    final history = WriterChatHistoryStore(backend: _MemoryBackend());
+    await pumpCreateScreen(tester, repository, memoryEnabled: true);
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Write a birthday message for Rahim.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    SharedPreferences.setMockInitialValues({
+      'conversation_memory_enabled': true,
+      'writer_last_chat_id': 'does-not-exist',
+    });
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          replyRepositoryProvider.overrideWithValue(repository),
+          writerChatHistoryStoreProvider.overrideWithValue(history),
+        ],
+        child: const MaterialApp(home: CreateMessageScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // A stale pointer must not throw and must not paint a ghost chat.
+    expect(find.byKey(const Key('createMessageFailure')), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('does not persist writer chats when memory is off', (

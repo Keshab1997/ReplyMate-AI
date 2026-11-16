@@ -4,6 +4,18 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### The writer reopens the chat you were writing
+
+- Opening **Create a message** used to greet a returning user with an empty
+  composer, with yesterday's work one tap away in history. It now reopens the
+  chat this device was last writing - turns, format and style intact.
+- Nothing new is stored: the pointer is one chat **id** in preferences, and the
+  text stays in the same bounded writer history (50 chats, 40 turns, 7 days).
+  The restore reads it only when the memory switch is on, and switching memory
+  off clears the pointer along with everything else.
+- A restore never overwrites a brief already being typed, and a stale pointer
+  opens an empty screen rather than an error.
+
 ### Search your writing history
 
 - The history screen showed every saved chat in one scrolling list, so finding

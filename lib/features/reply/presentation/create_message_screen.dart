@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app/theme/app_theme.dart';
 import '../../../core/constants/reply_options.dart';
@@ -60,6 +61,16 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
   /// saved chat carries its own style) the screen stops reading it.
   bool _styleSeeded = false;
 
+  /// Where "the chat you were writing" is remembered between launches. A chat
+  /// id, not any message text - the text itself lives in the bounded writer
+  /// store and is deleted with it.
+  static const String _lastChatPrefsKey = 'writer_last_chat_id';
+
+  /// Whether the screen has already tried to reopen the last chat. Only the
+  /// first visit restores; arriving from the history list must not be undone by
+  /// a background restore a frame later.
+  bool _restoredLastChat = false;
+
   /// One message per prompt, deliberately.
   ///
   /// The writer is a conversation, not a suggestion list: two drafts for the
@@ -75,6 +86,20 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
     super.dispose();
   }
 
+  /// The restore pointer is part of what "off" means.
+  ///
+  /// `ConversationMemorySwitch` deletes the stored conversations when it is
+  /// switched off; a leftover id pointing at a chat that no longer exists would
+  /// be a dangling record of the user having written something. It is cleared
+  /// here, where the chat is being written, and the restore tolerates a stale
+  /// id anyway.
+  Future<void> _forgetRestorePointer() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_lastChatPrefsKey);
+    } catch (_) {}
+  }
+
   @override
   void initState() {
     super.initState();
@@ -82,6 +107,44 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
     // default is taken from Settings before the first frame rather than on the
     // first send.
     _seedStyleFromDefaults();
+    _restoreLastChat();
+  }
+
+  /// Reopens the chat this device was last writing.
+  ///
+  /// The screen used to greet a returning user with an empty composer and their
+  /// previous work one tap away in history - so every visit started from zero
+  /// unless they remembered to go looking. This is not new storage: it reads the
+  /// same bounded writer history, and only when the user's memory switch is on.
+  Future<void> _restoreLastChat() async {
+    if (_restoredLastChat) return;
+    _restoredLastChat = true;
+    try {
+      final memorySwitch = ref.read(conversationMemoryEnabledProvider.notifier);
+      await memorySwitch.ready;
+      if (!mounted) return;
+      if (!ref.read(conversationMemoryEnabledProvider)) {
+        // Off means nothing of this is kept - including the pointer.
+        await _forgetRestorePointer();
+        return;
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      final id = prefs.getString(_lastChatPrefsKey);
+      if (id == null || !mounted) return;
+
+      final store = ref.read(writerChatHistoryStoreProvider);
+      final chats = await store.all();
+      final chat = chats.where((item) => item.id == id).firstOrNull;
+      if (chat == null || !mounted) return;
+      // Nothing on screen yet means the user has not started something new;
+      // a restore must never overwrite a brief they are already typing.
+      if (_turns.isNotEmpty || _promptController.text.isNotEmpty) return;
+      _applySavedChat(chat);
+    } catch (_) {
+      // A restore that fails is a screen that opens empty - the same screen a
+      // first-time user sees. It must never be an error page.
+    }
   }
 
   /// Settings as the starting point for a brand-new chat.
@@ -346,11 +409,18 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
       ),
     );
     if (!mounted || saved == null) return;
+    _applySavedChat(saved);
+    _scrollToBottom();
+  }
+
+  /// Puts a saved chat on screen: its turns, its format and its style.
+  ///
+  /// Shared by "open from history" and "reopen what I was writing last", because
+  /// a restored chat that lost its style - or kept the wrong one - is the same
+  /// bug whichever door the user came through.
+  void _applySavedChat(WriterChatHistory saved) {
     final restored = <_ChatTurn>[];
     final contextLines = <String>[];
-    // A reopened chat keeps the style it was written in. Falling back to the
-    // current Settings default here is what made a Bengali letter reopen as an
-    // English chat.
     final fallback = (language: _language, tone: _tone, length: _length);
     ReplyLanguage? restoredLanguage;
     ReplyTone? restoredTone;
@@ -396,8 +466,6 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
       _turns
         ..clear()
         ..addAll(restored);
-      // The chips follow the chat back in, so the next message continues in the
-      // same voice instead of quietly switching to the app default.
       if (restoredLanguage != null) _language = restoredLanguage;
       if (restoredTone != null) _tone = restoredTone;
       if (restoredLength != null) _length = restoredLength;
@@ -407,7 +475,6 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
       _inputError = null;
       _promptController.clear();
     });
-    _scrollToBottom();
   }
 
   Future<void> _persistHistory() async {
@@ -439,6 +506,15 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
             turns: savedTurns,
           ),
         );
+    // Remember *which* chat this was, so the next launch can reopen it. Only an
+    // id: the text stays in the bounded writer store, and turning the memory
+    // switch off deletes both.
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_lastChatPrefsKey, id);
+    } catch (_) {
+      // Losing the restore pointer costs a tap through history, nothing more.
+    }
     if (mounted) ref.invalidate(writerChatHistoryProvider);
   }
 
