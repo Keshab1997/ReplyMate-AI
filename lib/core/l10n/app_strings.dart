@@ -735,7 +735,7 @@ class EnglishStrings extends AppStrings {
   String get rememberRecentChats => 'Remember recent chats';
   @override
   String get rememberRecentChatsBody =>
-      'Keeps the last few messages of each chat - and replies you accept - so the next draft follows the conversation and sounds like you. It also saves standalone writing chats (up to 50 chats, 40 turns each, for 7 days). Stored on this device only, never uploaded, and never in a backup. Off by default; turning it off deletes everything it kept.';
+      'Keeps the last few messages of each chat - and replies you accept - so the next draft follows the conversation and sounds like you. It also saves standalone writing chats (up to 50 chats, 40 turns each, for 7 days) and reopens the last one you were writing. Your own lines are also used as examples of how you write, in every draft - including messages you start from scratch. Stored on this device only, never uploaded, and never in a backup. Off by default; turning it off deletes everything it kept.';
   @override
   String get nothingRememberedYet =>
       'Nothing remembered yet. Open a reply for a chat and it will show up here.';
@@ -1505,7 +1505,7 @@ class BengaliStrings extends AppStrings {
   String get rememberRecentChats => 'সাম্প্রতিক চ্যাট মনে রাখুন';
   @override
   String get rememberRecentChatsBody =>
-      'প্রতি চ্যাটের শেষ কয়েকটি মেসেজ - আর আপনি যে জবাবগুলো নেন - মনে রাখে, যাতে পরের ড্রাফট কথোপকথন ধরে আর আপনার মতো শোনায়। আলাদা লেখার চ্যাটও সেভ হয় (সর্বোচ্চ ৫০টি, প্রতিটিতে ৪০টি বার্তা, ৭ দিন পর্যন্ত)। শুধু এই ডিভাইসে রাখা হয়, কোথাও আপলোড হয় না, ব্যাকআপেও যায় না। ডিফল্টভাবে বন্ধ; বন্ধ করলে সব মুছে যায়।';
+      'প্রতি চ্যাটের শেষ কয়েকটি মেসেজ - আর আপনি যে জবাবগুলো নেন - মনে রাখে, যাতে পরের ড্রাফট কথোপকথন ধরে আর আপনার মতো শোনায়। আলাদা লেখার চ্যাটও সেভ হয় (সর্বোচ্চ ৫০টি, প্রতিটিতে ৪০টি বার্তা, ৭ দিন পর্যন্ত) এবং শেষ যে চ্যাটটি লিখছিলেন সেটি আবার খোলে। আপনার নিজের লেখা লাইনগুলো উদাহরণ হিসেবে সব ড্রাফটে ব্যবহার হয় - নতুন করে লেখা মেসেজেও। শুধু এই ডিভাইসে রাখা হয়, কোথাও আপলোড হয় না, ব্যাকআপেও যায় না। ডিফল্টভাবে বন্ধ; বন্ধ করলে সব মুছে যায়।';
   @override
   String get nothingRememberedYet =>
       'এখনো কিছু মনে রাখা হয়নি। কোনো চ্যাটের জবাব খুললে সেটি এখানে দেখা যাবে।';
@@ -2263,7 +2263,7 @@ class HindiStrings extends AppStrings {
   String get rememberRecentChats => 'हाल की चैट याद रखें';
   @override
   String get rememberRecentChatsBody =>
-      'हर चैट के पिछले कुछ संदेश - और आपके स्वीकार किए जवाब - याद रखता है, ताकि अगला ड्राफ़्ट बातचीत को आगे बढ़ाए और आप जैसा लगे। अलग से लिखने वाली चैट भी सेव होती हैं (अधिकतम 50 चैट, हर एक में 40 संदेश, 7 दिनों तक)। केवल इसी डिवाइस पर, कहीं अपलोड नहीं, बैकअप में भी नहीं। डिफ़ॉल्ट रूप से बंद; बंद करने पर सब मिट जाता है।';
+      'हर चैट के पिछले कुछ संदेश - और आपके स्वीकार किए जवाब - याद रखता है, ताकि अगला ड्राफ़्ट बातचीत को आगे बढ़ाए और आप जैसा लगे। अलग से लिखने वाली चैट भी सेव होती हैं (अधिकतम 50 चैट, हर एक में 40 संदेश, 7 दिनों तक) और आप जो चैट अंत में लिख रहे थे वह फिर खुलती है। आपकी अपनी लिखी पंक्तियाँ हर ड्राफ़्ट में उदाहरण के रूप में इस्तेमाल होती हैं - शुरू से लिखे संदेश में भी। केवल इसी डिवाइस पर, कहीं अपलोड नहीं, बैकअप में भी नहीं। डिफ़ॉल्ट रूप से बंद; बंद करने पर सब मिट जाता है।';
   @override
   String get nothingRememberedYet =>
       'अभी कुछ याद नहीं रखा गया। किसी चैट का जवाब खोलें, वह यहाँ दिखेगा।';

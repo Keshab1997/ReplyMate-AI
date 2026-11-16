@@ -11,6 +11,8 @@ import 'package:replymate/features/reply/domain/writing_format.dart';
 import 'package:replymate/features/reply/presentation/create_message_screen.dart';
 import 'package:replymate/features/reply/data/writer_chat_history_store.dart';
 import 'package:replymate/features/memory/data/conversation_memory_store.dart';
+import 'package:replymate/features/memory/domain/conversation_memory.dart';
+import 'package:replymate/features/memory/providers/conversation_memory_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _MemoryBackend implements MemoryBackend {
@@ -740,6 +742,80 @@ void main() {
     // A stale pointer must not throw and must not paint a ghost chat.
     expect(find.byKey(const Key('createMessageFailure')), findsNothing);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the writer writes in the user\'s own voice, when memory allows', (
+    tester,
+  ) async {
+    // Two things are needed for voice evidence: memory on, and the app the
+    // lines came from on the allowlist.
+    SharedPreferences.setMockInitialValues({
+      'conversation_memory_enabled': true,
+      AppConstants.prefSelectedApps: <String>['com.whatsapp'],
+    });
+    final backend = _MemoryBackend();
+    final memoryStore = ConversationMemoryStore(backend: backend);
+    final key = ConversationKey.tryOf(
+      packageName: 'com.whatsapp',
+      contactName: 'Rahim',
+    )!;
+    await memoryStore.save(
+      ConversationMemory.fromStored(
+        key: key,
+        now: DateTime.now(),
+        lines: [
+          MemoryLine(
+            text: 'আমি কাল আসতে পারব না, পরে জানাচ্ছি',
+            author: MemoryAuthor.me,
+            at: DateTime.now(),
+          ),
+        ],
+      ),
+    );
+
+    // The allowlist notifier re-asserts itself natively on load; without this
+    // mock that await never completes and the screen never sends.
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel(AppConstants.channelName),
+          (call) async => null,
+        );
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            const MethodChannel(AppConstants.channelName),
+            null,
+          ),
+    );
+
+    final repository = _RecordingCreateRepository();
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          replyRepositoryProvider.overrideWithValue(repository),
+          conversationMemoryStoreProvider.overrideWithValue(memoryStore),
+        ],
+        child: const MaterialApp(home: CreateMessageScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Write a short message to Rahim.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+
+    // The request carries the user's own line as a style example - the same
+    // thing the reply panel has always done, which the writer screen never did.
+    expect(
+      repository.request?.styleExamples,
+      contains('আমি কাল আসতে পারব না, পরে জানাচ্ছি'),
+    );
   });
 
   testWidgets('does not persist writer chats when memory is off', (

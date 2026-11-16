@@ -201,6 +201,41 @@ class ConversationMemoryController {
 
   Future<List<ConversationKey>> contacts() => _store.contacts();
 
+  /// How the user writes, gathered from every conversation the app remembers.
+  ///
+  /// The voice half of this feature is the user's own lines, and the reply panel
+  /// has always used them from the *one* chat it was answering. A screen that
+  /// writes a message from scratch has no chat to belong to, so it asks across
+  /// all of them - which is also the honest answer: how someone writes is not
+  /// a property of one contact.
+  ///
+  /// Bounded three ways: only allowlisted contacts are read, the store's own
+  /// window (7 days, 40 lines) still applies, and the result is capped at
+  /// [MemoryPolicy.styleExampleCount] - past three examples the prompt is
+  /// quoting the user instead of writing for them.
+  Future<List<String>> styleExamplesAcrossChats() async {
+    await _settled();
+    if (!isEnabled) return const <String>[];
+    final allowlist = _allowlist;
+    if (allowlist.isEmpty) return const <String>[];
+
+    final examples = <String>[];
+    final seen = <String>{};
+    for (final key in await _store.contacts()) {
+      // The key carries the package name, which is the allowlist axis.
+      if (!allowlist.contains(key.packageName)) continue;
+      final window = await _store.read(key);
+      for (final example in window.styleExamples()) {
+        // The same sentence said to two people is still one example.
+        if (seen.add(example)) examples.add(example);
+      }
+      if (examples.length >= MemoryPolicy.standard.styleExampleCount) break;
+    }
+    return examples
+        .take(MemoryPolicy.standard.styleExampleCount)
+        .toList(growable: false);
+  }
+
   Future<void> forget(ConversationKey key) async {
     await _store.forget(key);
     _ref.invalidate(conversationMemoryContactsProvider);

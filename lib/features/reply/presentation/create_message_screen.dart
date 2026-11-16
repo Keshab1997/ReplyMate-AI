@@ -527,6 +527,14 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
       return;
     }
 
+    // How this user actually writes, when the app has been allowed to keep any
+    // of it. Empty list otherwise, and then the prompt's voice block is dropped
+    // rather than sent empty.
+    final styleExamples = await ref
+        .read(conversationMemoryControllerProvider)
+        .styleExamplesAcrossChats();
+    if (!mounted) return;
+
     final request = ReplyRequest(
       message: writingPrompt,
       language: _language,
@@ -534,6 +542,7 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
       length: _length,
       count: _suggestionCount,
       priorMessages: _conversationHistory(),
+      styleExamples: styleExamples,
       mode: ReplyMode.createMessage,
       format: _format,
     );

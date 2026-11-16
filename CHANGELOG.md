@@ -4,6 +4,25 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### The writer writes in your own voice
+
+- The reply panel has always used the user's own lines as few-shot style
+  examples; the writer screen never did, so a message started from scratch came
+  back in the model's default register. It now asks
+  `ConversationMemoryController.styleExamplesAcrossChats()` for up to three of
+  the user's lines and sends them with the request.
+- Across chats, not one: a message written from scratch belongs to no contact,
+  and how someone writes is not a property of one conversation. The store's own
+  window (7 days, 40 lines), the app allowlist and the three-example cap all
+  still apply; duplicates are collapsed.
+- Empty list when memory is off - and then the whole voice block is dropped from
+  the prompt rather than sent empty, so the cost of switching memory off is a
+  shorter prompt, not a broken one.
+- The memory screen's own description now says all three things it does
+  (conversations, standalone chats reopened, voice examples in every draft), in
+  English, Bengali and Hindi. A privacy switch that describes two of its three
+  effects is the kind of thing Play review reads as a misdescription.
+
 ### The writer reopens the chat you were writing
 
 - Opening **Create a message** used to greet a returning user with an empty
