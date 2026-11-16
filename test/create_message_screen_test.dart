@@ -45,6 +45,25 @@ class _RecordingCreateRepository implements ReplyRepository {
   }
 }
 
+/// Fails the first call, then behaves. Used to prove a failure is recoverable.
+class _FlakyRepository implements ReplyRepository {
+  _FlakyRepository();
+
+  int calls = 0;
+  final List<bool> bypassFlags = <bool>[];
+
+  @override
+  Future<ReplyResult> generate(
+    ReplyRequest request, {
+    bool bypassCache = false,
+  }) async {
+    calls++;
+    bypassFlags.add(bypassCache);
+    if (calls == 1) return const ReplyFailure('No provider answered.');
+    return const ReplySuccess(['দিনটা শুভ হোক!']);
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -333,6 +352,51 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(await history.all(), isEmpty);
+  });
+
+  testWidgets('a failed turn can be retried without retyping anything', (
+    tester,
+  ) async {
+    final repository = _FlakyRepository();
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+        child: const MaterialApp(home: CreateMessageScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Write a good morning message.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+
+    // The failure is shown, and so is the way out of it.
+    expect(find.byKey(const Key('createMessageFailure')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('retryCreateMessage-0')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('retryCreateMessage-0')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(repository.calls, 2);
+    // Same request, not a rebuilt one: the brief is not retyped or re-guessed.
+    expect(find.text('দিনটা শুভ হোক!'), findsOneWidget);
+    // The stale error is gone - a turn that recovered must not keep showing it.
+    expect(find.byKey(const Key('createMessageFailure')), findsNothing);
+    // A retry is allowed to use the cache: nothing changed, so the cached
+    // answer for the same request is a fair answer.
+    expect(repository.bypassFlags, [false, false]);
   });
 
   testWidgets('the chat answers in the style its chips say, not Settings', (

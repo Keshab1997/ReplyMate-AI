@@ -4,6 +4,16 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### A failed draft can be retried
+
+- A generation failure used to be a dead end: the brief was still on screen,
+  the style was still chosen, and there was nothing to press. Each failed turn
+  now offers **Try again**, which re-runs the *same* request - no retyping, and
+  no quietly dropping the style or format the user picked.
+- Send, retry and (soon) regenerate share one code path, so the retry cannot
+  drift away from what a first send does.
+- A turn that recovers stops showing the error it recovered from.
+
 ### A quieter chat screen: one reply per prompt, one toolbar
 
 - **One reply per prompt.** Two drafts for the same brief made the screen look

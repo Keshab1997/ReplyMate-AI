@@ -446,29 +446,61 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
     });
     _scrollToBottom();
 
-    final result = await ref.read(replyRepositoryProvider).generate(request);
+    await _run(turn, _turns.length - 1);
+  }
+
+  /// Runs one turn's request and writes the result back into [_turns].
+  ///
+  /// Shared by the first send, a retry after a failure and a regenerate: they
+  /// differ only in whether the cache may be used and whether a turn is added
+  /// first. Keeping one implementation is what stops the retry path from
+  /// drifting away from the send path - the bug that made a failed turn
+  /// unrecoverable was that there was no second path at all.
+  Future<void> _run(
+    _ChatTurn turn,
+    int index, {
+    bool bypassCache = false,
+  }) async {
+    setState(() {
+      _generating = true;
+      _turns[index] = turn.copyWith(isGenerating: true, clearFailure: true);
+    });
+
+    final result = await ref
+        .read(replyRepositoryProvider)
+        .generate(turn.request, bypassCache: bypassCache);
     if (!mounted) return;
 
     setState(() {
       _generating = false;
-      switch (result) {
-        case ReplySuccess(:final replies, :final cachedAt, :final offline):
-          _turns[_turns.length - 1] = turn.copyWith(
+      _turns[index] = switch (result) {
+        ReplySuccess(:final replies, :final cachedAt, :final offline) =>
+          turn.copyWith(
             replies: replies,
             failure: replies.isEmpty ? _strings.refineFailed : null,
+            clearFailure: replies.isNotEmpty,
             cachedAt: cachedAt,
             offline: offline,
             isGenerating: false,
-          );
-        case ReplyFailure(:final message):
-          _turns[_turns.length - 1] = turn.copyWith(
-            failure: message,
-            isGenerating: false,
-          );
-      }
+          ),
+        ReplyFailure(:final message) => turn.copyWith(
+          failure: message,
+          isGenerating: false,
+        ),
+      };
     });
     _scrollToBottom();
     await _persistHistory();
+  }
+
+  /// Try the same request again after a failure.
+  ///
+  /// The same request, not a fresh one: the user changed nothing, so the app
+  /// must not quietly drop the style or the format they picked. The message
+  /// text is still in the failed turn, so nothing has to be retyped.
+  Future<void> _retry(_ChatTurn turn, int index) async {
+    if (_generating) return;
+    await _run(turn, index);
   }
 
   void _scrollToBottom() {
@@ -684,12 +716,32 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
                         ],
                       )
                     else if (turn.failure != null)
-                      Text(
-                        turn.failure!,
-                        key: const Key('createMessageFailure'),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: scheme.error,
-                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            turn.failure!,
+                            key: const Key('createMessageFailure'),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: scheme.error,
+                            ),
+                          ),
+                          // A failure used to be a dead end: the text was still
+                          // here, the style was still chosen, and there was
+                          // nothing to press. Retrying costs one provider call
+                          // and no retyping.
+                          const SizedBox(height: AppTheme.spaceXs),
+                          OutlinedButton.icon(
+                            key: ValueKey<String>(
+                              'retryCreateMessage-$turnIndex',
+                            ),
+                            onPressed: _generating
+                                ? null
+                                : () => _retry(turn, turnIndex),
+                            icon: const Icon(Icons.refresh_rounded, size: 17),
+                            label: Text(_strings.retry),
+                          ),
+                        ],
                       )
                     else ...[
                       for (final (replyIndex, reply) in turn.replies.indexed)
@@ -1188,6 +1240,7 @@ class _ChatTurn {
   _ChatTurn copyWith({
     List<String>? replies,
     String? failure,
+    bool clearFailure = false,
     DateTime? cachedAt,
     bool? offline,
     bool? isGenerating,
@@ -1195,7 +1248,10 @@ class _ChatTurn {
     prompt: prompt,
     request: request,
     replies: replies ?? this.replies,
-    failure: failure ?? this.failure,
+    // `failure: null` cannot mean "no failure" through a ?? fallback, so
+    // clearing it is its own flag - otherwise a retried turn kept showing the
+    // error it had just recovered from.
+    failure: clearFailure ? null : (failure ?? this.failure),
     cachedAt: cachedAt ?? this.cachedAt,
     offline: offline ?? this.offline,
     isGenerating: isGenerating ?? this.isGenerating,

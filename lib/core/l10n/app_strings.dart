@@ -162,6 +162,8 @@ abstract class AppStrings {
   String get quickReplies;
   String get replyHint;
   String get copyDraft;
+  String get retry;
+  String get writeAnother;
   String get editDraft;
   String get offlineDraft;
   String get cachedDraft;
@@ -632,6 +634,10 @@ class EnglishStrings extends AppStrings {
 
   @override
   String get copyDraft => 'Copy';
+  @override
+  String get retry => 'Try again';
+  @override
+  String get writeAnother => 'Write another';
 
   @override
   String get editDraft => 'Edit';
@@ -1386,6 +1392,10 @@ class BengaliStrings extends AppStrings {
 
   @override
   String get copyDraft => 'কপি';
+  @override
+  String get retry => 'আবার চেষ্টা করুন';
+  @override
+  String get writeAnother => 'আরেকটা লিখুন';
 
   @override
   String get editDraft => 'সম্পাদনা';
@@ -2130,6 +2140,10 @@ class HindiStrings extends AppStrings {
 
   @override
   String get copyDraft => 'कॉपी';
+  @override
+  String get retry => 'फिर कोशिश करें';
+  @override
+  String get writeAnother => 'एक और लिखें';
 
   @override
   String get editDraft => 'संपादित करें';
