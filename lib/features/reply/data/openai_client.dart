@@ -170,12 +170,16 @@ class OpenAiCompatibleClient {
             headers: {'Content-Type': 'application/json; charset=utf-8'},
             body: jsonEncode({
               'systemInstruction': {
-                'parts': [{'text': systemPrompt}],
+                'parts': [
+                  {'text': systemPrompt},
+                ],
               },
               'contents': [
                 {
                   'role': 'user',
-                  'parts': [{'text': userPrompt}],
+                  'parts': [
+                    {'text': userPrompt},
+                  ],
                 },
               ],
               'generationConfig': {

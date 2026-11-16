@@ -203,32 +203,34 @@ void main() {
     expect(calls, 2);
   });
 
-  test('a dead pool reports the honest failure after all keys are tried',
-      () async {
-    final keys = FakeKeySource.queue([
-      key(),
-      key(id: 'k2'),
-      key(id: 'k3'),
-      key(id: 'k4'),
-    ]);
-    final repository = repositoryWith(
-      keys,
-      200,
-      jsonEncode({
-        'choices': [
-          {
-            'message': {'content': '{"replies": []}'},
-          },
-        ],
-      }),
-    );
-    final result = await repository.generate(request());
-    expect(result, isA<ReplyFailure>());
-    expect((result as ReplyFailure).message, contains('empty'));
-    // Bounded: three attempts, never the whole pool.
-    expect(keys.reportedKeyIds, ['k1', 'k2', 'k3']);
-    expect(keys.nextCalls, 3);
-  });
+  test(
+    'a dead pool reports the honest failure after all keys are tried',
+    () async {
+      final keys = FakeKeySource.queue([
+        key(),
+        key(id: 'k2'),
+        key(id: 'k3'),
+        key(id: 'k4'),
+      ]);
+      final repository = repositoryWith(
+        keys,
+        200,
+        jsonEncode({
+          'choices': [
+            {
+              'message': {'content': '{"replies": []}'},
+            },
+          ],
+        }),
+      );
+      final result = await repository.generate(request());
+      expect(result, isA<ReplyFailure>());
+      expect((result as ReplyFailure).message, contains('empty'));
+      // Bounded: three attempts, never the whole pool.
+      expect(keys.reportedKeyIds, ['k1', 'k2', 'k3']);
+      expect(keys.nextCalls, 3);
+    },
+  );
 
   test('a one-key pool is not retried against itself', () async {
     // The fake hands the same key back forever, which a pool whose only key is

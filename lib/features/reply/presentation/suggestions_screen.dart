@@ -112,7 +112,8 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
   /// be the same dishonesty the offline note exists to avoid.
   List<String> _freeAlternatives() {
     final request = widget.request;
-    if (request.replyIntent != null || request.mode == ReplyMode.createMessage) {
+    if (request.replyIntent != null ||
+        request.mode == ReplyMode.createMessage) {
       return const <String>[];
     }
     return OfflineSuggestions.forMessage(
@@ -282,7 +283,10 @@ class _SuggestionsScreenState extends ConsumerState<SuggestionsScreen> {
                   const SizedBox(height: AppTheme.spaceSm),
                 ],
                 if (!_freeVariantShown && _freeAlternatives().isNotEmpty) ...[
-                  _FreeVariationOffer(busy: _regenerating, onPressed: _freeVariation),
+                  _FreeVariationOffer(
+                    busy: _regenerating,
+                    onPressed: _freeVariation,
+                  ),
                   const SizedBox(height: AppTheme.spaceSm),
                 ],
                 if (_freeVariantShown) ...[

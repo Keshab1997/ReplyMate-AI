@@ -182,8 +182,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.calls, 0);
-    expect(find.text('Please give me a moment — I will confirm shortly.'),
-        findsOneWidget);
+    expect(
+      find.text('Please give me a moment — I will confirm shortly.'),
+      findsOneWidget,
+    );
     expect(
       find.text('Free variation · rewritten on this device, no AI call made'),
       findsOneWidget,

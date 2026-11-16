@@ -122,8 +122,7 @@ void main() {
     }
   });
 
-  test('a bare model on OpenRouter is prefixed the way OpenRouter wants it',
-      () async {
+  test('a bare model on OpenRouter is prefixed the way OpenRouter wants it', () async {
     // The admin health check already does this mapping; the real call used to
     // send `gpt-4o-mini` and take a 400 from OpenRouter while the admin screen
     // showed a healthy key.
@@ -148,89 +147,95 @@ void main() {
     expect(body['model'], 'openai/gpt-4o-mini');
   });
 
-  test('an already-prefixed OpenRouter model is left exactly as entered',
-      () async {
-    http.Request? seen;
-    final client = clientReturning(
-      200,
-      jsonEncode({
-        'choices': [
-          {
-            'message': {'content': '{"replies": ["hi"]}'},
-          },
-        ],
-      }),
-      onRequest: (request) => seen = request,
-    );
-    await client.complete(
-      key: key(
-        baseUrl: 'https://openrouter.ai/api/v1',
-        model: 'openai/gpt-4o-mini',
-      ),
-      systemPrompt: 's',
-      userPrompt: 'u',
-    );
-    expect((jsonDecode(seen!.body) as Map)['model'], 'openai/gpt-4o-mini');
-  });
-
-  test('a google provider key uses generateContent, not /chat/completions',
-      () async {
-    http.Request? seen;
-    final client = OpenAiCompatibleClient(
-      httpClient: MockClient((request) async {
-        seen = request;
-        return http.Response(
-          jsonEncode({
-            'candidates': [
-              {
-                'content': {
-                  'parts': [
-                    {'text': '{"replies": ["hi"]}'},
-                  ],
-                },
-              },
-            ],
-          }),
-          200,
-        );
-      }),
-    );
-    final content = await client.complete(
-      key: key(
-        provider: 'google',
-        baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-        model: 'gemini-2.0-flash',
-      ),
-      systemPrompt: 'sys',
-      userPrompt: 'usr',
-    );
-    expect(
-      seen!.url.toString(),
-      'https://generativelanguage.googleapis.com/v1beta/models/'
-      'gemini-2.0-flash:generateContent?key=sk-test',
-    );
-    expect(content, '{"replies": ["hi"]}');
-    final body = jsonDecode(seen!.body) as Map;
-    expect((body['contents'] as List).first['role'], 'user');
-    expect(body['generationConfig']['responseMimeType'], 'application/json');
-  });
-
-  test('a google key with an empty candidate list is malformed, not success',
-      () async {
-    final client = OpenAiCompatibleClient(
-      httpClient: MockClient(
-        (request) async => http.Response('{"candidates": []}', 200),
-      ),
-    );
-    await expectLater(
-      client.complete(
-        key: key(provider: 'google'),
+  test(
+    'an already-prefixed OpenRouter model is left exactly as entered',
+    () async {
+      http.Request? seen;
+      final client = clientReturning(
+        200,
+        jsonEncode({
+          'choices': [
+            {
+              'message': {'content': '{"replies": ["hi"]}'},
+            },
+          ],
+        }),
+        onRequest: (request) => seen = request,
+      );
+      await client.complete(
+        key: key(
+          baseUrl: 'https://openrouter.ai/api/v1',
+          model: 'openai/gpt-4o-mini',
+        ),
         systemPrompt: 's',
         userPrompt: 'u',
-      ),
-      throwsA(isA<MalformedResponse>()),
-    );
-  });
+      );
+      expect((jsonDecode(seen!.body) as Map)['model'], 'openai/gpt-4o-mini');
+    },
+  );
+
+  test(
+    'a google provider key uses generateContent, not /chat/completions',
+    () async {
+      http.Request? seen;
+      final client = OpenAiCompatibleClient(
+        httpClient: MockClient((request) async {
+          seen = request;
+          return http.Response(
+            jsonEncode({
+              'candidates': [
+                {
+                  'content': {
+                    'parts': [
+                      {'text': '{"replies": ["hi"]}'},
+                    ],
+                  },
+                },
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+      final content = await client.complete(
+        key: key(
+          provider: 'google',
+          baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+          model: 'gemini-2.0-flash',
+        ),
+        systemPrompt: 'sys',
+        userPrompt: 'usr',
+      );
+      expect(
+        seen!.url.toString(),
+        'https://generativelanguage.googleapis.com/v1beta/models/'
+        'gemini-2.0-flash:generateContent?key=sk-test',
+      );
+      expect(content, '{"replies": ["hi"]}');
+      final body = jsonDecode(seen!.body) as Map;
+      expect((body['contents'] as List).first['role'], 'user');
+      expect(body['generationConfig']['responseMimeType'], 'application/json');
+    },
+  );
+
+  test(
+    'a google key with an empty candidate list is malformed, not success',
+    () async {
+      final client = OpenAiCompatibleClient(
+        httpClient: MockClient(
+          (request) async => http.Response('{"candidates": []}', 200),
+        ),
+      );
+      await expectLater(
+        client.complete(
+          key: key(provider: 'google'),
+          systemPrompt: 's',
+          userPrompt: 'u',
+        ),
+        throwsA(isA<MalformedResponse>()),
+      );
+    },
+  );
 
   test('a google key 429 is still a retryable rate limit', () async {
     final client = OpenAiCompatibleClient(

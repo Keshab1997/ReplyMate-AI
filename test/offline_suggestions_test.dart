@@ -84,29 +84,32 @@ void main() {
       expect(next.any(first.contains), isFalse);
     });
 
-    test('an exhausted table returns nothing, which is the escalate signal', () {
-      const message = 'Can we meet tomorrow?';
-      final everything = <String>{
-        ...OfflineSuggestions.forMessage(
-          message,
-          language: ReplyLanguage.english,
-          tone: ReplyTone.polite,
-          length: ReplyLength.short,
-          count: 99,
-        ),
-      };
-      expect(everything, isNotEmpty);
-      expect(
-        OfflineSuggestions.forMessage(
-          message,
-          language: ReplyLanguage.english,
-          tone: ReplyTone.polite,
-          length: ReplyLength.short,
-          exclude: everything,
-        ),
-        isEmpty,
-      );
-    });
+    test(
+      'an exhausted table returns nothing, which is the escalate signal',
+      () {
+        const message = 'Can we meet tomorrow?';
+        final everything = <String>{
+          ...OfflineSuggestions.forMessage(
+            message,
+            language: ReplyLanguage.english,
+            tone: ReplyTone.polite,
+            length: ReplyLength.short,
+            count: 99,
+          ),
+        };
+        expect(everything, isNotEmpty);
+        expect(
+          OfflineSuggestions.forMessage(
+            message,
+            language: ReplyLanguage.english,
+            tone: ReplyTone.polite,
+            length: ReplyLength.short,
+            exclude: everything,
+          ),
+          isEmpty,
+        );
+      },
+    );
   });
 
   group('suggestions', () {

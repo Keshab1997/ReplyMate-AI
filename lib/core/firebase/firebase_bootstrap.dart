@@ -62,9 +62,9 @@ Future<bool> bootstrapFirebase() async {
   // reports its own honest failure.
   try {
     if (FirebaseAuth.instance.currentUser == null) {
-      await FirebaseAuth.instance
-          .signInAnonymously()
-          .timeout(const Duration(seconds: 8));
+      await FirebaseAuth.instance.signInAnonymously().timeout(
+        const Duration(seconds: 8),
+      );
     }
   } catch (error) {
     debugPrint('ReplyMate: anonymous sign-in unavailable ($error)');
