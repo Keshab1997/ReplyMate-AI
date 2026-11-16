@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../app_selection/providers/selected_apps_provider.dart';
+import '../data/remembered_facts_store.dart';
 import '../../notifications/models/captured_notification.dart';
 import '../data/conversation_memory_store.dart';
 import '../domain/conversation_memory.dart';
@@ -82,8 +83,12 @@ class ConversationMemorySwitch extends Notifier<bool> {
       // The in-memory switch still governs this run.
     }
     if (!enabled) {
+      // "Off" means nothing of yours is kept - every store this switch governs,
+      // including the facts the user typed in and the pointer that reopens the
+      // last chat. A switch that leaves one shelf standing is a lie.
       await ref.read(conversationMemoryStoreProvider).forgetAll();
       await ref.read(writerChatHistoryStoreProvider).clearAll();
+      await ref.read(rememberedFactsStoreProvider).clearAll();
     }
   }
 }

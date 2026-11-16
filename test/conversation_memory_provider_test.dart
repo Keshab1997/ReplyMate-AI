@@ -6,6 +6,7 @@ import 'package:replymate/features/memory/data/conversation_memory_store.dart';
 import 'package:replymate/features/app_selection/providers/selected_apps_provider.dart';
 import 'package:replymate/features/memory/providers/conversation_memory_provider.dart';
 import 'package:replymate/features/reply/data/writer_chat_history_store.dart';
+import 'package:replymate/features/memory/data/remembered_facts_store.dart';
 import 'package:replymate/features/notifications/models/captured_notification.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -47,6 +48,7 @@ void main() {
 
   late _FakeBackend backend;
   late _FakeBackend writerBackend;
+  late _FakeBackend factsBackend;
   late ProviderContainer container;
 
   CapturedNotification capture({
@@ -88,6 +90,7 @@ void main() {
     );
     backend = _FakeBackend();
     writerBackend = _FakeBackend();
+    factsBackend = _FakeBackend();
     container = ProviderContainer(
       overrides: [
         conversationMemoryStoreProvider.overrideWithValue(
@@ -95,6 +98,11 @@ void main() {
         ),
         writerChatHistoryStoreProvider.overrideWithValue(
           WriterChatHistoryStore(backend: writerBackend),
+        ),
+        // The master switch now clears facts as well; without this override the
+        // test would open the real Hive box.
+        rememberedFactsStoreProvider.overrideWithValue(
+          RememberedFactsStore(backend: factsBackend),
         ),
       ],
     );

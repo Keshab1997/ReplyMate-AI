@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../memory/widgets/conversation_memory_card.dart';
+import '../../memory/widgets/remembered_facts_card.dart';
 import '../../reply/presentation/saved_replies_card.dart';
 import 'settings_sub_screen.dart';
 
@@ -29,6 +30,13 @@ class MemoryScreen extends ConsumerWidget {
           topSpace: AppTheme.spaceSm,
           label: strings.conversationMemorySection,
           child: const ConversationMemoryCard(),
+        ),
+        // Facts sit between the two stores on purpose: they are the thing the
+        // user types in themselves, and the answer to "what does this app think
+        // it knows about me?" has to be readable on one screen.
+        SettingsSection(
+          label: strings.rememberedFactsTitle,
+          child: const RememberedFactsCard(),
         ),
         SettingsSection(
           label: strings.savedReplies,

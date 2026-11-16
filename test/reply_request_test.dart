@@ -70,6 +70,7 @@ void main() {
         'count': 3,
         'priorMessages': const <String>[],
         'styleExamples': const <String>[],
+        'rememberedFacts': const <String>[],
       });
     });
 

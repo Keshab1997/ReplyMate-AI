@@ -9,6 +9,7 @@ import '../../notifications/providers/notification_providers.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../shared/widgets/screen_header.dart';
 import '../../settings/providers/preferences_provider.dart';
+import '../../memory/data/remembered_facts_store.dart';
 import '../../memory/providers/conversation_memory_provider.dart';
 import '../data/reply_repository.dart';
 import '../data/writer_chat_history_store.dart';
@@ -533,6 +534,19 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
     final styleExamples = await ref
         .read(conversationMemoryControllerProvider)
         .styleExamplesAcrossChats();
+    // Facts the user typed into Settings. Read only when memory is on, because
+    // "off" is the switch that means this app keeps nothing about you.
+    //
+    // Wrapped: an unreadable store loses the facts, not the message. Memory has
+    // never been allowed to break generation, and it is not about to start.
+    var facts = const <String>[];
+    if (ref.read(conversationMemoryEnabledProvider)) {
+      try {
+        facts = await ref.read(rememberedFactsStoreProvider).promptLines();
+      } catch (_) {
+        facts = const <String>[];
+      }
+    }
     if (!mounted) return;
 
     final request = ReplyRequest(
@@ -543,6 +557,7 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
       count: _suggestionCount,
       priorMessages: _conversationHistory(),
       styleExamples: styleExamples,
+      rememberedFacts: facts,
       mode: ReplyMode.createMessage,
       format: _format,
     );

@@ -208,6 +208,12 @@ abstract class AppStrings {
   String get deleteAllRemembered;
   String get deleteAllTitle;
   String get deleteAllBody;
+  String get rememberedFactsTitle;
+  String get rememberedFactsHint;
+  String get rememberedFactHint;
+  String get rememberedFactAdd;
+  String get rememberedFactDelete;
+  String get rememberedFactsEmpty;
   String get keep;
   String get delete;
   String suggestionsLabel(int count);
@@ -741,6 +747,19 @@ class EnglishStrings extends AppStrings {
       'Nothing remembered yet. Open a reply for a chat and it will show up here.';
   @override
   String get forgetThisChat => 'Forget this chat';
+  @override
+  String get rememberedFactsTitle => 'Things you told me';
+  @override
+  String get rememberedFactsHint =>
+      'Facts you type here are used in every draft - your name, who someone is to you, anything you keep repeating. Only what you write: nothing is guessed from your messages, and every line can be deleted.';
+  @override
+  String get rememberedFactHint => 'For example: my name is Keshab';
+  @override
+  String get rememberedFactAdd => 'Remember this';
+  @override
+  String get rememberedFactDelete => 'Delete this fact';
+  @override
+  String get rememberedFactsEmpty => 'Nothing saved yet.';
   @override
   String get deleteAllRemembered => 'Delete all remembered chats';
   @override
@@ -1512,6 +1531,19 @@ class BengaliStrings extends AppStrings {
   @override
   String get forgetThisChat => 'এই চ্যাট ভুলে যান';
   @override
+  String get rememberedFactsTitle => 'আপনি যা বলেছেন';
+  @override
+  String get rememberedFactsHint =>
+      'এখানে লেখা তথ্য প্রতিটি ড্রাফটে ব্যবহার হয় - আপনার নাম, কে আপনার কী, বা যা বারবার লিখতে হয়। শুধু আপনি যা লিখবেন: মেসেজ থেকে কিছু অনুমান করা হয় না, আর প্রতিটি লাইন মোছা যায়।';
+  @override
+  String get rememberedFactHint => 'যেমন: আমার নাম কেশব';
+  @override
+  String get rememberedFactAdd => 'মনে রাখুন';
+  @override
+  String get rememberedFactDelete => 'এই তথ্য মুছুন';
+  @override
+  String get rememberedFactsEmpty => 'এখনো কিছু সেভ করা হয়নি।';
+  @override
   String get deleteAllRemembered => 'মনে রাখা সব চ্যাট মুছুন';
   @override
   String get deleteAllTitle => 'মনে রাখা সব চ্যাট মুছবেন?';
@@ -2269,6 +2301,19 @@ class HindiStrings extends AppStrings {
       'अभी कुछ याद नहीं रखा गया। किसी चैट का जवाब खोलें, वह यहाँ दिखेगा।';
   @override
   String get forgetThisChat => 'यह चैट भुला दें';
+  @override
+  String get rememberedFactsTitle => 'आपने जो बताया';
+  @override
+  String get rememberedFactsHint =>
+      'यहाँ लिखी बातें हर ड्राफ़्ट में इस्तेमाल होती हैं - आपका नाम, कोई आपके लिए कौन है, या जो आप बार-बार लिखते हैं। केवल वही जो आप लिखें: संदेशों से कुछ अनुमान नहीं लगाया जाता, और हर पंक्ति हटाई जा सकती है।';
+  @override
+  String get rememberedFactHint => 'जैसे: मेरा नाम केशब है';
+  @override
+  String get rememberedFactAdd => 'याद रखें';
+  @override
+  String get rememberedFactDelete => 'यह बात हटाएँ';
+  @override
+  String get rememberedFactsEmpty => 'अभी कुछ सेव नहीं है।';
   @override
   String get deleteAllRemembered => 'याद रखी सभी चैट हटाएँ';
   @override

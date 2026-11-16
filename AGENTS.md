@@ -327,11 +327,25 @@ down here is never touched).
   contacts and 7 days, with per-contact delete. Standalone Create a message
   chats are user-initiated and share the same opt-in/off switch; they live in a
   separate local Hive box, capped at 50 chats, 40 turns/chat and 7 days, with
-  reopen/delete in the writer history list. No contact allowlist applies to
-  those user-written briefs. No inferred personality profile - the voice half
-  is verbatim few-shot examples of the user's own replies, and it needs screen
-  reading to exist at all. Every other capture still follows the old rule:
-  thrown away when the panel closes.
+  reopen/delete in the writer history list, and the last one written is
+  reopened on the next visit (a chat id in preferences, nothing else). No
+  contact allowlist applies to those user-written briefs.
+- **Remembered facts** (Settings → Memory) are a third shelf, and the only one
+  the user fills in by typing. They are their name, who someone is, whatever
+  they keep repeating - shown as a list, deletable one line at a time, capped
+  at 20 facts of 160 characters, stored in their own Hive box, and cleared by
+  the same memory switch (off must mean off on every shelf). They reach the
+  prompt as a fenced block that is explicitly *context, not instructions*, so
+  the current request always wins and the model is told not to invent any fact
+  it was not given. The line that still holds: **nothing is inferred**. No
+  profile, no guessing a name from a signature, no "this person seems terse".
+  If a fact is not in that list, the app does not know it.
+- **The voice half** is verbatim few-shot examples of the user's own replies,
+  and it needs screen reading to exist at all. It is used in the reply panel
+  *and* in Create a message - across all remembered chats there, because a
+  message written from scratch belongs to no contact.
+  Every other capture still follows the old rule: thrown away when the panel
+  closes.
 - **Extra verification:** Phase 1 is not done until a real-device checklist
   has no outstanding rows — CI cannot see notifications, quick reply, the
   selection menu or the screen reader. The screen-reading rows are **evidence

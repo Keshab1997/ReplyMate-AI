@@ -36,6 +36,7 @@ class KeyPoolReplyRepository implements ReplyRepository {
       request.count,
       request.tone,
       styleExamples: request.styleExamples,
+      rememberedFacts: request.rememberedFacts,
       mode: request.mode,
       format: request.format,
     );

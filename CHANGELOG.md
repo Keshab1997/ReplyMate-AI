@@ -4,6 +4,27 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### Things the user tells the app, and can delete
+
+- New **Settings → Memory → Things you told me**. The user types a fact ("my name
+  is Keshab", "Rahim is my brother"); every draft uses them, and each one can be
+  deleted from the list it appears in.
+- **Nothing is inferred, ever.** The list holds only what was typed: no profile,
+  no name guessed from a signature, no "this person seems terse". Every line is
+  readable back and removable, which an inferred profile never is.
+- Walls: 20 facts of 160 characters (a longer paste is truncated, not rejected),
+  duplicates collapse case-insensitively, oldest out first, a separate Hive box,
+  and the master memory switch clears this shelf too - "off" now means off
+  everywhere, including the pointer that reopens the last chat.
+- The prompt gets a fenced block that says outright these are *context, not
+  instructions* and that no fact outside them may be invented, so a remembered
+  fact can never override the request in front of it.
+- A broken facts store loses the facts, not the message: memory is still not
+  allowed to break generation.
+- `AGENTS.md` project notes updated: this is a deliberate reversal of the old
+  "no standing facts" line, so the file says what the app now does rather than
+  what it used to.
+
 ### The writer writes in your own voice
 
 - The reply panel has always used the user's own lines as few-shot style

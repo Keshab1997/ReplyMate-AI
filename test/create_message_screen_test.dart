@@ -13,6 +13,7 @@ import 'package:replymate/features/reply/data/writer_chat_history_store.dart';
 import 'package:replymate/features/memory/data/conversation_memory_store.dart';
 import 'package:replymate/features/memory/domain/conversation_memory.dart';
 import 'package:replymate/features/memory/providers/conversation_memory_provider.dart';
+import 'package:replymate/features/memory/data/remembered_facts_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _MemoryBackend implements MemoryBackend {
@@ -84,11 +85,16 @@ void main() {
     bool memoryEnabled = false,
     WriterChatHistoryStore? historyStore,
     Map<String, Object> extraPrefs = const <String, Object>{},
+    List<Override> extraOverrides = const <Override>[],
   }) async {
     SharedPreferences.setMockInitialValues({
       if (memoryEnabled) 'conversation_memory_enabled': true,
       ...extraPrefs,
     });
+    // The screen reads the user's facts on every send. The real store opens a
+    // Hive box, which a widget test has no reason to own - so every pump gets a
+    // fake, whether or not the test cares about facts.
+    final facts = RememberedFactsStore(backend: _MemoryBackend());
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -98,6 +104,8 @@ void main() {
           replyRepositoryProvider.overrideWithValue(repository),
           if (historyStore != null)
             writerChatHistoryStoreProvider.overrideWithValue(historyStore),
+          rememberedFactsStoreProvider.overrideWithValue(facts),
+          ...extraOverrides,
         ],
         child: const MaterialApp(home: CreateMessageScreen()),
       ),
@@ -797,6 +805,9 @@ void main() {
         overrides: [
           replyRepositoryProvider.overrideWithValue(repository),
           conversationMemoryStoreProvider.overrideWithValue(memoryStore),
+          rememberedFactsStoreProvider.overrideWithValue(
+            RememberedFactsStore(backend: _MemoryBackend()),
+          ),
         ],
         child: const MaterialApp(home: CreateMessageScreen()),
       ),
@@ -816,6 +827,43 @@ void main() {
       repository.request?.styleExamples,
       contains('আমি কাল আসতে পারব না, পরে জানাচ্ছি'),
     );
+  });
+
+  testWidgets('facts the user typed reach the request; nothing when memory is '
+      'off', (tester) async {
+    final repository = _RecordingCreateRepository();
+    final factsBackend = _MemoryBackend();
+    final facts = RememberedFactsStore(backend: factsBackend);
+    await facts.add('my name is Keshab');
+
+    await pumpCreateScreen(
+      tester,
+      repository,
+      memoryEnabled: true,
+      extraOverrides: [rememberedFactsStoreProvider.overrideWithValue(facts)],
+    );
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Write a message to my landlord.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+    expect(repository.request?.rememberedFacts, ['my name is Keshab']);
+
+    // Memory off means the app keeps nothing about you - including this.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await pumpCreateScreen(
+      tester,
+      repository,
+      extraOverrides: [rememberedFactsStoreProvider.overrideWithValue(facts)],
+    );
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Write another message.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+    expect(repository.request?.rememberedFacts, isEmpty);
   });
 
   testWidgets('does not persist writer chats when memory is off', (

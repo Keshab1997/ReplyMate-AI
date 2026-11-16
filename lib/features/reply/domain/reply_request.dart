@@ -20,6 +20,7 @@ class ReplyRequest {
     this.count = 3,
     this.priorMessages = const <String>[],
     this.styleExamples = const <String>[],
+    this.rememberedFacts = const <String>[],
     this.draftToRefine,
     this.refinementInstruction,
     this.replyIntent,
@@ -46,6 +47,16 @@ class ReplyRequest {
   /// Notification capture alone can never fill this: it only sees arrivals, so
   /// an empty list is the normal state with screen reading off.
   final List<String> styleExamples;
+
+  /// Things the **user** typed into the app and asked it to remember, in their
+  /// own words - their name, who someone is to them, a standing fact about
+  /// their life.
+  ///
+  /// Kept apart from [styleExamples] on purpose. Those are examples of a voice
+  /// taken from captured conversations; these are instructions the user chose
+  /// to give. Nothing here is inferred, so there is nothing here the user cannot
+  /// open a screen and delete.
+  final List<String> rememberedFacts;
 
   /// Present only for a user-requested rewrite of one generated draft.
   final String? draftToRefine;
@@ -85,6 +96,7 @@ class ReplyRequest {
     count: count ?? this.count,
     priorMessages: priorMessages,
     styleExamples: styleExamples,
+    rememberedFacts: rememberedFacts,
     draftToRefine: draftToRefine ?? this.draftToRefine,
     refinementInstruction: refinementInstruction ?? this.refinementInstruction,
     replyIntent: replyIntent ?? this.replyIntent,
@@ -137,6 +149,7 @@ class ReplyRequest {
     'count': count,
     'priorMessages': priorMessages,
     'styleExamples': styleExamples,
+    'rememberedFacts': rememberedFacts,
     if (draftToRefine != null) 'draftToRefine': trimmedDraftToRefine,
     if (refinementInstruction != null)
       'refinementInstruction': refinementInstruction,
