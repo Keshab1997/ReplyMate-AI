@@ -33,6 +33,9 @@ All notable project changes are recorded here.
   **Say sorry**.
 - Each idea's *label* is now localized too - the prompts already switched by
   language, the chips did not, so a Bengali UI showed English chips.
+- The input's placeholder example follows: it was "write a short, sweet quote
+  for my girlfriend…", the same blind spot in the one line every user reads
+  before typing.
 - Removed the two strings that no longer have a chip (`exampleRomanticQuote`,
   `exampleMakeHerSmile`); `app_language_test` checks every language is complete,
   so a missing translation fails there rather than on a device.

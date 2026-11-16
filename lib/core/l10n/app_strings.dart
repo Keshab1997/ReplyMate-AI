@@ -583,7 +583,7 @@ class EnglishStrings extends AppStrings {
   String get createMessagePromptLabel => 'What would you like to write?';
   @override
   String get createMessagePromptHint =>
-      'For example: write a short, sweet quote for my girlfriend…';
+      'For example: thank a friend who helped me move house…';
   @override
   String get createMessageExamples => 'Quick ideas';
   @override
@@ -1354,7 +1354,7 @@ class BengaliStrings extends AppStrings {
   String get createMessagePromptLabel => 'কী লিখতে চান?';
   @override
   String get createMessagePromptHint =>
-      'যেমন: আমার প্রেমিকার জন্য ছোট্ট, মিষ্টি একটি উক্তি লিখে দাও…';
+      'যেমন: বাড়ি বদলাতে সাহায্য করা বন্ধুকে ধন্যবাদ দিয়ে একটা মেসেজ…';
   @override
   String get createMessageExamples => 'দ্রুত আইডিয়া';
   @override
@@ -2114,7 +2114,7 @@ class HindiStrings extends AppStrings {
   String get createMessagePromptLabel => 'आप क्या लिखना चाहते हैं?';
   @override
   String get createMessagePromptHint =>
-      'जैसे: मेरी प्रेमिका के लिए एक छोटा, प्यारा सा कथन लिखो…';
+      'जैसे: घर बदलने में मदद करने वाले मित्र को धन्यवाद देता एक संदेश…';
   @override
   String get createMessageExamples => 'झटपट सुझाव';
   @override
