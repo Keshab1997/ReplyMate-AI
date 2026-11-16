@@ -2,7 +2,7 @@
 
 All notable project changes are recorded here.
 
-## [Unreleased]
+## [1.5.5] - 2026-11-16
 
 ### Pooled AI works for a device that has never signed in
 
