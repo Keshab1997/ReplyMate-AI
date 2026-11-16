@@ -2,6 +2,24 @@
 
 All notable project changes are recorded here.
 
+## [Unreleased]
+
+### "Not quite right" has a free answer
+
+- The suggestions screen offers **Free variation** when the offer is honest:
+  the rules layer re-phrases the same intent on the device, with lines already
+  on screen excluded, for no tokens, no key and no network. It is labelled as
+  a free on-device rewrite and raises a banner whose **Ask AI** button is the
+  paid escalation, so nobody is trapped in the free path.
+- Deliberately *not* the first step of the cache banner's **Regenerate**: that
+  button means "ask the model", and answering it with local text would be the
+  small lie this screen exists to avoid.
+- Intent chips and standalone writing briefs never get the offer — a generic
+  table line cannot answer "write a romantic quote".
+- Fixed a crash found while testing this: regenerate disposed the screen's
+  `TextEditingController`s and then wrote to them, so a successful regeneration
+  threw "A TextEditingController was used after being disposed".
+
 ## [1.5.5] - 2026-11-16
 
 ### Pooled AI works for a device that has never signed in

@@ -34,12 +34,17 @@ class OfflineSuggestions {
   /// Never more than [count], never empty-but-pretending: an empty list means
   /// "this layer has nothing useful to say", and the caller should say the same
   /// thing rather than show a placeholder as a suggestion.
+  /// [exclude] is the "different one, please" case: lines the user is already
+  /// looking at are filtered out, so asking again from the rules layer returns
+  /// something they have not seen. When the table is exhausted the result is
+  /// empty, which is the signal to spend a real provider call.
   static List<String> forMessage(
     String message, {
     required ReplyLanguage language,
     required ReplyTone tone,
     required ReplyLength length,
     int count = 1,
+    Set<String> exclude = const <String>{},
   }) {
     final intent = intentOf(message);
     final table = _tables[language] ?? _tables[ReplyLanguage.english]!;
@@ -49,7 +54,7 @@ class OfflineSuggestions {
       // still follows it, never replaced: the tone is an option, not a filter.
       ...?table[_toneKey(tone)],
       ...?table[intent],
-    ];
+    ]..removeWhere((line) => exclude.contains(line.trim()));
     if (candidates.isEmpty) return const [];
     // Length is expressed by the table's own wording, not by padding text:
     // a short tone gets a short line because that is what is written.

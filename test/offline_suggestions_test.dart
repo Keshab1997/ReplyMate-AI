@@ -64,6 +64,51 @@ void main() {
     });
   });
 
+  group('free variation', () {
+    test('excluding what is already shown returns something new', () {
+      const message = 'Can we meet tomorrow?';
+      final first = OfflineSuggestions.forMessage(
+        message,
+        language: ReplyLanguage.english,
+        tone: ReplyTone.polite,
+        length: ReplyLength.short,
+      );
+      final next = OfflineSuggestions.forMessage(
+        message,
+        language: ReplyLanguage.english,
+        tone: ReplyTone.polite,
+        length: ReplyLength.short,
+        exclude: first.toSet(),
+      );
+      expect(next, isNotEmpty);
+      expect(next.any(first.contains), isFalse);
+    });
+
+    test('an exhausted table returns nothing, which is the escalate signal', () {
+      const message = 'Can we meet tomorrow?';
+      final everything = <String>{
+        ...OfflineSuggestions.forMessage(
+          message,
+          language: ReplyLanguage.english,
+          tone: ReplyTone.polite,
+          length: ReplyLength.short,
+          count: 99,
+        ),
+      };
+      expect(everything, isNotEmpty);
+      expect(
+        OfflineSuggestions.forMessage(
+          message,
+          language: ReplyLanguage.english,
+          tone: ReplyTone.polite,
+          length: ReplyLength.short,
+          exclude: everything,
+        ),
+        isEmpty,
+      );
+    });
+  });
+
   group('suggestions', () {
     test('a question gets answers in the reply language', () {
       expect(_for('kal asbo?', language: ReplyLanguage.bengali), isNotEmpty);

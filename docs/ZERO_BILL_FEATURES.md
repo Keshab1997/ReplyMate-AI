@@ -113,11 +113,15 @@ allowlisted place rotates keys and no secret lives on a phone. The cost is
 accepted deliberately: a build with no reachable pool has no AI, and falls back
 to offline suggestions.
 
-### 8. Smart regenerate before spending tokens
-When the user taps *Regenerate*, first offer a **free variant**: re-order or
-re-punctuate the offline/template candidates. Only escalate to a paid call when
-that is refused. Saves the most common wasteful tap: "not quite right" → new
-request.
+### 8. Smart regenerate before spending tokens — *shipped in 1.5.6*
+The suggestions screen offers **Free variation**: the rules layer re-phrases the
+same intent on the device, with the lines already on screen excluded, and the
+banner it raises carries the paid escalation. It is its own labelled action
+rather than a silent first step of *Regenerate*, because that button means "ask
+the model" — quietly answering it with local text would be a lie about what just
+happened. Intent chips and writing briefs never get the offer: a generic table
+line cannot answer "write a romantic quote". Saves the most common wasteful tap:
+"not quite right" → new request.
 
 ### 9. Reply history that respects the memory rules
 Conversation memory already exists with four walls (off by default, allowlist,

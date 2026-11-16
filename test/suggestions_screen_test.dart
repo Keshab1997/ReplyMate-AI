@@ -47,6 +47,20 @@ class RefiningRepositoryFake implements ReplyRepository {
 
 Widget app(Widget screen) => ProviderScope(child: MaterialApp(home: screen));
 
+/// Counts provider calls so a test can prove that "free variation" made none.
+class CountingRepository implements ReplyRepository {
+  int calls = 0;
+
+  @override
+  Future<ReplyResult> generate(
+    ReplyRequest request, {
+    bool bypassCache = false,
+  }) async {
+    calls++;
+    return const ReplySuccess(['Fresh from the model.']);
+  }
+}
+
 /// Outbound calls on the bridge channel hang in widget tests when the app has
 /// registered an inbound handler on the same channel but no mock exists.
 /// shareText answers true; there is no send path left to mock.
@@ -143,6 +157,88 @@ void main() {
       find.text('Sharing is unavailable here. Copy the reply instead.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('a free variation costs no provider call and says so', (
+    tester,
+  ) async {
+    final repository = CountingRepository();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+        child: MaterialApp(
+          home: SuggestionsScreen(
+            // The plan line for this message: excluding it leaves the rules
+            // layer with the tone line to offer.
+            replies: const ['Let me check and confirm.'],
+            request: request,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Free variation'));
+    await tester.pumpAndSettle();
+
+    expect(repository.calls, 0);
+    expect(find.text('Please give me a moment — I will confirm shortly.'),
+        findsOneWidget);
+    expect(
+      find.text('Free variation · rewritten on this device, no AI call made'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the free variation offers the paid escalation', (tester) async {
+    final repository = CountingRepository();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+        child: MaterialApp(
+          home: SuggestionsScreen(
+            replies: const ['Let me check and confirm.'],
+            request: request,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Free variation'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ask AI'));
+    await tester.pumpAndSettle();
+
+    expect(repository.calls, 1);
+  });
+
+  testWidgets('a writing brief is never answered by the rules layer', (
+    tester,
+  ) async {
+    final repository = CountingRepository();
+    const brief = ReplyRequest(
+      message: 'Write a short, sweet romantic quote for my girlfriend.',
+      language: ReplyLanguage.english,
+      tone: ReplyTone.friendly,
+      length: ReplyLength.short,
+      mode: ReplyMode.createMessage,
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [replyRepositoryProvider.overrideWithValue(repository)],
+        child: MaterialApp(
+          home: SuggestionsScreen(
+            replies: const ['You are my favourite thought.'],
+            request: brief,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // No offer at all: a generic table line cannot answer this request.
+    expect(find.text('Free variation'), findsNothing);
+    expect(repository.calls, 0);
   });
 
   testWidgets('a user can refine a draft without replacing its meaning', (
