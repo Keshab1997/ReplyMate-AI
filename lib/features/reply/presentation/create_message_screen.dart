@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -239,6 +240,13 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
     });
   }
 
+  Future<void> _copyDraft(String text) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(_strings.replyCopied)));
+  }
+
   Future<void> _reviewDrafts(_ChatTurn turn) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -320,7 +328,7 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
     );
   }
 
-  Widget _buildTurn(BuildContext context, _ChatTurn turn) {
+  Widget _buildTurn(BuildContext context, _ChatTurn turn, int turnIndex) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return Padding(
@@ -406,7 +414,7 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
                         ),
                       )
                     else ...[
-                      for (final reply in turn.replies)
+                      for (final (replyIndex, reply) in turn.replies.indexed)
                         Container(
                           width: double.infinity,
                           margin: const EdgeInsets.only(
@@ -426,11 +434,30 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
                               ),
                             ),
                           ),
-                          child: Text(
-                            reply,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              height: 1.5,
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                reply,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  height: 1.5,
+                                ),
+                              ),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: IconButton(
+                                  key: ValueKey<String>(
+                                    'copyCreateMessageDraft-$turnIndex-$replyIndex',
+                                  ),
+                                  tooltip: _strings.copyDraft,
+                                  onPressed: () => _copyDraft(reply),
+                                  icon: const Icon(
+                                    Icons.copy_rounded,
+                                    size: 18,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       if (turn.replies.isNotEmpty)
@@ -583,7 +610,7 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
                         ),
                         itemCount: _turns.length,
                         itemBuilder: (context, index) =>
-                            _buildTurn(context, _turns[index]),
+                            _buildTurn(context, _turns[index], index),
                       ),
               ),
               _buildComposer(context),

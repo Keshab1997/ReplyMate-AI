@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:replymate/core/l10n/app_strings.dart';
 import 'package:replymate/features/reply/data/reply_repository.dart';
@@ -95,6 +96,35 @@ void main() {
       'Write a short, sweet quote for my girlfriend in Bengali.',
     );
     expect(find.text('তুমি আমার দিনের সবচেয়ে সুন্দর ভাবনা।'), findsOneWidget);
+  });
+
+  testWidgets('copies a generated draft directly from the chat', (
+    tester,
+  ) async {
+    final repository = _RecordingCreateRepository();
+    String? copiedText;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copiedText = (call.arguments as Map)['text'] as String?;
+          }
+          return null;
+        });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+    await pumpCreateScreen(tester, repository);
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Write something sweet.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('copyCreateMessageDraft-0-0')));
+    await tester.pumpAndSettle();
+    expect(copiedText, 'তুমি আমার দিনের সবচেয়ে সুন্দর ভাবনা।');
   });
 
   testWidgets('a quick idea starts one request without another Generate tap', (
