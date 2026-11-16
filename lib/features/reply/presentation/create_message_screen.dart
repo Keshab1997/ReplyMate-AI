@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/theme/app_theme.dart';
+import '../../../core/constants/reply_options.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../shared/widgets/screen_header.dart';
 import '../../settings/providers/preferences_provider.dart';
@@ -41,11 +42,66 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
   /// recipient block.
   WritingFormat _format = WritingFormat.chat;
 
+  /// The style this chat is being written in.
+  ///
+  /// These start from Settings and then belong to the chat, the way a chat app
+  /// keeps one voice per conversation. Settings decides what a *reply* sounds
+  /// like when it arrives from a notification; it is not a vote on what a
+  /// message the user is deliberately composing should sound like. Reading the
+  /// tone from Settings on every send meant the chips could not work: whatever
+  /// the user picked was overwritten by the stored default one line later.
+  ReplyLanguage _language = ReplyLanguage.english;
+  ReplyTone _tone = ReplyTone.friendly;
+  ReplyLength _length = ReplyLength.short;
+
+  /// Whether the style has been taken from Settings yet. Settings is the
+  /// starting point, not the authority - once the user changes a chip (or a
+  /// saved chat carries its own style) the screen stops reading it.
+  bool _styleSeeded = false;
+
+  int get _suggestionCount => ref.read(preferencesProvider).suggestionCount;
+
   @override
   void dispose() {
     _promptController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // The chips must show the style the first message will actually use, so the
+    // default is taken from Settings before the first frame rather than on the
+    // first send.
+    _seedStyleFromDefaults();
+  }
+
+  /// Settings as the starting point for a brand-new chat.
+  ///
+  /// Called once, so a user who walks in with Professional tone in Settings gets
+  /// a professional draft by default - and a user who then taps "Funny" keeps
+  /// funny for the rest of the chat.
+  void _seedStyleFromDefaults() {
+    if (_styleSeeded) return;
+    _styleSeeded = true;
+    final preferences = ref.read(preferencesProvider);
+    _language = preferences.language;
+    _tone = preferences.tone;
+    _length = preferences.length;
+  }
+
+  void _applyStyle({
+    ReplyLanguage? language,
+    ReplyTone? tone,
+    ReplyLength? length,
+  }) {
+    _seedStyleFromDefaults();
+    setState(() {
+      _language = language ?? _language;
+      _tone = tone ?? _tone;
+      _length = length ?? _length;
+    });
   }
 
   String _formatLabel(WritingFormat format) {
@@ -254,16 +310,34 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
       ),
     );
     if (!mounted || saved == null) return;
-    final preferences = ref.read(preferencesProvider);
     final restored = <_ChatTurn>[];
     final contextLines = <String>[];
+    // A reopened chat keeps the style it was written in. Falling back to the
+    // current Settings default here is what made a Bengali letter reopen as an
+    // English chat.
+    final fallback = (language: _language, tone: _tone, length: _length);
+    ReplyLanguage? restoredLanguage;
+    ReplyTone? restoredTone;
+    ReplyLength? restoredLength;
     for (final savedTurn in saved.turns) {
+      final language = savedTurn.language == null
+          ? fallback.language
+          : ReplyLanguage.fromCode(savedTurn.language);
+      final tone = savedTurn.tone == null
+          ? fallback.tone
+          : ReplyTone.fromName(savedTurn.tone);
+      final length = savedTurn.length == null
+          ? fallback.length
+          : ReplyLength.fromName(savedTurn.length);
+      restoredLanguage ??= language;
+      restoredTone ??= tone;
+      restoredLength ??= length;
       final request = ReplyRequest(
         message: savedTurn.prompt,
-        language: preferences.language,
-        tone: preferences.tone,
-        length: preferences.length,
-        count: preferences.suggestionCount,
+        language: language,
+        tone: tone,
+        length: length,
+        count: _suggestionCount,
         priorMessages: List<String>.unmodifiable(contextLines),
         mode: ReplyMode.createMessage,
         format: _formatFromId(savedTurn.format),
@@ -286,6 +360,14 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
       _turns
         ..clear()
         ..addAll(restored);
+      // The chips follow the chat back in, so the next message continues in the
+      // same voice instead of quietly switching to the app default.
+      if (restoredLanguage != null) _language = restoredLanguage;
+      if (restoredTone != null) _tone = restoredTone;
+      if (restoredLength != null) _length = restoredLength;
+      _styleSeeded = true;
+      final firstFormat = saved.turns.first.format;
+      if (firstFormat != null) _format = _formatFromId(firstFormat);
       _inputError = null;
       _promptController.clear();
     });
@@ -303,6 +385,9 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
             prompt: turn.prompt,
             replies: turn.replies,
             format: turn.request.format.id,
+            language: turn.request.language.code,
+            tone: turn.request.tone.name,
+            length: turn.request.length.name,
           ),
         )
         .toList(growable: false);
@@ -323,19 +408,19 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
 
   Future<void> _send({String? prompt}) async {
     if (_generating) return;
+    _seedStyleFromDefaults();
     final writingPrompt = (prompt ?? _promptController.text).trim();
     if (writingPrompt.isEmpty) {
       setState(() => _inputError = _strings.createMessageEmpty);
       return;
     }
 
-    final preferences = ref.read(preferencesProvider);
     final request = ReplyRequest(
       message: writingPrompt,
-      language: preferences.language,
-      tone: preferences.tone,
-      length: preferences.length,
-      count: preferences.suggestionCount,
+      language: _language,
+      tone: _tone,
+      length: _length,
+      count: _suggestionCount,
       priorMessages: _conversationHistory(),
       mode: ReplyMode.createMessage,
       format: _format,
@@ -417,43 +502,53 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(
         AppTheme.spaceMd,
-        AppTheme.spaceXl,
+        AppTheme.spaceLg,
         AppTheme.spaceMd,
         AppTheme.spaceLg,
       ),
       children: [
-        Center(
-          child: Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer,
-              shape: BoxShape.circle,
+        // The greeting is compact on purpose. The style row and the format row
+        // live in the composer, so a tall welcome column pushed the only two
+        // controls that shape the answer to the bottom of the screen.
+        Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.auto_awesome_rounded,
+                color: theme.colorScheme.onPrimaryContainer,
+                size: 22,
+              ),
             ),
-            child: Icon(
-              Icons.auto_awesome_rounded,
-              color: theme.colorScheme.onPrimaryContainer,
-              size: 28,
+            const SizedBox(width: AppTheme.spaceSm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    strings.createMessagePromptLabel,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    strings.writeSomethingNewSubtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
-        const SizedBox(height: AppTheme.spaceMd),
-        Text(
-          strings.createMessagePromptLabel,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: AppTheme.spaceSm),
-        Text(
-          strings.writeSomethingNewSubtitle,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: AppTheme.spaceXl),
+        const SizedBox(height: AppTheme.spaceLg),
         Text(
           strings.createMessageExamples,
           style: theme.textTheme.titleSmall?.copyWith(
@@ -473,6 +568,30 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
                     ? null
                     : () => _send(prompt: idea.prompt),
               ),
+          ],
+        ),
+        const SizedBox(height: AppTheme.spaceLg),
+        // A quick idea sends straight away, so say what it will be written in
+        // before it is tapped rather than leaving the answer's style to be
+        // discovered afterwards.
+        Row(
+          children: [
+            Icon(
+              Icons.tune_rounded,
+              size: 15,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                [_language.label, _tone.label, _length.label].join(' · '),
+                key: const Key('createMessageStyleSummary'),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ],
         ),
       ],
@@ -567,45 +686,91 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
                     else ...[
                       for (final (replyIndex, reply) in turn.replies.indexed)
                         Container(
+                          key: ValueKey<String>(
+                            'createMessageDraft-$turnIndex-$replyIndex',
+                          ),
                           width: double.infinity,
                           margin: const EdgeInsets.only(
                             bottom: AppTheme.spaceSm,
                           ),
-                          padding: const EdgeInsets.all(AppTheme.spaceMd),
                           decoration: BoxDecoration(
                             color: scheme.surfaceContainerHighest.withValues(
                               alpha: 0.55,
                             ),
-                            borderRadius: BorderRadius.circular(
-                              AppTheme.cardRadius,
-                            ),
+                            // A draft is a message, so it is drawn as one: the
+                            // same tail-corner bubble the outgoing prompt uses,
+                            // mirrored. A card with a border read like a form.
+                            borderRadius: BorderRadius.circular(18)
+                                .copyWith(topLeft: const Radius.circular(6)),
                             border: Border.all(
                               color: scheme.outlineVariant.withValues(
-                                alpha: 0.5,
+                                alpha: 0.45,
                               ),
                             ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Text(
-                                reply,
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  height: 1.5,
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  AppTheme.spaceMd,
+                                  AppTheme.spaceSm + 2,
+                                  AppTheme.spaceMd,
+                                  AppTheme.spaceSm,
+                                ),
+                                child: Text(
+                                  reply,
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    height: 1.5,
+                                  ),
                                 ),
                               ),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: IconButton(
-                                  key: ValueKey<String>(
-                                    'copyCreateMessageDraft-$turnIndex-$replyIndex',
-                                  ),
-                                  tooltip: _strings.copyDraft,
-                                  onPressed: () => _copyDraft(reply),
-                                  icon: const Icon(
-                                    Icons.copy_rounded,
-                                    size: 18,
-                                  ),
+                              // The style the draft was actually written with,
+                              // stated on the draft itself: a row above the input
+                              // says what will be asked for, this says what came
+                              // back - and they are not always the same, because
+                              // an explicit request inside the brief wins.
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  AppTheme.spaceSm,
+                                  0,
+                                  AppTheme.spaceXs,
+                                  AppTheme.spaceXs,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        [
+                                          turn.request.language.label,
+                                          turn.request.tone.label,
+                                          turn.request.length.label,
+                                        ].join(' · '),
+                                        key: ValueKey<String>(
+                                          'createMessageDraftStyle-$turnIndex-$replyIndex',
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.labelSmall
+                                            ?.copyWith(
+                                              color: scheme.onSurfaceVariant,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      key: ValueKey<String>(
+                                        'copyCreateMessageDraft-$turnIndex-$replyIndex',
+                                      ),
+                                      tooltip: _strings.copyDraft,
+                                      visualDensity: VisualDensity.compact,
+                                      onPressed: () => _copyDraft(reply),
+                                      icon: const Icon(
+                                        Icons.copy_rounded,
+                                        size: 17,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -631,6 +796,133 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
       ),
     );
   }
+
+  /// One chip of the style row.
+  ///
+  /// Selected chips are the ones that will reach the next request, so the row
+  /// can be read at a glance instead of being a menu of guesses. The key pattern
+  /// (`chatStyle-<axis>-<value>`) is what the widget test taps.
+  /// The style chooser: three labelled groups in a bottom sheet.
+  ///
+  /// A sheet rather than an inline row because the tone axis alone is eight
+  /// entries - wider than a phone. Each group keeps its chips on one wrapping
+  /// line, so a screen reader and a thumb both find them in the same order.
+  Future<void> _openStyleSheet() async {
+    final strings = _strings;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) {
+          void pick({
+            ReplyLanguage? language,
+            ReplyTone? tone,
+            ReplyLength? length,
+          }) {
+            _applyStyle(language: language, tone: tone, length: length);
+            setSheetState(() {});
+          }
+
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spaceMd,
+                0,
+                AppTheme.spaceMd,
+                AppTheme.spaceMd,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    strings.replyStyle,
+                    style: Theme.of(sheetContext).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: AppTheme.spaceMd),
+                  _styleGroup<ReplyLanguage>(
+                    label: strings.languageLabel,
+                    id: 'language',
+                    current: _language,
+                    values: ReplyLanguage.values,
+                    labelOf: (language) => language.label,
+                    onSelected: (language) => pick(language: language),
+                  ),
+                  _styleGroup<ReplyTone>(
+                    label: strings.toneLabel,
+                    id: 'tone',
+                    current: _tone,
+                    values: ReplyTone.values,
+                    labelOf: (tone) => tone.label,
+                    onSelected: (tone) => pick(tone: tone),
+                  ),
+                  _styleGroup<ReplyLength>(
+                    label: strings.lengthLabel,
+                    id: 'length',
+                    current: _length,
+                    values: ReplyLength.values,
+                    labelOf: (length) => length.label,
+                    onSelected: (length) => pick(length: length),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _styleGroup<T>({
+    required String label,
+    required String id,
+    required T current,
+    required List<T> values,
+    required String Function(T value) labelOf,
+    required void Function(T value) onSelected,
+  }) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTheme.spaceMd),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: AppTheme.spaceXs),
+          Wrap(
+            spacing: AppTheme.spaceXs,
+            runSpacing: AppTheme.spaceXs,
+            children: [
+              for (final value in values)
+                ChoiceChip(
+                  key: ValueKey<String>('chatStyle-$id-${_valueId(value)}'),
+                  label: Text(labelOf(value)),
+                  selected: value == current,
+                  onSelected: (_) => onSelected(value),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The stable id for a style value, for keys and logs: the enum name for a
+  /// tone or length, the language code for a language.
+  String _valueId(Object? value) => switch (value) {
+    ReplyLanguage language => language.code,
+    ReplyTone tone => tone.name,
+    ReplyLength length => length.name,
+    _ => value.toString(),
+  };
 
   Widget _buildComposer(BuildContext context) {
     final theme = Theme.of(context);
@@ -673,6 +965,74 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
                     ),
                 ],
               ),
+            ),
+          ),
+          // The style, on the screen that writes the message. It seeds itself
+          // from Settings and then belongs to this chat: a chat app keeps one
+          // voice per conversation, and the tone you *reply* with is not
+          // necessarily the tone you *open* a conversation with.
+          //
+          // It is a single pill, not nine chips: eight tones and three lengths
+          // spelled out inline ran to 1600 logical pixels and pushed the chips
+          // the user needed off the edge of the screen. The pill states the
+          // current style in full and the sheet holds the choices.
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppTheme.spaceSm),
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    key: const Key('openChatStyleSheet'),
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: _generating ? null : _openStyleSheet,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spaceSm + 2,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: scheme.surfaceContainerHighest.withValues(
+                          alpha: 0.6,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: scheme.outlineVariant.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.tune_rounded,
+                            size: 15,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              [
+                                _language.label,
+                                _tone.label,
+                                _length.label,
+                              ].join(' · '),
+                              key: const Key('chatStyleSummary'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.expand_more_rounded,
+                            size: 17,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           Row(

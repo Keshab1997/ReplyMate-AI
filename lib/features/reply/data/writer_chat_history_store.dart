@@ -9,6 +9,9 @@ class WriterChatTurn {
     required this.prompt,
     this.replies = const <String>[],
     this.format,
+    this.language,
+    this.tone,
+    this.length,
   });
 
   final String prompt;
@@ -21,22 +24,42 @@ class WriterChatTurn {
   /// regenerated as a chat message, so this rides along with the text.
   final String? format;
 
+  /// The reply style this turn was actually written with, as the enum codes
+  /// ([ReplyLanguage.code], [ReplyTone.name], [ReplyLength.name]).
+  ///
+  /// The style belongs to the conversation, not to the app: two chats can be a
+  /// formal email in English and a warm Bengali message, and reopening the
+  /// second with the first one's tone is the same bug as regenerating a letter
+  /// as a chat message. Null for turns saved before the style was recorded.
+  final String? language;
+  final String? tone;
+  final String? length;
+
   Map<String, Object?> toJson() => <String, Object?>{
     'prompt': prompt,
     'replies': replies,
     if (format != null) 'format': format,
+    if (language != null) 'language': language,
+    if (tone != null) 'tone': tone,
+    if (length != null) 'length': length,
   };
 
   static WriterChatTurn? fromJson(Object? raw) {
     if (raw is! Map || raw['prompt'] is! String) return null;
     final replies = raw['replies'];
     final format = raw['format'];
+    final language = raw['language'];
+    final tone = raw['tone'];
+    final length = raw['length'];
     return WriterChatTurn(
       prompt: raw['prompt'] as String,
       replies: replies is List
           ? replies.whereType<String>().toList(growable: false)
           : const <String>[],
       format: format is String ? format : null,
+      language: language is String ? language : null,
+      tone: tone is String ? tone : null,
+      length: length is String ? length : null,
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:replymate/core/constants/reply_options.dart';
 import 'package:replymate/core/l10n/app_strings.dart';
 import 'package:replymate/features/reply/data/reply_repository.dart';
 import 'package:replymate/features/reply/domain/reply_request.dart';
@@ -73,6 +74,22 @@ void main() {
         child: const MaterialApp(home: CreateMessageScreen()),
       ),
     );
+    await tester.pumpAndSettle();
+  }
+
+  /// Opens the style sheet. The chips live there rather than inline, so every
+  /// style test starts with one tap - the same tap a user makes.
+  Future<void> openStyleSheet(WidgetTester tester) async {
+    await tester.tap(find.byKey(const Key('openChatStyleSheet')));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> chooseStyle(WidgetTester tester, String id, String value) async {
+    await openStyleSheet(tester);
+    await tester.tap(find.byKey(ValueKey<String>('chatStyle-$id-$value')));
+    await tester.pumpAndSettle();
+    // Close the sheet so the composer is reachable again.
+    await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
   }
 
@@ -317,6 +334,120 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(await history.all(), isEmpty);
+  });
+
+  testWidgets('the chat answers in the style its chips say, not Settings', (
+    tester,
+  ) async {
+    final repository = _RecordingCreateRepository();
+    await pumpCreateScreen(tester, repository);
+
+    // Settings defaults to English/friendly/short. Choose the style a user
+    // composing a Bengali message for a partner would.
+    await chooseStyle(tester, 'language', 'bn');
+    await chooseStyle(tester, 'tone', 'premika');
+    await chooseStyle(tester, 'length', 'medium');
+
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Write her a good morning message.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+
+    // This is the regression: these three used to be read from Settings on
+    // every send, so the chips were decoration and the request always left
+    // with the stored default.
+    expect(repository.request?.language, ReplyLanguage.bengali);
+    expect(repository.request?.tone, ReplyTone.premika);
+    expect(repository.request?.length, ReplyLength.medium);
+  });
+
+  testWidgets('the style sticks for the rest of the chat, and the draft says '
+      'what it was written in', (tester) async {
+    final repository = _RecordingCreateRepository();
+    await pumpCreateScreen(tester, repository);
+
+    await chooseStyle(tester, 'tone', 'funny');
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Write a birthday wish.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+
+    // A follow-up brief is still the same conversation, so it keeps the tone
+    // without the user tapping the chip again.
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Make it shorter.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+
+    expect(repository.requests, hasLength(2));
+    expect(repository.requests[1].tone, ReplyTone.funny);
+    // The draft states its own style, so a wrong-looking reply can be traced to
+    // the style it was asked for.
+    expect(
+      find.byKey(const ValueKey<String>('createMessageDraftStyle-1-0')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey<String>('createMessageDraftStyle-1-0')),
+          )
+          .data,
+      contains(ReplyTone.funny.label),
+    );
+  });
+
+  testWidgets('a reopened chat restores the style it was written in', (
+    tester,
+  ) async {
+    final repository = _RecordingCreateRepository();
+    final history = WriterChatHistoryStore(backend: _MemoryBackend());
+    await pumpCreateScreen(
+      tester,
+      repository,
+      memoryEnabled: true,
+      historyStore: history,
+    );
+
+    await chooseStyle(tester, 'language', 'bn');
+    await chooseStyle(tester, 'tone', 'polite');
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Write a thank-you message.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+
+    // The stored turn carries the style, not just the text.
+    final saved = (await history.all()).single;
+    expect(saved.turns.single.language, ReplyLanguage.bengali.code);
+    expect(saved.turns.single.tone, ReplyTone.polite.name);
+
+    // Move the app defaults somewhere else, then reopen the chat: it must come
+    // back as Bengali/polite, not as the new default.
+    await chooseStyle(tester, 'language', 'hi');
+    await chooseStyle(tester, 'tone', 'funny');
+
+    await tester.tap(find.byKey(const Key('openCreateMessageHistory')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Write a thank-you message.'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Make it warmer.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+
+    expect(repository.requests.last.language, ReplyLanguage.bengali);
+    expect(repository.requests.last.tone, ReplyTone.polite);
   });
 
   testWidgets('does not persist writer chats when memory is off', (

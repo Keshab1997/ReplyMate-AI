@@ -4,6 +4,27 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### The chat answers in the style you choose — fixed
+
+- The writer chat used to ignore the style it was showing. Language, tone and
+  length were read from Settings on **every send**, so whatever the user picked
+  was overwritten one line later: choosing "Premika" still produced a Friendly
+  English line, because that was the stored default.
+- The style now belongs to the **chat**, the way it does in a chat app: it is
+  seeded from Settings when the chat opens, then follows the user's choice for
+  the rest of the conversation.
+- A style pill above the input states the current style in full (for example
+  `বাংলা · Premika · Medium`) and opens a sheet with the three groups —
+  Language, Tone, Length — instead of nine chips inline, which ran to 1600
+  logical pixels and pushed the chips off a phone screen.
+- Each draft is labelled with the style it was **actually** written in. The pill
+  says what will be asked for; the label says what came back, and they can
+  differ because an explicit request inside the brief wins.
+- The style is saved with the chat, so a reopened Bengali/polite chat continues
+  Bengali/polite instead of quietly reverting to the app default.
+- Drafts are drawn as message bubbles (mirrored tail), not bordered cards, so
+  the screen reads as a chat rather than a form.
+
 ### Create a message writes letters, emails and applications too
 
 - The chat screen has four formats, one tap apart: **Chat message**, **Email**,
