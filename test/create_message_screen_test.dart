@@ -866,6 +866,139 @@ void main() {
     expect(repository.request?.rememberedFacts, isEmpty);
   });
 
+  testWidgets('a draft is edited in place, and cancel writes nothing', (
+    tester,
+  ) async {
+    final repository = _RecordingCreateRepository();
+    await pumpCreateScreen(tester, repository);
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Write something sweet.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey<String>('editDraftTap-0-0')));
+    await tester.pumpAndSettle();
+    final field = find.byKey(const ValueKey<String>('editDraftField-0-0'));
+    expect(field, findsOneWidget);
+
+    // Cancel leaves the original text exactly as it was.
+    await tester.enterText(field, 'something the user typed by mistake');
+    await tester.tap(find.byKey(const ValueKey<String>('cancelEditDraft-0-0')));
+    await tester.pumpAndSettle();
+    expect(find.text('তুমি আমার দিনের সবচেয়ে সুন্দর ভাবনা।'), findsOneWidget);
+
+    // Save writes the edit back, in the same turn.
+    await tester.tap(find.byKey(const ValueKey<String>('editDraftTap-0-0')));
+    await tester.pumpAndSettle();
+    await tester.enterText(field, 'দিনটা শুভ হোক, বন্ধু।');
+    await tester.tap(find.byKey(const ValueKey<String>('saveEditDraft-0-0')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('দিনটা শুভ হোক, বন্ধু।'), findsOneWidget);
+    // Editing is not a new provider call - the words are the user's now.
+    expect(repository.calls, 1);
+  });
+
+  testWidgets('new chat clears the screen without deleting history', (
+    tester,
+  ) async {
+    final repository = _RecordingCreateRepository();
+    final history = WriterChatHistoryStore(backend: _MemoryBackend());
+    await pumpCreateScreen(
+      tester,
+      repository,
+      memoryEnabled: true,
+      historyStore: history,
+    );
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Write a birthday message.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+    expect(await history.all(), hasLength(1));
+
+    await tester.tap(find.byKey(const Key('writerOverflowMenu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(const EnglishStrings().newChat));
+    await tester.pumpAndSettle();
+
+    // Back to the welcome screen...
+    expect(
+      find.text(const EnglishStrings().createMessageExamples),
+      findsOneWidget,
+    );
+    // ...and the saved chat is still in history.
+    expect(await history.all(), hasLength(1));
+  });
+
+  testWidgets('a turn can be removed on its own', (tester) async {
+    final repository = _RecordingCreateRepository();
+    await pumpCreateScreen(tester, repository);
+    for (final brief in ['One.', 'Two.']) {
+      await tester.enterText(
+        find.byKey(const Key('createMessagePromptField')),
+        'Write $brief',
+      );
+      await tester.tap(find.byKey(const Key('createMessageSendButton')));
+      await tester.pumpAndSettle();
+    }
+    expect(
+      find.byKey(const ValueKey<String>('createMessageDraft-1-0')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('deleteTurn-0')));
+    await tester.pumpAndSettle();
+
+    // The second exchange survives; only the first is gone.
+    expect(
+      find.byKey(const ValueKey<String>('createMessageDraft-1-0')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('createMessageDraft-0-0')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('asking for a change rewrites that one draft, in place', (
+    tester,
+  ) async {
+    final repository = _RecordingCreateRepository();
+    await pumpCreateScreen(tester, repository);
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Write a birthday message.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey<String>('askChange-0-0')));
+    await tester.pumpAndSettle();
+
+    // A free-text instruction reaches the request as a refinement, not as a new
+    // brief: the draft is the thing being edited.
+    await tester.enterText(
+      find.byKey(const Key('refineInstructionField')),
+      'drop the second sentence',
+    );
+    await tester.tap(find.byKey(const Key('submitRefineInstruction')));
+    await tester.pumpAndSettle();
+
+    expect(repository.calls, 2);
+    final sent = repository.requests.last;
+    expect(sent.draftToRefine, 'তুমি আমার দিনের সবচেয়ে সুন্দর ভাবনা।');
+    expect(sent.refinementInstruction, 'drop the second sentence');
+    // One draft out, one draft back.
+    expect(sent.count, 1);
+    // Refining is always a fresh call - a cached answer would be the draft the
+    // user just asked to change.
+    expect(repository.bypassFlags.last, isTrue);
+  });
+
   testWidgets('does not persist writer chats when memory is off', (
     tester,
   ) async {

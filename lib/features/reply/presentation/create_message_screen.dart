@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../app/theme/app_theme.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/reply_options.dart';
 import '../../notifications/providers/notification_providers.dart';
 import '../../../core/l10n/app_strings.dart';
@@ -13,8 +14,10 @@ import '../../memory/data/remembered_facts_store.dart';
 import '../../memory/providers/conversation_memory_provider.dart';
 import '../data/reply_repository.dart';
 import '../data/writer_chat_history_store.dart';
+import '../providers/saved_replies_provider.dart';
 import '../providers/writer_chat_history_provider.dart';
 import 'create_message_history_screen.dart';
+import '../domain/reply_refinement.dart';
 import '../domain/reply_request.dart';
 import '../domain/writing_format.dart';
 import 'suggestions_screen.dart';
@@ -72,6 +75,14 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
   /// a background restore a frame later.
   bool _restoredLastChat = false;
 
+  /// Which draft is open for editing, as `turnIndex:replyIndex`. Null means all
+  /// drafts are read-only.
+  String? _editingDraftKey;
+
+  /// The text being typed into the open draft. Kept out of [_turns] until the
+  /// user confirms, so an abandoned edit cannot rewrite the conversation.
+  final TextEditingController _draftEditor = TextEditingController();
+
   /// One message per prompt, deliberately.
   ///
   /// The writer is a conversation, not a suggestion list: two drafts for the
@@ -84,7 +95,84 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
   void dispose() {
     _promptController.dispose();
     _scrollController.dispose();
+    _draftEditor.dispose();
     super.dispose();
+  }
+
+  String _draftKey(int turnIndex, int replyIndex) => '$turnIndex:$replyIndex';
+
+  /// Clears the screen for a new conversation.
+  ///
+  /// The old chat is not deleted - it is already saved, bounded and reachable in
+  /// history. This just stops the next message from inheriting its context.
+  void _startNewChat() {
+    setState(() {
+      _turns.clear();
+      _historyId = null;
+      _editingDraftKey = null;
+      _draftEditor.clear();
+      _promptController.clear();
+      _inputError = null;
+    });
+  }
+
+  /// Removes one exchange from the conversation.
+  ///
+  /// Available per turn because "that question was a mistake" is a normal thing
+  /// to want to undo, and the only alternative was deleting the whole chat from
+  /// the history screen. The turn after it keeps its own text; only the context
+  /// it is sent with changes.
+  Future<void> _deleteTurn(int turnIndex) async {
+    setState(() {
+      _turns.removeAt(turnIndex);
+      _editingDraftKey = null;
+      _draftEditor.clear();
+    });
+    await _persistHistory();
+  }
+
+  /// Opens a draft for editing in place.
+  ///
+  /// Editing used to mean a trip to another screen and back, which is a strange
+  /// thing to ask of a chat: fixing one word in a message the app just wrote is
+  /// the most ordinary action there is.
+  void _beginEditDraft(int turnIndex, int replyIndex, String text) {
+    setState(() {
+      _editingDraftKey = _draftKey(turnIndex, replyIndex);
+      _draftEditor.text = text;
+    });
+  }
+
+  void _cancelEditDraft() {
+    setState(() {
+      _editingDraftKey = null;
+      _draftEditor.clear();
+    });
+  }
+
+  /// Writes the edited text back into the turn.
+  ///
+  /// The turn keeps the request that produced it: the draft was written in a
+  /// particular style and format, and editing its words does not change that.
+  /// The cached/offline flags are cleared because the text is no longer what the
+  /// provider returned - a "from cache" label on a hand-edited message would be
+  /// a lie.
+  void _commitEditDraft(int turnIndex, int replyIndex) {
+    final text = _draftEditor.text.trim();
+    if (text.isEmpty) return;
+    setState(() {
+      final turn = _turns[turnIndex];
+      final replies = List<String>.from(turn.replies);
+      replies[replyIndex] = text;
+      _turns[turnIndex] = turn.copyWith(
+        replies: replies,
+        clearCacheFlags: true,
+        edited: true,
+      );
+      _editingDraftKey = null;
+      _draftEditor.clear();
+    });
+    _persistHistory();
   }
 
   /// The restore pointer is part of what "off" means.
@@ -623,6 +711,140 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
     await _persistHistory();
   }
 
+  /// Rewrites one draft in place, by instruction.
+  ///
+  /// This is the "change this one sentence" path. The brief stays the same and
+  /// the draft is the thing being edited, so it goes through the repository's
+  /// refusal path (`draftToRefine` + `refinementInstruction`) rather than being
+  /// treated as a brand-new request. One draft out, one draft back: asking for a
+  /// variation here would answer a question the user did not ask.
+  Future<void> _refineDraft(
+    _ChatTurn turn,
+    int turnIndex,
+    int replyIndex,
+    String draft,
+    String instruction,
+  ) async {
+    if (_generating) return;
+    setState(() => _generating = true);
+
+    final request = turn.request.copyWith(
+      draftToRefine: draft,
+      refinementInstruction: instruction,
+      count: 1,
+    );
+    final result = await ref
+        .read(replyRepositoryProvider)
+        .generate(request, bypassCache: true);
+    if (!mounted) return;
+
+    setState(() {
+      _generating = false;
+      switch (result) {
+        case ReplySuccess(:final replies) when replies.isNotEmpty:
+          final updated = List<String>.from(_turns[turnIndex].replies);
+          updated[replyIndex] = replies.first;
+          _turns[turnIndex] = _turns[turnIndex].copyWith(
+            replies: updated,
+            clearCacheFlags: true,
+            edited: true,
+          );
+        case ReplyFailure(:final message):
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(message)));
+        case ReplySuccess():
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(_strings.refineFailed)));
+      }
+    });
+    await _persistHistory();
+  }
+
+  /// The instruction box: "make it shorter", "drop the second sentence".
+  Future<void> _askForChange(
+    _ChatTurn turn,
+    int turnIndex,
+    int replyIndex,
+    String draft,
+  ) async {
+    final controller = TextEditingController();
+    final instruction = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          left: AppTheme.spaceMd,
+          right: AppTheme.spaceMd,
+          bottom:
+              MediaQuery.of(sheetContext).viewInsets.bottom + AppTheme.spaceMd,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              _strings.askChange,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: AppTheme.spaceSm),
+            TextField(
+              key: const Key('refineInstructionField'),
+              controller: controller,
+              autofocus: true,
+              minLines: 1,
+              maxLines: 3,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: _strings.askChangeHint,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppTheme.spaceXs),
+            // The fixed, well-understood rewrites stay one tap away: they are
+            // the common cases, and a free-text box should not be the only door.
+            Wrap(
+              spacing: AppTheme.spaceXs,
+              children: [
+                for (final refinement in ReplyRefinement.values)
+                  ActionChip(
+                    key: ValueKey<String>('refineChip-${refinement.name}'),
+                    label: Text(_refinementLabel(refinement)),
+                    onPressed: () =>
+                        Navigator.of(sheetContext).pop(refinement.instruction),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppTheme.spaceSm),
+            FilledButton(
+              key: const Key('submitRefineInstruction'),
+              onPressed: () {
+                final text = controller.text.trim();
+                Navigator.of(sheetContext).pop(text.isEmpty ? null : text);
+              },
+              child: Text(_strings.save),
+            ),
+          ],
+        ),
+      ),
+    );
+    // Disposed only after the sheet has finished closing: the field still owns
+    // this controller while its route is animating out, and disposing it first
+    // threw "a TextEditingController was used after being disposed".
+    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
+    if (!mounted || instruction == null) return;
+    await _refineDraft(turn, turnIndex, replyIndex, draft, instruction);
+  }
+
+  String _refinementLabel(ReplyRefinement refinement) => switch (refinement) {
+    ReplyRefinement.shorter => _strings.refineShorter,
+    ReplyRefinement.softer => _strings.refineSofter,
+    ReplyRefinement.politeDecline => _strings.refineDecline,
+    ReplyRefinement.continueConversation => _strings.refineContinue,
+  };
+
   /// Ask for a different draft of the same brief.
   ///
   /// [bypassCache] is the point: the cached answer to this exact request is the
@@ -931,26 +1153,148 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  AppTheme.spaceMd,
-                                  AppTheme.spaceSm + 2,
-                                  AppTheme.spaceMd,
-                                  AppTheme.spaceSm,
-                                ),
-                                child: Text(
-                                  reply,
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    height: 1.5,
+                              if (_editingDraftKey ==
+                                  _draftKey(turnIndex, replyIndex)) ...[
+                                // Editing in place: the draft becomes a field
+                                // with Save and Cancel. An abandoned edit costs
+                                // nothing because nothing was written until
+                                // Save.
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    AppTheme.spaceSm,
+                                    AppTheme.spaceSm,
+                                    AppTheme.spaceSm,
+                                    0,
+                                  ),
+                                  child: TextField(
+                                    key: ValueKey<String>(
+                                      'editDraftField-$turnIndex-$replyIndex',
+                                    ),
+                                    controller: _draftEditor,
+                                    minLines: 3,
+                                    maxLines: 12,
+                                    autofocus: true,
+                                    textCapitalization:
+                                        TextCapitalization.sentences,
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      height: 1.5,
+                                    ),
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: scheme.surface,
+                                      contentPadding: const EdgeInsets.all(
+                                        AppTheme.spaceSm,
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppTheme.spaceXs,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      TextButton(
+                                        key: ValueKey<String>(
+                                          'cancelEditDraft-$turnIndex-$replyIndex',
+                                        ),
+                                        onPressed: _cancelEditDraft,
+                                        child: Text(_strings.cancel),
+                                      ),
+                                      FilledButton(
+                                        key: ValueKey<String>(
+                                          'saveEditDraft-$turnIndex-$replyIndex',
+                                        ),
+                                        onPressed: () => _commitEditDraft(
+                                          turnIndex,
+                                          replyIndex,
+                                        ),
+                                        child: Text(_strings.save),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ] else
+                                // A draft is a message, and a message you cannot
+                                // fix with one tap is a message you copy out and
+                                // fix somewhere else. Tapping the bubble is the
+                                // gesture; the pencil says so out loud.
+                                InkWell(
+                                  key: ValueKey<String>(
+                                    'editDraftTap-$turnIndex-$replyIndex',
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  onTap: () => _beginEditDraft(
+                                    turnIndex,
+                                    replyIndex,
+                                    reply,
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      AppTheme.spaceMd,
+                                      AppTheme.spaceSm + 2,
+                                      AppTheme.spaceMd,
+                                      AppTheme.spaceSm,
+                                    ),
+                                    child: Text(
+                                      reply,
+                                      style: theme.textTheme.bodyLarge
+                                          ?.copyWith(height: 1.5),
+                                    ),
+                                  ),
+                                ),
                               // The style is stated once, in the pill. This
                               // line appears only when the draft came back in
                               // something else - because an explicit request
                               // inside the brief ("write it in English") wins
                               // over the chip - which is exactly when a silent
                               // difference would look like a bug.
+                              // Where this draft came from. The reply panel has
+                              // always said so; the writer counted it and threw
+                              // it away, so a cached answer looked exactly like a
+                              // fresh one. It sits above the actions because it
+                              // qualifies the text, not the buttons.
+                              if (turn.offline || turn.cachedAt != null)
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    AppTheme.spaceMd,
+                                    0,
+                                    AppTheme.spaceMd,
+                                    AppTheme.spaceXs,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        turn.offline
+                                            ? Icons.offline_bolt_outlined
+                                            : Icons.history_toggle_off_rounded,
+                                        size: 13,
+                                        color: scheme.onSurfaceVariant,
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Expanded(
+                                        child: Text(
+                                          turn.offline
+                                              ? _strings.offlineDraft
+                                              : _strings.fromCacheNote,
+                                          key: ValueKey<String>(
+                                            'draftSource-$turnIndex-$replyIndex',
+                                          ),
+                                          style: theme.textTheme.labelSmall
+                                              ?.copyWith(
+                                                color: scheme.onSurfaceVariant,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               if (_draftStyleNote(turn) != null)
                                 Padding(
                                   padding: const EdgeInsets.fromLTRB(
@@ -1002,7 +1346,38 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
                                       ),
                                     ),
                                   ),
+                                  IconButton(
+                                    key: ValueKey<String>(
+                                      'askChange-$turnIndex-$replyIndex',
+                                    ),
+                                    tooltip: _strings.askChange,
+                                    visualDensity: VisualDensity.compact,
+                                    onPressed: _generating
+                                        ? null
+                                        : () => _askForChange(
+                                            turn,
+                                            turnIndex,
+                                            replyIndex,
+                                            reply,
+                                          ),
+                                    icon: const Icon(
+                                      Icons.auto_fix_high_rounded,
+                                      size: 17,
+                                    ),
+                                  ),
                                   const Spacer(),
+                                  IconButton(
+                                    key: ValueKey<String>(
+                                      'deleteTurn-$turnIndex',
+                                    ),
+                                    tooltip: _strings.deleteTurn,
+                                    visualDensity: VisualDensity.compact,
+                                    onPressed: () => _deleteTurn(turnIndex),
+                                    icon: const Icon(
+                                      Icons.delete_outline_rounded,
+                                      size: 17,
+                                    ),
+                                  ),
                                   IconButton(
                                     key: ValueKey<String>(
                                       'shareCreateMessageDraft-$turnIndex-$replyIndex',
@@ -1058,6 +1433,64 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
   /// Selected chips are the ones that will reach the next request, so the row
   /// can be read at a glance instead of being a menu of guesses. The key pattern
   /// (`chatStyle-<axis>-<value>`) is what the widget test taps.
+  /// Saved replies, ready to drop into the composer.
+  ///
+  /// Inserting into the input rather than sending it: a saved reply is a
+  /// starting point the user adapts, and the app has never been allowed to send
+  /// anything on its own.
+  Future<void> _openSavedReplies() async {
+    final saved = ref.read(savedRepliesProvider);
+    if (saved.isEmpty) return;
+    final chosen = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppTheme.spaceMd,
+                0,
+                AppTheme.spaceMd,
+                AppTheme.spaceSm,
+              ),
+              child: Text(
+                _strings.savedReplies,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: saved.length,
+                itemBuilder: (context, index) => ListTile(
+                  key: ValueKey<String>('savedReply-$index'),
+                  title: Text(
+                    saved[index],
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  onTap: () => Navigator.of(sheetContext).pop(saved[index]),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppTheme.spaceSm),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || chosen == null) return;
+    setState(() {
+      _promptController.text = chosen;
+      _promptController.selection = TextSelection.collapsed(
+        offset: _promptController.text.length,
+      );
+      _inputError = null;
+    });
+  }
+
   /// The style chooser: three labelled groups in a bottom sheet.
   ///
   /// A sheet rather than an inline row because the tone axis alone is eight
@@ -1222,6 +1655,18 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
                         onTap: _generating ? null : _openFormatMenu,
                       ),
                       const SizedBox(width: AppTheme.spaceXs),
+                      // Saved replies: text the user wrote earlier and asked to
+                      // keep. They lived only in Settings, which meant the one
+                      // screen that writes messages could not reuse them.
+                      if (ref.watch(savedRepliesProvider).isNotEmpty) ...[
+                        _ComposerPill(
+                          key: const Key('openSavedReplies'),
+                          icon: Icons.bookmarks_outlined,
+                          label: _strings.savedReplies,
+                          onTap: _generating ? null : _openSavedReplies,
+                        ),
+                        const SizedBox(width: AppTheme.spaceXs),
+                      ],
                       // Style: the whole current style in one pill.
                       _ComposerPill(
                         key: const Key('openChatStyleSheet'),
@@ -1250,9 +1695,10 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
                   textInputAction: TextInputAction.send,
                   onSubmitted: (_) => _send(),
                   onChanged: (_) {
-                    if (_inputError != null) {
-                      setState(() => _inputError = null);
-                    }
+                    // Repaint for the counter as well as the error: a limit the
+                    // user only meets by failing a submit is a limit that
+                    // ambushes them.
+                    setState(() => _inputError = null);
                   },
                   decoration: InputDecoration(
                     hintText: _strings.createMessagePromptHint,
@@ -1295,6 +1741,32 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
                     : const Icon(Icons.arrow_upward_rounded),
               ),
             ],
+          ),
+          // The counter appears only when it starts to matter - above 80% of the
+          // limit - so a short message is not taxed with a number it does not
+          // need.
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _promptController,
+            builder: (context, value, _) {
+              final used = value.text.characters.length;
+              final limit = AppConstants.maxMessageLength;
+              if (used < limit * 0.8) return const SizedBox.shrink();
+              final over = used > limit;
+              return Padding(
+                padding: const EdgeInsets.only(top: AppTheme.spaceXs),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    '$used / $limit',
+                    key: const Key('createMessageCharCount'),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: over ? scheme.error : scheme.onSurfaceVariant,
+                      fontWeight: over ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
           if (_inputError != null) ...[
             const SizedBox(height: AppTheme.spaceXs),
@@ -1390,11 +1862,40 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
                 child: ScreenHeader(
                   title: _strings.createMessageTitle,
                   showBack: true,
-                  trailing: IconButton(
-                    key: const Key('openCreateMessageHistory'),
-                    tooltip: _strings.writerHistory,
-                    onPressed: _openHistory,
-                    icon: const Icon(Icons.history_rounded),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        key: const Key('openCreateMessageHistory'),
+                        tooltip: _strings.writerHistory,
+                        onPressed: _openHistory,
+                        icon: const Icon(Icons.history_rounded),
+                      ),
+                      PopupMenuButton<String>(
+                        key: const Key('writerOverflowMenu'),
+                        tooltip: _strings.moreActions,
+                        onSelected: (value) {
+                          if (value == 'new') _startNewChat();
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem<String>(
+                            key: const Key('startNewChatItem'),
+                            value: 'new',
+                            enabled: _turns.isNotEmpty,
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.add_comment_outlined,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: AppTheme.spaceSm),
+                                Text(_strings.newChat),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1429,6 +1930,7 @@ class _ChatTurn {
     this.cachedAt,
     this.offline = false,
     this.isGenerating = true,
+    this.edited = false,
   });
 
   final String prompt;
@@ -1439,6 +1941,10 @@ class _ChatTurn {
   final bool offline;
   final bool isGenerating;
 
+  /// True once the user has changed the draft's words by hand. A hand-edited
+  /// draft is no longer "from cache" or "offline": it is theirs.
+  final bool edited;
+
   _ChatTurn copyWith({
     List<String>? replies,
     String? failure,
@@ -1446,6 +1952,8 @@ class _ChatTurn {
     DateTime? cachedAt,
     bool? offline,
     bool? isGenerating,
+    bool clearCacheFlags = false,
+    bool? edited,
   }) => _ChatTurn(
     prompt: prompt,
     request: request,
@@ -1454,9 +1962,10 @@ class _ChatTurn {
     // clearing it is its own flag - otherwise a retried turn kept showing the
     // error it had just recovered from.
     failure: clearFailure ? null : (failure ?? this.failure),
-    cachedAt: cachedAt ?? this.cachedAt,
-    offline: offline ?? this.offline,
+    cachedAt: clearCacheFlags ? null : (cachedAt ?? this.cachedAt),
+    offline: clearCacheFlags ? false : (offline ?? this.offline),
     isGenerating: isGenerating ?? this.isGenerating,
+    edited: edited ?? this.edited,
   );
 }
 

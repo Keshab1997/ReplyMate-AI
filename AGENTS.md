@@ -340,6 +340,15 @@ down here is never touched).
   it was not given. The line that still holds: **nothing is inferred**. No
   profile, no guessing a name from a signature, no "this person seems terse".
   If a fact is not in that list, the app does not know it.
+- **Editing a draft** is local and total: a line the user retypes replaces the
+  model's words, and the app stops calling it cached or offline at that moment
+  (a hand-edited message must never claim to be a model answer, or to be one
+  reused from an earlier call). Refinement is always a fresh round trip - one
+  draft out, one back, `count: 1` - and is never served from the reply cache,
+  which would hand back the very draft the user asked to change. The on-device
+  starter tables (`OfflineSuggestions`) may answer a standalone brief, but a
+  result built from them must carry `offline: true` and the screen must show
+  that label. Never render a starter unlabelled.
 - **The voice half** is verbatim few-shot examples of the user's own replies,
   and it needs screen reading to exist at all. It is used in the reply panel
   *and* in Create a message - across all remembered chats there, because a

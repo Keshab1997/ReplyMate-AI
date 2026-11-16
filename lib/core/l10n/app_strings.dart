@@ -171,8 +171,19 @@ abstract class AppStrings {
   String get writeAnother;
   String get editDraft;
   String get offlineDraft;
+  String get fromCacheNote;
   String get cachedDraft;
   String get done;
+  String get cancel;
+  String get newChat;
+  String get askChange;
+  String get askChangeHint;
+  String get refineShorter;
+  String get refineSofter;
+  String get refineDecline;
+  String get refineContinue;
+  String get deleteTurn;
+  String get save;
   String get savedReplies;
   String get addSavedReply;
   String get noSavedReplies;
@@ -667,12 +678,34 @@ class EnglishStrings extends AppStrings {
 
   @override
   String get offlineDraft => 'On-device suggestion';
+  @override
+  String get fromCacheNote => 'Reused from an earlier answer';
 
   @override
   String get cachedDraft => 'From cache';
 
   @override
   String get done => 'Done';
+  @override
+  String get cancel => 'Cancel';
+  @override
+  String get newChat => 'New chat';
+  @override
+  String get askChange => 'Ask for a change';
+  @override
+  String get askChangeHint => 'For example: drop the second sentence';
+  @override
+  String get refineShorter => 'Shorter';
+  @override
+  String get refineSofter => 'Warmer';
+  @override
+  String get refineDecline => 'Decline politely';
+  @override
+  String get refineContinue => 'Add a question';
+  @override
+  String get deleteTurn => 'Remove this exchange';
+  @override
+  String get save => 'Save';
   @override
   String get savedReplies => 'My reply templates';
   @override
@@ -1450,12 +1483,34 @@ class BengaliStrings extends AppStrings {
 
   @override
   String get offlineDraft => 'ফোনেই তৈরি পরামর্শ';
+  @override
+  String get fromCacheNote => 'আগের উত্তর থেকেই নেওয়া';
 
   @override
   String get cachedDraft => 'ক্যাশ থেকে';
 
   @override
   String get done => 'হয়ে গেছে';
+  @override
+  String get cancel => 'বাতিল';
+  @override
+  String get newChat => 'নতুন চ্যাট';
+  @override
+  String get askChange => 'পরিবর্তন চান';
+  @override
+  String get askChangeHint => 'যেমন: দ্বিতীয় বাক্যটা বাদ দাও';
+  @override
+  String get refineShorter => 'ছোট করে';
+  @override
+  String get refineSofter => 'নরম করে';
+  @override
+  String get refineDecline => 'ভদ্রভাবে না বলো';
+  @override
+  String get refineContinue => 'একটা প্রশ্ন যোগ করো';
+  @override
+  String get deleteTurn => 'এই বার্তাটি সরান';
+  @override
+  String get save => 'সেভ';
   @override
   String get savedReplies => 'আমার জবাবের টেমপ্লেট';
   @override
@@ -2223,12 +2278,34 @@ class HindiStrings extends AppStrings {
 
   @override
   String get offlineDraft => 'फ़ोन पर ही बना सुझाव';
+  @override
+  String get fromCacheNote => 'पिछले जवाब से लिया गया';
 
   @override
   String get cachedDraft => 'कैश से';
 
   @override
   String get done => 'हो गया';
+  @override
+  String get cancel => 'रद्द करें';
+  @override
+  String get newChat => 'नई चैट';
+  @override
+  String get askChange => 'बदलाव चाहिए';
+  @override
+  String get askChangeHint => 'जैसे: दूसरा वाक्य हटा दो';
+  @override
+  String get refineShorter => 'छोटा करें';
+  @override
+  String get refineSofter => 'नरम करें';
+  @override
+  String get refineDecline => 'विनम्रता से मना करें';
+  @override
+  String get refineContinue => 'एक सवाल जोड़ें';
+  @override
+  String get deleteTurn => 'यह अदला-बदली हटाएँ';
+  @override
+  String get save => 'सेव';
   @override
   String get savedReplies => 'मेरे जवाब टेम्पलेट';
   @override

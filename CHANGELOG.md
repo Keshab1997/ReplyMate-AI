@@ -4,6 +4,27 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### The writer: edit, delete, restart, and never pretend
+
+- **Every draft is editable in place.** Tap it, the bubble becomes a text field,
+  Save writes your words back. Saving also clears the "reused from an earlier
+  answer" mark and the offline label: a line you typed is yours, and must not
+  claim to be something the model said.
+- **A draft says where it came from.** Offline starters are labelled on-device
+  suggestions; a cached answer says it was reused. Neither is dressed up as a
+  fresh model answer.
+- **Writing from scratch works with no provider.** A standalone brief now gets
+  on-device openers (guessed intent, then tone), labelled offline, instead of a
+  dead screen on first run.
+- **New chat** clears the context without deleting the saved chat; each exchange
+  has its own delete, so removing one leaves the rest of the screen untouched.
+- **Ask for a change.** A free-text instruction or a one-tap chip (shorter,
+  warmer, decline politely, add a question) rewrites *that one draft* - one
+  draft out, one back - rather than regenerating the whole turn.
+- Saved replies insert into the composer without sending; a character counter
+  appears once you pass 80% of the limit; the history list previews each chat's
+  newest line.
+
 ### Things the user tells the app, and can delete
 
 - New **Settings → Memory → Things you told me**. The user types a fact ("my name
