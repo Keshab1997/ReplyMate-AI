@@ -125,7 +125,7 @@ Length: ${request.length.label}
 ''';
     }
     if (request.mode == ReplyMode.createMessage) {
-      return '''Your writing request:
+      return '''${_conversation(request)}Your writing request:
 ${request.trimmedMessage}
 
 Create ${request.count} original message suggestion(s) that follow this request. These are messages the user wants to write, not text to answer.

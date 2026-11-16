@@ -120,6 +120,28 @@ void main() {
     },
   );
 
+  test('standalone follow-ups include earlier chat turns as context', () {
+    const request = ReplyRequest(
+      message: 'Make it more playful.',
+      language: ReplyLanguage.english,
+      tone: ReplyTone.friendly,
+      length: ReplyLength.short,
+      count: 2,
+      mode: ReplyMode.createMessage,
+      priorMessages: [
+        'User: Write a birthday message.',
+        'Assistant: Happy birthday! Hope your day is lovely.',
+      ],
+    );
+
+    final prompt = ReplyPrompt.user(request);
+
+    expect(prompt, contains('Earlier in this conversation:'));
+    expect(prompt, contains('- User: Write a birthday message.'));
+    expect(prompt, contains('- Assistant: Happy birthday!'));
+    expect(prompt, contains('Your writing request:\nMake it more playful.'));
+  });
+
   test('the user prompt carries message, language, tone and length', () {
     final user = ReplyPrompt.user(request);
     expect(user, contains('Can we meet tomorrow?'));
