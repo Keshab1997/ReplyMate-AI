@@ -130,6 +130,8 @@ abstract class AppStrings {
   String get writeSomethingNewSubtitle;
   String get createMessageTitle;
   String get writerHistory;
+  String get writerHistorySearch;
+  String get writerHistoryNoMatch;
   String get noWriterHistory;
   String get writerHistoryPrivacyNote;
   String get deleteWriterChat;
@@ -563,6 +565,10 @@ class EnglishStrings extends AppStrings {
   String get createMessageTitle => 'Create a message';
   @override
   String get writerHistory => 'Writing history';
+  @override
+  String get writerHistorySearch => 'Search your chats';
+  @override
+  String get writerHistoryNoMatch => 'No chats match that search.';
   @override
   String get noWriterHistory => 'No saved writing chats yet.';
   @override
@@ -1332,6 +1338,10 @@ class BengaliStrings extends AppStrings {
   @override
   String get writerHistory => 'লেখার ইতিহাস';
   @override
+  String get writerHistorySearch => 'চ্যাট খুঁজুন';
+  @override
+  String get writerHistoryNoMatch => 'এই খোঁজে কোনো চ্যাট মেলেনি।';
+  @override
   String get noWriterHistory => 'এখনো কোনো লেখার চ্যাট সেভ করা নেই।';
   @override
   String get writerHistoryPrivacyNote =>
@@ -2087,6 +2097,10 @@ class HindiStrings extends AppStrings {
   String get createMessageTitle => 'एक संदेश लिखें';
   @override
   String get writerHistory => 'लिखने का इतिहास';
+  @override
+  String get writerHistorySearch => 'अपनी चैट खोजें';
+  @override
+  String get writerHistoryNoMatch => 'इस खोज से कोई चैट नहीं मिली।';
   @override
   String get noWriterHistory => 'अभी कोई लिखने वाली चैट सेव नहीं है।';
   @override

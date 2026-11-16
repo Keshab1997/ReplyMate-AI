@@ -582,6 +582,84 @@ void main() {
     expect(repository.requests.last.tone, ReplyTone.polite);
   });
 
+  testWidgets('history search filters by brief and by draft text', (
+    tester,
+  ) async {
+    final repository = _RecordingCreateRepository();
+    final backend = _MemoryBackend();
+    final history = WriterChatHistoryStore(backend: backend);
+
+    // Two saved chats, seeded directly: the search is what is under test, not
+    // the saving path (that has its own test).
+    await history.save(
+      WriterChatHistory(
+        id: 'a',
+        updatedAt: DateTime.now(),
+        turns: const [
+          WriterChatTurn(
+            prompt: 'Write a birthday message for Rahim.',
+            replies: ['তুমি আমার দিনের সবচেয়ে সুন্দর ভাবনা।'],
+            format: 'chat',
+          ),
+        ],
+      ),
+    );
+    await history.save(
+      WriterChatHistory(
+        id: 'b',
+        updatedAt: DateTime.now().subtract(const Duration(minutes: 1)),
+        turns: const [
+          WriterChatTurn(
+            prompt: 'Write a thank-you note for Karim.',
+            replies: ['ধন্যবাদ, তুমি অনেক ভালো।'],
+            format: 'chat',
+          ),
+        ],
+      ),
+    );
+
+    await pumpCreateScreen(
+      tester,
+      repository,
+      memoryEnabled: true,
+      historyStore: history,
+    );
+    await tester.tap(find.byKey(const Key('openCreateMessageHistory')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('writerHistorySearch')), findsOneWidget);
+    expect(find.textContaining('birthday message'), findsOneWidget);
+    expect(find.textContaining('thank-you note'), findsOneWidget);
+
+    // Match on the brief.
+    await tester.enterText(
+      find.byKey(const Key('writerHistorySearch')),
+      'birthday',
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('birthday message'), findsOneWidget);
+    expect(find.textContaining('thank-you note'), findsNothing);
+
+    // It reaches into the draft text too - the thing people remember is often
+    // something said later in the chat, not the first line they typed.
+    await tester.enterText(
+      find.byKey(const Key('writerHistorySearch')),
+      'সুন্দর ভাবনা',
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('birthday message'), findsOneWidget);
+    expect(find.textContaining('thank-you note'), findsNothing);
+
+    // No match is a state, not an empty list that looks broken.
+    await tester.enterText(
+      find.byKey(const Key('writerHistorySearch')),
+      'zzzz',
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('writerHistoryNoMatch')), findsOneWidget);
+    expect(find.textContaining('birthday message'), findsNothing);
+  });
+
   testWidgets('does not persist writer chats when memory is off', (
     tester,
   ) async {

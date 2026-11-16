@@ -4,6 +4,16 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### Search your writing history
+
+- The history screen showed every saved chat in one scrolling list, so finding
+  last week's message meant remembering which day it was. It now has a search
+  field that matches the brief **and** the drafts inside each chat - the line
+  people remember is usually something said later, not the first thing they
+  typed. Case-insensitive.
+- The field appears only when there is history to search, and "no match" is a
+  written state rather than an empty list that looks broken.
+
 ### A draft can be shared, not just copied
 
 - Every draft now has **Share**, which hands the text to Android's share chooser
