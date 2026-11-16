@@ -11,6 +11,7 @@ import '../../../core/constants/reply_options.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../shared/widgets/mascot_face.dart';
 import '../../../shared/widgets/screen_header.dart';
+import '../../memory/data/remembered_facts_store.dart';
 import '../../memory/providers/conversation_memory_provider.dart';
 import '../../notifications/models/captured_notification.dart';
 import '../../notifications/models/launch_context.dart';
@@ -277,6 +278,18 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
               .read(conversationMemoryControllerProvider)
               .rememberCapture(capture);
     if (!mounted) return;
+    // Facts the user typed in Settings. Same rule as the writer: only when
+    // memory is on, and never allowed to break a generation.
+    var facts = const <String>[];
+    if (ref.read(conversationMemoryEnabledProvider)) {
+      try {
+        facts = await ref.read(rememberedFactsStoreProvider).promptLines();
+      } catch (_) {
+        facts = const <String>[];
+      }
+    }
+    if (!mounted) return;
+
     final preferences = ref.read(preferencesProvider);
     final request = ReplyRequest(
       message: message,
@@ -288,6 +301,7 @@ class _ReplyComposerScreenState extends ConsumerState<ReplyComposerScreen> {
       priorMessages:
           memory?.contextLines() ?? capture?.priorMessages ?? const <String>[],
       styleExamples: memory?.styleExamples() ?? const <String>[],
+      rememberedFacts: facts,
       replyIntent: intent,
     );
     final problems = request.validate();

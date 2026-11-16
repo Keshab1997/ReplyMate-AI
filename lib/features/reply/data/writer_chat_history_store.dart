@@ -77,6 +77,21 @@ class WriterChatHistory {
 
   String get title => turns.isEmpty ? '' : turns.first.prompt;
 
+  /// The newest draft in the chat, one line, for the history list.
+  ///
+  /// Not the title: two chats can start with the same "Write a birthday
+  /// message" and go somewhere completely different, and the thing the user
+  /// remembers is what the app wrote, not what they asked for.
+  String get preview {
+    for (final turn in turns.reversed) {
+      for (final reply in turn.replies) {
+        final line = reply.trim().replaceAll(RegExp(r'\s+'), ' ');
+        if (line.isNotEmpty) return line;
+      }
+    }
+    return '';
+  }
+
   Map<String, Object?> toJson() => <String, Object?>{
     'id': id,
     'updatedAt': updatedAt.toIso8601String(),

@@ -10,6 +10,7 @@ import '../../../core/firebase/firebase_providers.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../shared/widgets/brand_icon.dart';
 import '../../../shared/widgets/section_label.dart';
+import '../../memory/data/remembered_facts_store.dart';
 import '../../memory/providers/conversation_memory_provider.dart';
 import '../../notifications/providers/notification_providers.dart';
 import '../../reply/data/chat_reply_style_store.dart';
@@ -142,6 +143,18 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
         .read(conversationMemoryControllerProvider)
         .rememberCapture(overlay.notification);
     if (!mounted) return;
+    // Facts the user typed in Settings. Same rule as the writer: only when
+    // memory is on, and never allowed to break a generation.
+    var facts = const <String>[];
+    if (ref.read(conversationMemoryEnabledProvider)) {
+      try {
+        facts = await ref.read(rememberedFactsStoreProvider).promptLines();
+      } catch (_) {
+        facts = const <String>[];
+      }
+    }
+    if (!mounted) return;
+
     _draftingFor = overlay;
     final request = ReplyRequest(
       message: message,
@@ -152,6 +165,7 @@ class _OverlayPanelScreenState extends ConsumerState<OverlayPanelScreen> {
       priorMessages:
           memory?.contextLines() ?? overlay.notification.priorMessages,
       styleExamples: memory?.styleExamples() ?? const <String>[],
+      rememberedFacts: facts,
       replyIntent: intent,
     );
     final problems = request.validate();
