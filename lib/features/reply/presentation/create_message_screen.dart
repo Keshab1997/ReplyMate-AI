@@ -493,6 +493,18 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
     await _persistHistory();
   }
 
+  /// Ask for a different draft of the same brief.
+  ///
+  /// [bypassCache] is the point: the cached answer to this exact request is the
+  /// one already on screen, so serving it again would look like the button did
+  /// nothing. The request is rebuilt from the turn that is on screen, not from
+  /// the current chips, so "another" really is another version of *that*
+  /// message and not of a message the user has since re-styled.
+  Future<void> _writeAnother(_ChatTurn turn, int index) async {
+    if (_generating) return;
+    await _run(turn, index, bypassCache: true);
+  }
+
   /// Try the same request again after a failure.
   ///
   /// The same request, not a fresh one: the user changed nothing, so the app
@@ -812,6 +824,36 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
                                 ),
                               Row(
                                 children: [
+                                  // "None of these" needed a way out that is not
+                                  // retyping the brief. One draft per prompt
+                                  // makes this the common case, not the edge.
+                                  TextButton.icon(
+                                    key: ValueKey<String>(
+                                      'writeAnother-$turnIndex',
+                                    ),
+                                    onPressed: _generating
+                                        ? null
+                                        : () => _writeAnother(turn, turnIndex),
+                                    icon: _generating
+                                        ? SizedBox.square(
+                                            dimension: 14,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: scheme.primary,
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.refresh_rounded,
+                                            size: 16,
+                                          ),
+                                    label: Text(_strings.writeAnother),
+                                    style: TextButton.styleFrom(
+                                      visualDensity: VisualDensity.compact,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppTheme.spaceSm,
+                                      ),
+                                    ),
+                                  ),
                                   const Spacer(),
                                   IconButton(
                                     key: ValueKey<String>(

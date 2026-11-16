@@ -31,6 +31,9 @@ class _MemoryBackend implements MemoryBackend {
 class _RecordingCreateRepository implements ReplyRepository {
   ReplyRequest? request;
   final List<ReplyRequest> requests = <ReplyRequest>[];
+
+  /// Whether each call skipped the cache - the whole point of "write another".
+  final List<bool> bypassFlags = <bool>[];
   int calls = 0;
 
   @override
@@ -39,6 +42,7 @@ class _RecordingCreateRepository implements ReplyRepository {
     bool bypassCache = false,
   }) async {
     calls++;
+    bypassFlags.add(bypassCache);
     this.request = request;
     requests.add(request);
     return const ReplySuccess(['তুমি আমার দিনের সবচেয়ে সুন্দর ভাবনা।']);
@@ -73,7 +77,7 @@ void main() {
 
   Future<void> pumpCreateScreen(
     WidgetTester tester,
-    _RecordingCreateRepository repository, {
+    ReplyRepository repository, {
     bool memoryEnabled = false,
     WriterChatHistoryStore? historyStore,
   }) async {
@@ -397,6 +401,37 @@ void main() {
     // A retry is allowed to use the cache: nothing changed, so the cached
     // answer for the same request is a fair answer.
     expect(repository.bypassFlags, [false, false]);
+  });
+
+  testWidgets('write another asks again with the cache bypassed', (
+    tester,
+  ) async {
+    final repository = _RecordingCreateRepository();
+    await pumpCreateScreen(tester, repository);
+
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Write a good morning message.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey<String>('writeAnother-0')));
+    await tester.pumpAndSettle();
+
+    expect(repository.calls, 2);
+    // The second call must skip the cache. Without this the button would serve
+    // back the draft that is already on screen and look broken.
+    expect(repository.bypassFlags, [false, true]);
+    // It replaces the draft in place: the conversation gains no new turn.
+    expect(
+      find.byKey(const ValueKey<String>('createMessageDraft-0-0')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('createMessageDraft-1-0')),
+      findsNothing,
+    );
   });
 
   testWidgets('the chat answers in the style its chips say, not Settings', (

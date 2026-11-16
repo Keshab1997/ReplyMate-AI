@@ -4,6 +4,18 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### Write another, without retyping the brief
+
+- One draft per prompt made "none of these" the common case, and the only way
+  out was to write the brief again. Every draft now has **Write another**, which
+  re-runs the same request with `bypassCache: true` - the cached answer *is* the
+  draft already on screen, so serving it again would look like the button did
+  nothing.
+- It replaces the draft in place rather than adding a turn, so asking three
+  times does not turn the conversation into a pile.
+- The request is the one that produced the visible draft, not the current chips:
+  re-styling the toolbar afterwards must not change what "another" means.
+
 ### A failed draft can be retried
 
 - A generation failure used to be a dead end: the brief was still on screen,
