@@ -684,10 +684,11 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
       _turns[index] = turn.copyWith(isGenerating: true, clearFailure: true);
     });
 
-    final result = await ref
-        .read(replyRepositoryProvider)
-        .generate(turn.request, bypassCache: bypassCache);
-    if (!mounted) return;
+    final repository = ref.read(replyRepositoryProvider);
+    final result = repository is StreamingReplyRepository
+        ? await _runStreaming(repository, turn, index)
+        : await repository.generate(turn.request, bypassCache: bypassCache);
+    if (!mounted || result == null) return;
 
     setState(() {
       _generating = false;
@@ -709,6 +710,50 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
     });
     _scrollToBottom();
     await _persistHistory();
+  }
+
+  /// Runs a turn as a stream, updating the turn's preview as text arrives.
+  ///
+  /// Returns the final result, or null when the widget went away mid-stream.
+  /// The preview is the *only* thing touched during the run: `replies` stays
+  /// empty until a real result lands, so no code path can mistake a half-written
+  /// answer for a finished one.
+  Future<ReplyResult?> _runStreaming(
+    StreamingReplyRepository repository,
+    _ChatTurn turn,
+    int index,
+  ) async {
+    ReplyResult? result;
+    try {
+      await for (final progress in repository.generateStreaming(turn.request)) {
+        if (!mounted) return null;
+        if (progress.isFinal) {
+          result = progress.result;
+          break;
+        }
+        setState(() {
+          _turns[index] = _turns[index].copyWith(preview: progress.preview);
+        });
+      }
+    } catch (_) {
+      // The repository already maps failures; this is the last resort so a
+      // broken stream becomes an honest error instead of a frozen preview.
+      result = const ReplyFailure(
+        'The connection dropped before the answer was finished.',
+        isRetryable: true,
+      );
+    }
+    if (!mounted) return null;
+    // Whatever was previewed is dropped here, unconditionally: a stream that
+    // ended without a result produced nothing the user may keep.
+    setState(() {
+      _turns[index] = _turns[index].copyWith(preview: const <String>[]);
+    });
+    return result ??
+        const ReplyFailure(
+          'The answer stopped before it was finished. Try again.',
+          isRetryable: true,
+        );
   }
 
   /// Rewrites one draft in place, by instruction.
@@ -1079,21 +1124,64 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (turn.isGenerating)
-                      Row(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox.square(
-                            dimension: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: scheme.primary,
+                          // Text that has arrived, drawn muted and *under* the
+                          // writing indicator. It is a preview, not a draft:
+                          // the last event of the stream replaces it with the
+                          // real answer or with a failure, and a broken stream
+                          // throws it away rather than promoting it.
+                          for (final (previewIndex, line)
+                              in turn.preview.indexed)
+                            Container(
+                              key: ValueKey<String>(
+                                'streamPreview-$turnIndex-$previewIndex',
+                              ),
+                              width: double.infinity,
+                              margin: const EdgeInsets.only(
+                                bottom: AppTheme.spaceSm,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppTheme.spaceMd,
+                                vertical: AppTheme.spaceSm,
+                              ),
+                              decoration: BoxDecoration(
+                                color: scheme.surfaceContainerHighest
+                                    .withValues(alpha: 0.35),
+                                borderRadius: BorderRadius.circular(
+                                  18,
+                                ).copyWith(topLeft: const Radius.circular(6)),
+                              ),
+                              child: Text(
+                                line,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: AppTheme.spaceSm),
-                          Text(
-                            _strings.generating,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
+                          Row(
+                            children: [
+                              SizedBox.square(
+                                dimension: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: scheme.primary,
+                                ),
+                              ),
+                              const SizedBox(width: AppTheme.spaceSm),
+                              Text(
+                                turn.preview.isEmpty
+                                    ? _strings.generating
+                                    : _strings.stillWriting,
+                                key: ValueKey<String>(
+                                  'streamStatus-$turnIndex',
+                                ),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       )
@@ -1931,6 +2019,7 @@ class _ChatTurn {
     this.offline = false,
     this.isGenerating = true,
     this.edited = false,
+    this.preview = const <String>[],
   });
 
   final String prompt;
@@ -1945,6 +2034,12 @@ class _ChatTurn {
   /// draft is no longer "from cache" or "offline": it is theirs.
   final bool edited;
 
+  /// Reply strings the provider has already closed, while the rest is still
+  /// being written. Shown under a "writing" state and *never* as the answer:
+  /// the last event replaces it with [replies] or with a failure, and a stream
+  /// that dies leaves this list discarded rather than promoted.
+  final List<String> preview;
+
   _ChatTurn copyWith({
     List<String>? replies,
     String? failure,
@@ -1954,6 +2049,7 @@ class _ChatTurn {
     bool? isGenerating,
     bool clearCacheFlags = false,
     bool? edited,
+    List<String>? preview,
   }) => _ChatTurn(
     prompt: prompt,
     request: request,
@@ -1966,6 +2062,7 @@ class _ChatTurn {
     offline: clearCacheFlags ? false : (offline ?? this.offline),
     isGenerating: isGenerating ?? this.isGenerating,
     edited: edited ?? this.edited,
+    preview: preview ?? this.preview,
   );
 }
 

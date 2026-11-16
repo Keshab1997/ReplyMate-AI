@@ -4,6 +4,26 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### Streaming, without letting a half-answer pass for an answer
+
+- Drafts now appear **as they are written** instead of after a silent wait.
+  The text that arrives early is drawn muted, under a "still writing…" line, and
+  in its own widget slot - a preview, never a draft.
+- The reply contract is still `{"replies": [...]}`, so the middle of the stream
+  is half a JSON key. The decoder only ever previews **complete** reply strings;
+  a word that has not closed yet is skipped rather than re-flowed as it arrives.
+- **A stream that ends early produces a failure, never the preview the user was
+  watching.** The preview is discarded the moment the stream stops without a
+  parsed envelope, and the turn offers a retry instead. The decoder's test for
+  this is the reason the class exists.
+- A cached answer is **never** typed out on screen: watching a stored reply
+  arrive slowly would be theatre. Streaming is always a live call.
+- Providers that refuse `stream: true` (or answer with a plain JSON body) fall
+  back to the ordinary call in the same request - the answer arrives, all at
+  once, and nothing in the UI claims it was streamed.
+- Reasoning text that some providers stream alongside the answer is never shown:
+  it is the model's scratchpad, not the user's message.
+
 ### The writer: edit, delete, restart, and never pretend
 
 - **Every draft is editable in place.** Tap it, the bubble becomes a text field,

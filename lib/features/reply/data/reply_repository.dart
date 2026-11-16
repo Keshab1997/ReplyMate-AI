@@ -47,6 +47,42 @@ class ReplyFailure extends ReplyResult {
 /// repository when Firebase initializes, and leaves the
 /// [NotConfiguredReplyRepository] in place for guest mode. The screen depends
 /// only on this interface in either case.
+/// One step of an answer that is still arriving.
+///
+/// [preview] is what the screen may show *while* it waits: reply strings whose
+/// JSON had already closed. It is never an answer - the screen keeps a
+/// "writing…" state on top of it, and [done] is the only thing that turns this
+/// into a finished turn. A stream that ends without [done] must be shown as a
+/// failure, not as the preview the user happened to see.
+class ReplyProgress {
+  const ReplyProgress(this.preview, {this.result});
+
+  /// Reply strings that are already closed JSON values. A preview only.
+  final List<String> preview;
+
+  /// The finished answer, present on the last event only. Null before that.
+  /// One object carries both so the stream cannot be "done" without saying
+  /// what it produced.
+  final ReplyResult? result;
+
+  bool get isFinal => result != null;
+}
+
+/// A repository that can also answer while it is answering.
+///
+/// Kept separate from [ReplyRepository] on purpose: `abstract interface class`
+/// members are not inherited by implementers, so folding streaming in would
+/// have forced every test double to write a `generateStreaming` stub - and a
+/// stub is exactly where a fake preview would creep in. A screen asks
+/// `repository is StreamingReplyRepository` and falls back to the ordinary
+/// single-answer path otherwise, which is what guest mode does.
+abstract interface class StreamingReplyRepository implements ReplyRepository {
+  Stream<ReplyProgress> generateStreaming(
+    ReplyRequest request, {
+    bool bypassCache = false,
+  });
+}
+
 abstract interface class ReplyRepository {
   /// [bypassCache] asks for a genuinely fresh answer: it skips the on-device
   /// reply cache and is the only thing that makes a cache hit acceptable —
@@ -94,7 +130,7 @@ class NotConfiguredReplyRepository implements ReplyRepository {
 /// A cache hit costs neither a request nor a count. An uncached attempt is
 /// counted before it starts, including failed provider calls, because the
 /// attempt still reached the paid path.
-class CachedReplyRepository implements ReplyRepository {
+class CachedReplyRepository implements StreamingReplyRepository {
   CachedReplyRepository({
     required this.inner,
     ReplyCache? cache,
@@ -103,6 +139,50 @@ class CachedReplyRepository implements ReplyRepository {
 
   final ReplyRepository inner;
   final ReplyCache _cache;
+
+  /// One-event stream for a non-streaming inner repository.
+  Stream<ReplyProgress> _singleAnswer(ReplyRequest request) async* {
+    final result = await inner.generate(request, bypassCache: true);
+    final preview = switch (result) {
+      ReplySuccess(:final replies) => replies,
+      ReplyFailure() => const <String>[],
+    };
+    yield ReplyProgress(preview, result: result);
+  }
+
+  @override
+  Stream<ReplyProgress> generateStreaming(
+    ReplyRequest request, {
+    bool bypassCache = false,
+  }) async* {
+    final problems = request.validate();
+    if (problems.isNotEmpty) {
+      final failure = ReplyFailure(problems.join(' '));
+      yield ReplyProgress(const <String>[], result: failure);
+      return;
+    }
+    // A stored answer has nothing to stream, and typing one out on screen would
+    // be theatre - the user would watch a lie arrive slowly. Streaming is
+    // therefore always a live call, and the cache is only written at the end.
+    final cacheEligible = request.draftToRefine == null;
+    await usageTracker?.recordAttempt();
+    // The inner repository is always the pooled one in production; a wrapper
+    // around a repository that cannot stream simply yields its single answer,
+    // which is a preview-less stream rather than a second code path here.
+    final streaming = inner;
+    final source = streaming is StreamingReplyRepository
+        ? streaming.generateStreaming(request, bypassCache: true)
+        : _singleAnswer(request);
+    await for (final progress in source) {
+      final result = progress.result;
+      if (result is ReplySuccess &&
+          result.replies.isNotEmpty &&
+          cacheEligible) {
+        await _cache.store(request, result.replies);
+      }
+      yield progress;
+    }
+  }
 
   /// Exposed so Settings can show an informational local count.
   final AiUsageTracker? usageTracker;

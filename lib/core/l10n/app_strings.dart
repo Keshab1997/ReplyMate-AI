@@ -120,6 +120,7 @@ abstract class AppStrings {
   String get paste;
   String get aiNotConfiguredPanel;
   String get generating;
+  String get stillWriting;
   String get generateSuggestions;
   String get draftWithIntent;
   String get intentAgree;
@@ -561,6 +562,8 @@ class EnglishStrings extends AppStrings {
       'AI generation is not configured on this install, so generating will explain that instead of inventing a reply.';
   @override
   String get generating => 'Generating…';
+  @override
+  String get stillWriting => 'Still writing…';
   @override
   String get generateSuggestions => 'Generate suggestions';
   @override
@@ -1370,6 +1373,8 @@ class BengaliStrings extends AppStrings {
   @override
   String get generating => 'তৈরি হচ্ছে…';
   @override
+  String get stillWriting => 'লেখা চলছে…';
+  @override
   String get generateSuggestions => 'পরামর্শ তৈরি করুন';
   @override
   String get draftWithIntent => 'অথবা উদ্দেশ্য বেছে জবাব লিখুন';
@@ -2164,6 +2169,8 @@ class HindiStrings extends AppStrings {
       'इस इंस्टॉल पर AI कॉन्फ़िगर नहीं है, इसलिए जनरेट करने पर नकली जवाब के बजाय यही बताया जाएगा।';
   @override
   String get generating => 'बन रहा है…';
+  @override
+  String get stillWriting => 'लिखा जा रहा है…';
   @override
   String get generateSuggestions => 'सुझाव बनाएँ';
   @override

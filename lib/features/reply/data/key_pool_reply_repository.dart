@@ -4,6 +4,7 @@ import 'key_source.dart';
 import 'openai_client.dart';
 import 'prompt_builder.dart';
 import 'reply_repository.dart';
+import 'reply_stream_decoder.dart';
 import '../domain/reply_request.dart';
 
 /// The production [ReplyRepository]: pulls a healthy key from the
@@ -13,7 +14,7 @@ import '../domain/reply_request.dart';
 /// Every failure path returns a [ReplyFailure] with an honest message and a
 /// correct retryable flag; a key that misbehaved is reported back to the pool
 /// so its cooldown / deactivation logic can act.
-class KeyPoolReplyRepository implements ReplyRepository {
+class KeyPoolReplyRepository implements StreamingReplyRepository {
   KeyPoolReplyRepository({KeySource? keys, OpenAiCompatibleClient? client})
     : _keys = keys ?? const ApiKeyManagerKeySource(),
       _client = client ?? OpenAiCompatibleClient();
@@ -105,6 +106,129 @@ class KeyPoolReplyRepository implements ReplyRepository {
           'empty, cooling down, or not configured on this install.',
           isRetryable: true,
         );
+  }
+
+  /// The same request, streamed.
+  ///
+  /// Honest by construction, and the decoder is what makes it so: the middle of
+  /// `{"replies": …}` is never presented as an answer, and a stream that stops
+  /// early (a cut connection, a provider that ends mid-string) yields a
+  /// [ReplyFailure] instead of the half-written text the user just watched.
+  /// Whatever is previewed is thrown away in that case - a truncated draft
+  /// shown as if it were the answer is the exact lie this app must not tell.
+  ///
+  /// Falls back to the ordinary call when the provider refuses to stream, so
+  /// the answer still arrives; it simply arrives all at once.
+  @override
+  Stream<ReplyProgress> generateStreaming(
+    ReplyRequest request, {
+    bool bypassCache = false,
+  }) async* {
+    final problems = request.validate();
+    if (problems.isNotEmpty) {
+      yield ReplyProgress(
+        const <String>[],
+        result: ReplyFailure(problems.join(' ')),
+      );
+      return;
+    }
+    final systemPrompt = ReplyPrompt.system(
+      request.count,
+      request.tone,
+      styleExamples: request.styleExamples,
+      rememberedFacts: request.rememberedFacts,
+      mode: request.mode,
+      format: request.format,
+    );
+    final userPrompt = ReplyPrompt.user(request);
+    await _keys.ensureReady();
+
+    ReplyFailure? lastFailure;
+    final tried = <String>{};
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      final key = _keys.next();
+      if (key == null) break;
+      if (!tried.add(key.id)) break;
+
+      final decoder = ReplyStreamDecoder(maxReplies: request.count);
+      try {
+        await for (final chunk in _client.stream(
+          key: key,
+          systemPrompt: systemPrompt,
+          userPrompt: userPrompt,
+          maxOutputTokens: ReplyPrompt.maxTokensFor(request),
+        )) {
+          if (decoder.add(chunk)) yield ReplyProgress(decoder.partial);
+        }
+      } on StreamingUnsupported {
+        // This endpoint cannot stream. Ask for the whole answer instead of
+        // failing: the user wanted a reply, not a transport feature.
+        yield* _wholeAnswer(request, bypassCache: bypassCache);
+        return;
+      } on AiCallException catch (error) {
+        _keys.reportFailure(key, error.statusCode);
+        lastFailure = ReplyFailure(
+          error.userMessage,
+          isRetryable: error.isRetryable,
+        );
+        if (!error.isRetryable) break;
+        continue;
+      } catch (_) {
+        // A stream that broke mid-flight lands here. Reported as a failure,
+        // never as the preview already on screen.
+        _keys.reportFailure(key, 0);
+        lastFailure = const ReplyFailure(
+          'The connection dropped before the answer was finished.',
+          isRetryable: true,
+        );
+        continue;
+      }
+
+      if (!decoder.isComplete) {
+        _keys.reportFailure(key, 0);
+        lastFailure = const ReplyFailure(
+          'The AI provider stopped before the answer was finished.',
+          isRetryable: true,
+        );
+        continue;
+      }
+      final replies = parseReplies(decoder.raw, request.count);
+      if (replies.isEmpty) {
+        _keys.reportFailure(key, 0);
+        lastFailure = const ReplyFailure(
+          'The AI provider returned an empty suggestion list.',
+          isRetryable: true,
+        );
+        continue;
+      }
+      _keys.reportSuccess(key);
+      yield ReplyProgress(replies, result: ReplySuccess(replies));
+      return;
+    }
+
+    yield ReplyProgress(
+      const <String>[],
+      result:
+          lastFailure ??
+          const ReplyFailure(
+            'No healthy API key is available right now. The admin key pool is '
+            'empty, cooling down, or not configured on this install.',
+            isRetryable: true,
+          ),
+    );
+  }
+
+  /// One-event stream over the ordinary path, used when streaming is refused.
+  Stream<ReplyProgress> _wholeAnswer(
+    ReplyRequest request, {
+    required bool bypassCache,
+  }) async* {
+    final result = await generate(request, bypassCache: bypassCache);
+    final preview = switch (result) {
+      ReplySuccess(:final replies) => replies,
+      ReplyFailure() => const <String>[],
+    };
+    yield ReplyProgress(preview, result: result);
   }
 
   /// Attempts per request. Three is enough to step over one dead key and one

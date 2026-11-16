@@ -340,6 +340,16 @@ down here is never touched).
   it was not given. The line that still holds: **nothing is inferred**. No
   profile, no guessing a name from a signature, no "this person seems terse".
   If a fact is not in that list, the app does not know it.
+- **Streaming** is a preview channel, not an answer channel. The reply contract
+  is JSON (`{"replies": [...]}`), so the transport is treated as raw text and
+  only `ReplyStreamDecoder` may decide what is safe to show; it previews closed
+  JSON strings and nothing else. Two invariants follow, and breaking either is a
+  correctness bug, not a UI bug: (1) a stream that ends without a parsed
+  envelope yields a `ReplyFailure` and the preview is thrown away - never
+  promoted into the turn; (2) a cached answer is never streamed on screen,
+  because typing out a stored reply is theatre. `stream_deltas.dart` stays pure
+  so both dialects are testable on a plain JVM, and reasoning/thinking text is
+  never mapped to a reply.
 - **Editing a draft** is local and total: a line the user retypes replaces the
   model's words, and the app stops calling it cached or offline at that moment
   (a hand-edited message must never claim to be a model answer, or to be one

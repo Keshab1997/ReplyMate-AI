@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:admin_api_key_manager/admin_api_key_manager.dart';
 import 'package:http/http.dart' as http;
+
+import 'stream_deltas.dart';
 
 /// Every way an AI call can fail, typed so the repository can map each one to
 /// an honest, retryable-or-not user message
@@ -65,6 +68,15 @@ class MalformedResponse extends AiCallException {
   bool get isRetryable => true;
 }
 
+/// Raised when an endpoint answers a streaming request with a shape it cannot
+/// stream (HTTP 400/404/422, or a bare JSON body). Not a user-facing failure:
+/// the caller retries the same request on the non-streaming path, so the answer
+/// still arrives, just all at once.
+class StreamingUnsupported implements Exception {
+  const StreamingUnsupported(this.statusCode);
+  final int statusCode;
+}
+
 /// The HTTP client behind every pooled key, speaking each provider's own
 /// dialect rather than assuming they all do `/chat/completions`.
 ///
@@ -119,6 +131,109 @@ class OpenAiCompatibleClient {
       userPrompt: userPrompt,
       budget: budget,
     );
+  }
+
+  /// Streams the answer as it is written, for the one screen that shows text
+  /// while it arrives.
+  ///
+  /// This is the *same* call as [complete]: same prompts, same token budget,
+  /// same dialect fallbacks - only `stream: true` is added and the body is read
+  /// incrementally. It matters that it is the same call, because a second
+  /// "streaming code path" is how the two drift apart and one of them stops
+  /// sending the schema.
+  ///
+  /// The chunks are raw provider text. Assembling them into a reply is the
+  /// decoder's job, because the middle of `{"replies": …}` is not an answer.
+  ///
+  /// Throws [StreamingUnsupported] when the endpoint cannot stream (a provider
+  /// answering 400 to `stream: true`, an older proxy, a plain-JSON body), which
+  /// is the caller's signal to fall back to [complete] rather than fail.
+  Stream<String> stream({
+    required AdminApiKey key,
+    required String systemPrompt,
+    required String userPrompt,
+    int? maxOutputTokens,
+  }) async* {
+    final budget = maxOutputTokens ?? maxTokens;
+    final baseUrl = _normalizedBaseUrl(key.baseUrl);
+    final isGemini = key.provider == 'google';
+    final model = isGemini
+        ? key.model.trim().replaceFirst(RegExp(r'^models/'), '')
+        : resolveOpenRouterModel(baseUrl, key.model.trim());
+    final uri = isGemini
+        ? Uri.parse(
+            '$baseUrl/models/$model:streamGenerateContent?alt=sse&key=${key.key}',
+          )
+        : Uri.parse('$baseUrl/chat/completions');
+
+    final request = http.Request('POST', uri);
+    request.headers.addAll(
+      isGemini
+          ? {'Content-Type': 'application/json; charset=utf-8'}
+          : {
+              'Content-Type': 'application/json; charset=utf-8',
+              'Authorization': 'Bearer ${key.key}',
+              'Accept': 'text/event-stream',
+            },
+    );
+    request.body = isGemini
+        ? jsonEncode({
+            'contents': [
+              {
+                'role': 'user',
+                'parts': [
+                  {'text': '$systemPrompt\n\n$userPrompt'},
+                ],
+              },
+            ],
+            'generationConfig': {
+              'maxOutputTokens': math.max(budget, _geminiMinTokens),
+            },
+          })
+        : jsonEncode({
+            'model': model,
+            'messages': [
+              {'role': 'system', 'content': systemPrompt},
+              {'role': 'user', 'content': userPrompt},
+            ],
+            'temperature': 0.7,
+            'max_tokens': budget,
+            'stream': true,
+          });
+
+    final http.StreamedResponse response;
+    try {
+      response = await _http.send(request).timeout(const Duration(seconds: 30));
+    } catch (_) {
+      throw const ServerError(0);
+    }
+
+    if (response.statusCode == 400 ||
+        response.statusCode == 404 ||
+        response.statusCode == 422) {
+      await response.stream.drain<void>();
+      throw StreamingUnsupported(response.statusCode);
+    }
+    if (response.statusCode != 200) {
+      await response.stream.drain<void>();
+      _throwForStatus(response.statusCode);
+    }
+
+    final read = isGemini ? StreamDeltas.gemini : StreamDeltas.openAi;
+    var sawAny = false;
+    // Decoded as UTF-8 by hand: a provider that omits the charset would
+    // otherwise turn Bengali into mojibake, exactly as on the non-stream path.
+    final lines = response.stream
+        .transform(const Utf8Decoder(allowMalformed: true))
+        .transform(const LineSplitter());
+    await for (final line in lines) {
+      final delta = read(line);
+      if (delta == null) continue;
+      sawAny = true;
+      yield delta;
+    }
+    // A 200 that streamed nothing usable is a provider failure, not an answer.
+    if (!sawAny) throw const MalformedResponse();
   }
 
   Future<String> _completeOpenAiCompatible({

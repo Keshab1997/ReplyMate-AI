@@ -53,6 +53,34 @@ class _RecordingCreateRepository implements ReplyRepository {
   }
 }
 
+/// A repository that can stream, with the chunks handed to it by the test, so
+/// the widget test controls exactly when each piece of the answer arrives.
+class _ScriptedStreamingRepository implements StreamingReplyRepository {
+  _ScriptedStreamingRepository(this.script);
+
+  /// Each entry is one yield from the repository: either a preview (no result)
+  /// or the final one.
+  final List<ReplyProgress> script;
+  int calls = 0;
+
+  @override
+  Future<ReplyResult> generate(
+    ReplyRequest request, {
+    bool bypassCache = false,
+  }) async => const ReplySuccess(['unused']);
+
+  @override
+  Stream<ReplyProgress> generateStreaming(
+    ReplyRequest request, {
+    bool bypassCache = false,
+  }) async* {
+    calls++;
+    for (final step in script) {
+      yield step;
+    }
+  }
+}
+
 /// Fails the first call, then behaves. Used to prove a failure is recoverable.
 class _FlakyRepository implements ReplyRepository {
   _FlakyRepository();
@@ -997,6 +1025,95 @@ void main() {
     // Refining is always a fresh call - a cached answer would be the draft the
     // user just asked to change.
     expect(repository.bypassFlags.last, isTrue);
+  });
+
+  testWidgets('a streamed answer appears while it is written', (tester) async {
+    final repository = _ScriptedStreamingRepository([
+      const ReplyProgress(['প্রথম উত্তর']),
+      const ReplyProgress([
+        'প্রথম উত্তর',
+        'দ্বিতীয় উত্তর',
+      ], result: ReplySuccess(['প্রথম উত্তর', 'দ্বিতীয় উত্তর'])),
+    ]);
+    await pumpCreateScreen(tester, repository);
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Write two lines.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('createMessageDraft-0-0')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('createMessageDraft-0-1')),
+      findsOneWidget,
+    );
+    // The preview row is gone once the answer is real.
+    expect(
+      find.byKey(const ValueKey<String>('streamPreview-0-0')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('a stream that dies never leaves its preview as the answer', (
+    tester,
+  ) async {
+    final repository = _ScriptedStreamingRepository([
+      const ReplyProgress(['অর্ধেক লেখা']),
+      // No final event: this is a cut connection.
+    ]);
+    await pumpCreateScreen(tester, repository);
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Write something.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+
+    // The half-written line is gone, and the screen says what happened.
+    expect(find.text('অর্ধেক লেখা'), findsNothing);
+    expect(find.byKey(const Key('createMessageFailure')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('createMessageDraft-0-0')),
+      findsNothing,
+    );
+    // ...and it can be retried, which is the only honest offer at that point.
+    expect(
+      find.byKey(const ValueKey<String>('retryCreateMessage-0')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a preview is shown under a writing state, not as a draft', (
+    tester,
+  ) async {
+    final repository = _ScriptedStreamingRepository([
+      const ReplyProgress(['লেখা হচ্ছে এমন একটা লাইন']),
+      const ReplyProgress([
+        'লেখা হচ্ছে এমন একটা লাইন',
+      ], result: ReplySuccess(['লেখা হচ্ছে এমন একটা লাইন'])),
+    ]);
+    await pumpCreateScreen(tester, repository);
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Write something.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+
+    // Once finished it is a draft; before that it lived in the preview slot,
+    // which is a different key precisely so the two cannot be confused.
+    expect(
+      find.byKey(const ValueKey<String>('createMessageDraft-0-0')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('streamPreview-0-0')),
+      findsNothing,
+    );
   });
 
   testWidgets('does not persist writer chats when memory is off', (
