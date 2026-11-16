@@ -13,6 +13,19 @@ import 'package:hive_flutter/hive_flutter.dart';
 /// Memoised so the bootstrap and the admin gate share one call — initializing
 /// twice is just as undefined as not initializing at all.
 Future<bool>? _googleSignInReady;
+StreamSubscription<User?>? _authKeyPoolSub;
+
+/// Re-attaches the key-pool Firestore listeners after transitioning from a
+/// signed-out state to a signed-in user (e.g. if anonymous auth was disabled
+/// at startup and the user later signed in through the admin gate).
+Future<void> _reattachKeyPool() async {
+  try {
+    ApiKeyManager.instance.dispose();
+    await ApiKeyManager.instance.initialize();
+  } catch (error) {
+    debugPrint('ReplyMate: key-pool reattach failed ($error)');
+  }
+}
 
 /// True once Google Sign-In is usable on this build. Safe to await anywhere:
 /// the first call starts the plugin, later ones reuse its result.
@@ -78,6 +91,22 @@ Future<bool> bootstrapFirebase() async {
     await Hive.initFlutter();
     await KeyCache.init();
     ApiKeyManager.instance.initialize();
+
+    // If startup failed to sign in (offline or Anonymous auth disabled in
+    // Firebase Console), the pool's Firestore listener dies on permission-denied
+    // and never recovers on its own even after the user signs in via Google
+    // (where the admin screen's own StreamBuilder works and tests 200!).
+    // Re-attach once auth transitions from signed-out -> signed-in.
+    var hadSignedOutState = FirebaseAuth.instance.currentUser == null;
+    _authKeyPoolSub ??= FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user == null) {
+        hadSignedOutState = true;
+        return;
+      }
+      if (!hadSignedOutState) return;
+      hadSignedOutState = false;
+      unawaited(_reattachKeyPool());
+    });
   } catch (error) {
     // Key pool unusable is not app-unusable: generation will report
     // "no healthy key" and everything else keeps working.

@@ -10,6 +10,7 @@ import 'package:replymate/features/reply/data/key_source.dart';
 import 'package:replymate/features/reply/data/openai_client.dart';
 import 'package:replymate/features/reply/data/reply_repository.dart';
 import 'package:replymate/features/reply/domain/reply_request.dart';
+import 'package:replymate/features/reply/domain/writing_format.dart';
 
 class FakeKeySource implements KeySource {
   FakeKeySource(this._key) : _queue = null;
@@ -24,8 +25,14 @@ class FakeKeySource implements KeySource {
   final List<AdminApiKey>? _queue;
   final List<int> reportedFailures = [];
   final List<String> reportedKeyIds = [];
+  int ensureReadyCalls = 0;
   int successes = 0;
   int nextCalls = 0;
+
+  @override
+  Future<void> ensureReady() async {
+    ensureReadyCalls++;
+  }
 
   @override
   AdminApiKey? next() {
@@ -373,4 +380,79 @@ void main() {
       ['Sure.', 'Sounds good.'],
     );
   });
+
+  test(
+    'parseReplies strips <think> blocks including braces before parsing',
+    () {
+      const raw =
+          '<think>Format should be {"replies": ["reply 1"]}. Thinking...</think>\n'
+          '{"replies": ["হ্যাঁ, কাল দেখা হবে।"]}';
+      expect(KeyPoolReplyRepository.parseReplies(raw, 1), [
+        'হ্যাঁ, কাল দেখা হবে।',
+      ]);
+    },
+  );
+
+  test('parseReplies returns empty when response is only unclosed <think>', () {
+    expect(
+      KeyPoolReplyRepository.parseReplies(
+        '<think>Let me think about how to answer this...',
+        1,
+      ),
+      isEmpty,
+    );
+  });
+
+  test('parseReplies recovers JSON strings with raw unescaped newlines', () {
+    const raw =
+        '{"replies": ["Subject: Leave request\n\nDear Sir,\nPlease grant me leave."]}';
+    expect(KeyPoolReplyRepository.parseReplies(raw, 1), [
+      'Subject: Leave request\n\nDear Sir,\nPlease grant me leave.',
+    ]);
+  });
+
+  test(
+    'awaits key pool readiness and forwards document format to prompt',
+    () async {
+      final keys = FakeKeySource(key());
+      String? systemPrompt;
+      final repository = KeyPoolReplyRepository(
+        keys: keys,
+        client: OpenAiCompatibleClient(
+          httpClient: MockClient((request) async {
+            final body = jsonDecode(request.body) as Map;
+            systemPrompt =
+                (body['messages'] as List).first['content'] as String;
+            return http.Response(
+              jsonEncode({
+                'choices': [
+                  {
+                    'message': {
+                      'content': '{"replies": ["To, The Principal..."]}',
+                    },
+                  },
+                ],
+              }),
+              200,
+            );
+          }),
+        ),
+      );
+
+      final result = await repository.generate(
+        const ReplyRequest(
+          message: 'Leave application for fever.',
+          language: ReplyLanguage.english,
+          tone: ReplyTone.professional,
+          length: ReplyLength.medium,
+          count: 1,
+          mode: ReplyMode.createMessage,
+          format: WritingFormat.application,
+        ),
+      );
+      expect(result, isA<ReplySuccess>());
+      expect(keys.ensureReadyCalls, 1);
+      expect(systemPrompt, contains('recipient block'));
+    },
+  );
 }

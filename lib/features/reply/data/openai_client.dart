@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:admin_api_key_manager/admin_api_key_manager.dart';
 import 'package:http/http.dart' as http;
@@ -86,6 +87,17 @@ class OpenAiCompatibleClient {
   /// why this is not tighter.
   static const int maxTokens = 300;
 
+  /// Floor for Gemini models, whose 2.5+ releases share `maxOutputTokens`
+  /// between internal thinking and the visible JSON answer. Setting a larger
+  /// ceiling stops thinking from starving a short reply while the schema keeps
+  /// actual output concise.
+  static const int _geminiMinTokens = 2048;
+
+  /// Higher ceiling used only when a reasoning / thinking model spends its
+  /// initial token budget without producing visible content.
+  static const int _reasoningRetryMinTokens = 2048;
+  static const int _reasoningRetryMaxTokens = 4096;
+
   Future<String> complete({
     required AdminApiKey key,
     required String systemPrompt,
@@ -101,25 +113,116 @@ class OpenAiCompatibleClient {
         maxOutputTokens: budget,
       );
     }
-    final uri = Uri.parse('${key.baseUrl}/chat/completions');
-    final body = jsonEncode({
-      // OpenRouter addresses models as `provider/model`; a bare name pasted from
-      // another dashboard is rejected there. The package owns that mapping so
-      // the health check and the real call cannot drift apart again.
-      'model': resolveOpenRouterModel(key.baseUrl, key.model),
-      'messages': [
+    return _completeOpenAiCompatible(
+      key: key,
+      systemPrompt: systemPrompt,
+      userPrompt: userPrompt,
+      budget: budget,
+    );
+  }
+
+  Future<String> _completeOpenAiCompatible({
+    required AdminApiKey key,
+    required String systemPrompt,
+    required String userPrompt,
+    required int budget,
+  }) async {
+    final baseUrl = _normalizedBaseUrl(key.baseUrl);
+    final uri = Uri.parse('$baseUrl/chat/completions');
+    // OpenRouter addresses models as `provider/model`; a bare name pasted from
+    // another dashboard is rejected there. The package owns that mapping so
+    // the health check and the real call cannot drift apart again.
+    final model = resolveOpenRouterModel(baseUrl, key.model.trim());
+
+    var useCompatibleShape = false;
+    var response = await _postChatCompletions(
+      uri: uri,
+      apiKey: key.key,
+      model: model,
+      messages: [
         {'role': 'system', 'content': systemPrompt},
         {'role': 'user', 'content': userPrompt},
       ],
-      'temperature': 0.7,
+      maxTokens: budget,
+      temperature: 0.7,
+    );
+
+    // The admin panel's ping checks with a single user turn and no temperature.
+    // Models like Gemma on OpenRouter or strict reasoning endpoints return 400
+    // for `role: system` or `temperature: 0.7` even though the key is healthy.
+    if (response.statusCode == 400 || response.statusCode == 422) {
+      useCompatibleShape = true;
+      response = await _postChatCompletions(
+        uri: uri,
+        apiKey: key.key,
+        model: model,
+        messages: [
+          {'role': 'user', 'content': '$systemPrompt\n\n$userPrompt'},
+        ],
+        maxTokens: budget,
+      );
+    }
+
+    if (response.statusCode != 200) _throwForStatus(response.statusCode);
+
+    // Decode the bytes as UTF-8 ourselves: providers commonly omit the
+    // charset on their content type, and package:http would otherwise
+    // decode Bengali / Devanagari as latin-1 mojibake.
+    var inspected = _inspectChatCompletion(utf8.decode(response.bodyBytes));
+    if (inspected.content != null) return inspected.content!;
+
+    // Reasoning models on OpenRouter / OpenAI-compatible proxies can spend
+    // the entire 300-token chat budget in `reasoning` / `reasoning_content` /
+    // `<think>` and return `content: null` with `finish_reason: "length"` while
+    // passing the 5-token admin ping with HTTP 200. Retry once with room.
+    if (inspected.shouldRetryForReasoning &&
+        budget < _reasoningRetryMaxTokens) {
+      final retryBudget = (budget * 4).clamp(
+        _reasoningRetryMinTokens,
+        _reasoningRetryMaxTokens,
+      );
+      response = await _postChatCompletions(
+        uri: uri,
+        apiKey: key.key,
+        model: model,
+        messages: useCompatibleShape
+            ? [
+                {'role': 'user', 'content': '$systemPrompt\n\n$userPrompt'},
+              ]
+            : [
+                {'role': 'system', 'content': systemPrompt},
+                {'role': 'user', 'content': userPrompt},
+              ],
+        maxTokens: retryBudget,
+        temperature: useCompatibleShape ? null : 0.7,
+      );
+      if (response.statusCode != 200) _throwForStatus(response.statusCode);
+      inspected = _inspectChatCompletion(utf8.decode(response.bodyBytes));
+      if (inspected.content != null) return inspected.content!;
+    }
+
+    throw const MalformedResponse();
+  }
+
+  Future<http.Response> _postChatCompletions({
+    required Uri uri,
+    required String apiKey,
+    required String model,
+    required List<Map<String, String>> messages,
+    required int maxTokens,
+    double? temperature,
+  }) async {
+    final body = jsonEncode({
+      'model': model,
+      'messages': messages,
+      'temperature': ?temperature,
       // A chat reply is a line or two. Without a cap, providers bill the model's
       // default completion length even when it stops early, and one generous
       // default is the difference between a free month and a bill.
-      'max_tokens': budget,
+      'max_tokens': maxTokens,
     });
-    final http.Response response;
     try {
-      response = await _http
+      return await _http
           .post(
             uri,
             headers: {
@@ -127,7 +230,7 @@ class OpenAiCompatibleClient {
               // bodies as latin-1 unless the content type says otherwise,
               // and Bengali / Devanagari replies are not latin-1.
               'Content-Type': 'application/json; charset=utf-8',
-              'Authorization': 'Bearer ${key.key}',
+              'Authorization': 'Bearer $apiKey',
             },
             body: body,
           )
@@ -136,20 +239,6 @@ class OpenAiCompatibleClient {
       // DNS, TLS, timeout, socket reset: all "the provider could not be
       // reached", all worth a retry with another key.
       throw const ServerError(0);
-    }
-    switch (response.statusCode) {
-      case 200:
-        // Decode the bytes as UTF-8 ourselves: providers commonly omit the
-        // charset on their content type, and package:http would otherwise
-        // decode Bengali / Devanagari as latin-1 mojibake.
-        return _extractContent(utf8.decode(response.bodyBytes));
-      case 401:
-      case 403:
-        throw AuthFailure(response.statusCode);
-      case 429:
-        throw const RateLimited();
-      default:
-        throw ServerError(response.statusCode);
     }
   }
 
@@ -163,70 +252,126 @@ class OpenAiCompatibleClient {
     required String userPrompt,
     required int maxOutputTokens,
   }) async {
+    final baseUrl = _normalizedBaseUrl(key.baseUrl);
+    final model = key.model.trim().replaceFirst(RegExp(r'^models/'), '');
     final uri = Uri.parse(
-      '${key.baseUrl}/models/${key.model}:generateContent?key=${key.key}',
+      '$baseUrl/models/$model:generateContent?key=${key.key}',
     );
-    final http.Response response;
+    // Gemma models served on Google AI Studio reject both `systemInstruction`
+    // and JSON-mode `responseSchema` with HTTP 400 while still passing the
+    // admin health ping with HTTP 200.
+    var useStructuredGemini = !model.toLowerCase().contains('gemma');
+    final initialBudget = useStructuredGemini
+        ? math.max(maxOutputTokens, _geminiMinTokens)
+        : maxOutputTokens;
+
+    var response = await _postGemini(
+      uri: uri,
+      systemPrompt: systemPrompt,
+      userPrompt: userPrompt,
+      maxOutputTokens: initialBudget,
+      structured: useStructuredGemini,
+    );
+
+    if (response.statusCode == 400 && useStructuredGemini) {
+      useStructuredGemini = false;
+      response = await _postGemini(
+        uri: uri,
+        systemPrompt: systemPrompt,
+        userPrompt: userPrompt,
+        maxOutputTokens: initialBudget,
+        structured: false,
+      );
+    }
+
+    if (response.statusCode != 200) _throwForStatus(response.statusCode);
+
+    var inspected = _inspectGeminiResponse(utf8.decode(response.bodyBytes));
+    if (inspected.text != null) return inspected.text!;
+
+    if (inspected.finishReason == 'MAX_TOKENS' &&
+        initialBudget < _reasoningRetryMaxTokens) {
+      response = await _postGemini(
+        uri: uri,
+        systemPrompt: systemPrompt,
+        userPrompt: userPrompt,
+        maxOutputTokens: _reasoningRetryMaxTokens,
+        structured: useStructuredGemini,
+      );
+      if (response.statusCode != 200) _throwForStatus(response.statusCode);
+      inspected = _inspectGeminiResponse(utf8.decode(response.bodyBytes));
+      if (inspected.text != null) return inspected.text!;
+    }
+
+    throw const MalformedResponse();
+  }
+
+  Future<http.Response> _postGemini({
+    required Uri uri,
+    required String systemPrompt,
+    required String userPrompt,
+    required int maxOutputTokens,
+    required bool structured,
+  }) async {
+    final payload = structured
+        ? {
+            'systemInstruction': {
+              'parts': [
+                {'text': systemPrompt},
+              ],
+            },
+            'contents': [
+              {
+                'role': 'user',
+                'parts': [
+                  {'text': userPrompt},
+                ],
+              },
+            ],
+            'generationConfig': {
+              'maxOutputTokens': maxOutputTokens,
+              // Constrained JSON: the shared prompt asks for the same
+              // envelope every other provider returns, and the parser in
+              // KeyPoolReplyRepository reads it.
+              'responseMimeType': 'application/json',
+              'responseSchema': {
+                'type': 'OBJECT',
+                'properties': {
+                  'replies': {
+                    'type': 'ARRAY',
+                    'items': {'type': 'STRING'},
+                  },
+                },
+                'required': ['replies'],
+              },
+            },
+          }
+        : {
+            'contents': [
+              {
+                'role': 'user',
+                'parts': [
+                  {'text': '$systemPrompt\n\n$userPrompt'},
+                ],
+              },
+            ],
+            'generationConfig': {'maxOutputTokens': maxOutputTokens},
+          };
     try {
-      response = await _http
+      return await _http
           .post(
             uri,
             headers: {'Content-Type': 'application/json; charset=utf-8'},
-            body: jsonEncode({
-              'systemInstruction': {
-                'parts': [
-                  {'text': systemPrompt},
-                ],
-              },
-              'contents': [
-                {
-                  'role': 'user',
-                  'parts': [
-                    {'text': userPrompt},
-                  ],
-                },
-              ],
-              'generationConfig': {
-                'maxOutputTokens': maxOutputTokens,
-                // Constrained JSON: the shared prompt asks for the same
-                // envelope every other provider returns, and the parser in
-                // KeyPoolReplyRepository reads it.
-                'responseMimeType': 'application/json',
-                'responseSchema': {
-                  'type': 'OBJECT',
-                  'properties': {
-                    'replies': {
-                      'type': 'ARRAY',
-                      'items': {'type': 'STRING'},
-                    },
-                  },
-                  'required': ['replies'],
-                },
-              },
-            }),
+            body: jsonEncode(payload),
           )
           .timeout(const Duration(seconds: 30));
     } catch (error) {
       throw const ServerError(0);
     }
-    if (response.statusCode != 200) _throwForStatus(response.statusCode);
-    try {
-      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
-      final candidates = (decoded as Map)['candidates'] as List?;
-      final parts =
-          ((candidates?.first as Map?)?['content'] as Map?)?['parts'] as List?;
-      final text = parts
-          ?.whereType<Map>()
-          .map((part) => part['text'])
-          .whereType<String>()
-          .join();
-      if (text == null || text.trim().isEmpty) throw const MalformedResponse();
-      return text;
-    } catch (error) {
-      if (error is AiCallException) rethrow;
-      throw const MalformedResponse();
-    }
   }
+
+  static String _normalizedBaseUrl(String raw) =>
+      raw.trim().replaceFirst(RegExp(r'/+$'), '');
 
   /// One place that decides what a status code means, so the two dialects
   /// cannot classify 401 as retryable in one and not the other.
@@ -242,9 +387,14 @@ class OpenAiCompatibleClient {
   /// OpenAI-compatible body themselves.
   static String extractContent(String body) => _decodeContent(body);
 
-  String _extractContent(String body) => _decodeContent(body);
-
   static String _decodeContent(String body) {
+    final inspected = _inspectChatCompletion(body);
+    if (inspected.content != null) return inspected.content!;
+    throw const MalformedResponse();
+  }
+
+  static ({String? content, bool shouldRetryForReasoning})
+  _inspectChatCompletion(String body) {
     try {
       final decoded = jsonDecode(body);
       if (decoded is Map<String, Object?>) {
@@ -252,12 +402,21 @@ class OpenAiCompatibleClient {
         if (choices is List && choices.isNotEmpty) {
           final first = choices.first;
           if (first is Map<String, Object?>) {
+            final finishReason = first['finish_reason'];
             final message = first['message'];
             if (message is Map<String, Object?>) {
-              final content = message['content'];
-              if (content is String && content.trim().isNotEmpty) {
-                return content;
+              final raw = _extractMessageText(message['content']);
+              final unclosedThink = raw != null && _isOnlyUnclosedThinking(raw);
+              if (raw != null && raw.trim().isNotEmpty && !unclosedThink) {
+                return (content: raw, shouldRetryForReasoning: false);
               }
+              final hasReasoning =
+                  _nonEmptyValue(message['reasoning']) ||
+                  _nonEmptyValue(message['reasoning_content']) ||
+                  _nonEmptyValue(message['reasoning_details']);
+              final shouldRetry =
+                  finishReason == 'length' || hasReasoning || unclosedThink;
+              return (content: null, shouldRetryForReasoning: shouldRetry);
             }
           }
         }
@@ -265,7 +424,68 @@ class OpenAiCompatibleClient {
     } on FormatException {
       // falls through to MalformedResponse
     }
-    throw const MalformedResponse();
+    return (content: null, shouldRetryForReasoning: false);
+  }
+
+  static String? _extractMessageText(Object? content) {
+    if (content is String) return content;
+    if (content is List) {
+      final buffer = StringBuffer();
+      for (final part in content) {
+        if (part is Map) {
+          if (part['type'] == 'thinking' || part['thought'] == true) continue;
+          final text = part['text'];
+          if (text is String) buffer.write(text);
+        }
+      }
+      final joined = buffer.toString();
+      return joined.isEmpty ? null : joined;
+    }
+    return null;
+  }
+
+  static bool _isOnlyUnclosedThinking(String text) {
+    final lower = text.trim().toLowerCase();
+    return lower.startsWith('<think>') && !lower.contains('</think>');
+  }
+
+  static bool _nonEmptyValue(Object? value) {
+    if (value == null) return false;
+    if (value is String) return value.trim().isNotEmpty;
+    if (value is List) return value.isNotEmpty;
+    if (value is Map) return value.isNotEmpty;
+    return true;
+  }
+
+  static ({String? text, String? finishReason}) _inspectGeminiResponse(
+    String body,
+  ) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is! Map) return (text: null, finishReason: null);
+      final candidates = decoded['candidates'];
+      if (candidates is! List || candidates.isEmpty) {
+        return (text: null, finishReason: null);
+      }
+      final first = candidates.first;
+      if (first is! Map) return (text: null, finishReason: null);
+      final finishReason = first['finishReason'] as String?;
+      final parts = (first['content'] as Map?)?['parts'] as List?;
+      final text = parts
+          ?.whereType<Map>()
+          // Gemini 2.5+ thinking models emit `{"thought": true, "text": "..."}`
+          // parts ahead of the answer; mixing them in breaks JSON parsing.
+          .where((part) => part['thought'] != true)
+          .map((part) => part['text'])
+          .whereType<String>()
+          .join();
+      if (text == null || text.trim().isEmpty) {
+        return (text: null, finishReason: finishReason);
+      }
+      return (text: text, finishReason: finishReason);
+    } on FormatException {
+      return (text: null, finishReason: null);
+    }
   }
 
   void close() => _http.close();

@@ -37,8 +37,13 @@ class KeyPoolReplyRepository implements ReplyRepository {
       request.tone,
       styleExamples: request.styleExamples,
       mode: request.mode,
+      format: request.format,
     );
     final userPrompt = ReplyPrompt.user(request);
+
+    // Wait for the Firestore/Hive key pool to finish its initial load so the
+    // very first tap after launch does not race an empty pool.
+    await _keys.ensureReady();
 
     // One bad key must not be the user's whole answer. A single attempt meant a
     // provider that answers 200 with an unusable body - or one that is briefly
@@ -110,7 +115,7 @@ class KeyPoolReplyRepository implements ReplyRepository {
   /// never turn a JSON envelope or malformed fragment into a user-facing reply.
   static List<String> parseReplies(String content, int count) {
     if (count <= 0) return const <String>[];
-    final text = _withoutCodeFence(content).trim();
+    final text = _withoutCodeFence(_withoutThinking(content)).trim();
     if (text.isEmpty) return const <String>[];
 
     final direct = _parseStructured(text, count);
@@ -139,6 +144,21 @@ class KeyPoolReplyRepository implements ReplyRepository {
         .toList();
   }
 
+  /// Strips `<think>...</think>` blocks (including an unclosed trailing block)
+  /// emitted by reasoning models so internal chain-of-thought or `{...}`
+  /// examples inside it neither break JSON extraction nor leak to the user.
+  static String _withoutThinking(String content) {
+    var cleaned = content.replaceAll(
+      RegExp(r'<think>[\s\S]*?</think>', caseSensitive: false),
+      '',
+    );
+    cleaned = cleaned.replaceFirst(
+      RegExp(r'<think>[\s\S]*$', caseSensitive: false),
+      '',
+    );
+    return cleaned.trim();
+  }
+
   static String _withoutCodeFence(String content) {
     final trimmed = content.trim();
     final withoutOpening = trimmed.replaceFirst(
@@ -151,37 +171,84 @@ class KeyPoolReplyRepository implements ReplyRepository {
   /// `null` means unrecognized structure; an empty list is a recognized but
   /// empty answer and must stay a failure instead of falling back to raw text.
   static List<String>? _parseStructured(String candidate, int count) {
-    try {
-      final decoded = jsonDecode(candidate);
-      if (decoded is String) {
-        final nested = decoded.trim();
-        if (nested.startsWith('{') || nested.startsWith('[')) {
-          return _parseStructured(nested, count);
-        }
-        return null;
+    final decoded = _tryJsonDecode(candidate);
+    if (decoded == null) return null;
+    if (decoded is String) {
+      final nested = decoded.trim();
+      if (nested.startsWith('{') || nested.startsWith('[')) {
+        return _parseStructured(nested, count);
       }
-      if (decoded is List) return _stringReplies(decoded, count);
-      if (decoded is Map) {
-        for (final key in const ['replies', 'suggestions']) {
-          if (!decoded.containsKey(key)) continue;
-          final value = decoded[key];
-          if (value is List) return _stringReplies(value, count);
-          if (value is String && value.trim().isNotEmpty) {
-            return <String>[value.trim()].take(count).toList();
-          }
-          return const <String>[];
+      return null;
+    }
+    if (decoded is List) return _stringReplies(decoded, count);
+    if (decoded is Map) {
+      for (final key in const ['replies', 'suggestions']) {
+        if (!decoded.containsKey(key)) continue;
+        final value = decoded[key];
+        if (value is List) return _stringReplies(value, count);
+        if (value is String && value.trim().isNotEmpty) {
+          return <String>[value.trim()].take(count).toList();
         }
-        for (final key in const ['reply', 'suggestion']) {
-          final value = decoded[key];
-          if (value is String && value.trim().isNotEmpty) {
-            return <String>[value.trim()].take(count).toList();
-          }
+        return const <String>[];
+      }
+      for (final key in const ['reply', 'suggestion']) {
+        final value = decoded[key];
+        if (value is String && value.trim().isNotEmpty) {
+          return <String>[value.trim()].take(count).toList();
         }
       }
-    } on FormatException {
-      // Try an embedded balanced object and recover complete strings below.
     }
     return null;
+  }
+
+  /// Decodes JSON, falling back once with raw control characters escaped inside
+  /// string literals (many open models emit literal newlines in multi-line
+  /// replies, emails and letters).
+  static Object? _tryJsonDecode(String candidate) {
+    try {
+      return jsonDecode(candidate);
+    } on FormatException {
+      final sanitized = _escapeControlCharsInJsonStrings(candidate);
+      if (sanitized == candidate) return null;
+      try {
+        return jsonDecode(sanitized);
+      } on FormatException {
+        return null;
+      }
+    }
+  }
+
+  static String _escapeControlCharsInJsonStrings(String input) {
+    final buffer = StringBuffer();
+    var inString = false;
+    var escaped = false;
+    for (var i = 0; i < input.length; i++) {
+      final char = input[i];
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+          buffer.write(char);
+        } else if (char == '\\') {
+          escaped = true;
+          buffer.write(char);
+        } else if (char == '"') {
+          inString = false;
+          buffer.write(char);
+        } else if (char == '\n') {
+          buffer.write(r'\n');
+        } else if (char == '\r') {
+          buffer.write(r'\r');
+        } else if (char == '\t') {
+          buffer.write(r'\t');
+        } else {
+          buffer.write(char);
+        }
+      } else {
+        if (char == '"') inString = true;
+        buffer.write(char);
+      }
+    }
+    return buffer.toString();
   }
 
   static List<String> _stringReplies(List<dynamic> values, int count) => values
@@ -263,13 +330,9 @@ class KeyPoolReplyRepository implements ReplyRepository {
         } else if (char == '"') {
           index++;
           closed = true;
-          try {
-            final value = jsonDecode(text.substring(start, index));
-            if (value is String && value.trim().isNotEmpty) {
-              replies.add(value.trim());
-            }
-          } on FormatException {
-            // Ignore malformed elements; continue only at a safe separator.
+          final value = _tryJsonDecode(text.substring(start, index));
+          if (value is String && value.trim().isNotEmpty) {
+            replies.add(value.trim());
           }
           break;
         }

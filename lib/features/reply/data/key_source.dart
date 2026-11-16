@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 /// Indirection over the key pool so the repository stays unit-testable:
 /// tests inject a fake instead of the Firestore-backed singleton.
 abstract interface class KeySource {
+  Future<void> ensureReady();
   AdminApiKey? next();
   void reportSuccess(AdminApiKey key);
   void reportFailure(AdminApiKey key, int statusCode);
@@ -13,6 +14,9 @@ abstract interface class KeySource {
 /// failover, cooldowns and health checks.
 class ApiKeyManagerKeySource implements KeySource {
   const ApiKeyManagerKeySource();
+
+  @override
+  Future<void> ensureReady() => ApiKeyManager.instance.ensureReady();
 
   @override
   AdminApiKey? next() => ApiKeyManager.instance.getNextKey();
