@@ -4,6 +4,15 @@
          other. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
+    <!-- Declared here, not inherited. Until now INTERNET arrived only through
+         a library's merged manifest (Firebase/Firestore), which meant a release
+         build could silently lose AI, Firestore and the web preview the day that
+         dependency changed - while every debug build kept working, because the
+         debug manifest declares it. One line removes the dependence on somebody
+         else's merge. This is an ordinary install-time permission: no prompt,
+         nothing the user has to grant. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <!-- Floating reply bubble. All three are
          optional: without SYSTEM_ALERT_WINDOW the bubble simply never shows and
          the fallback notification takes over. Granting overlay access never

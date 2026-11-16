@@ -141,6 +141,10 @@ personal accounts are exempt. Internal testing does not count.
 
 ## 4. One thing worth fixing even though it is not a blocker
 
+> **Done.** `android/app/src/main/AndroidManifest.xml` now declares
+> `android.permission.INTERNET` itself. The paragraph below is kept as the
+> reason, not as a to-do.
+
 The release manifest gets `android.permission.INTERNET` from a **transitive**
 library's manifest, not from ours — the app's own `src/main/AndroidManifest.xml`
 never declares it (only the debug and profile ones do, which is Flutter's

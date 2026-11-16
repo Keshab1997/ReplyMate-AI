@@ -4,6 +4,13 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### Build
+
+- `android.permission.INTERNET` is declared in the app's own manifest instead of
+  arriving through a library's merged manifest. Same permission, same prompt-free
+  install - but a release build can no longer lose AI, Firestore and the web
+  preview because an unrelated dependency changed its manifest.
+
 ### Streaming, without letting a half-answer pass for an answer
 
 - Drafts now appear **as they are written** instead of after a silent wait.
