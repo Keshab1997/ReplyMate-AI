@@ -4,6 +4,22 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### The reply cache can no longer say what the message was
+
+- Cache keys were `base64Url(message + options)` — an encoding of the text, not
+  a hash, sitting in a Hive file on disk. The doc comment claimed a hash and
+  `AGENTS.md` says conversation memory is the only feature allowed to write
+  message text to disk, so this was both a leak and a lie: anyone with the file
+  could read every message the cache had seen.
+- Keys are now SHA-256 hex (`package:crypto`). The box moved to
+  `reply_cache_v2` and the v1 box is deleted on first open rather than
+  migrated, because a hash cannot be computed from the old key without reading
+  the text we are trying to stop storing. Losing a cache costs one provider
+  call.
+- `isTimeSensitive` matched `am `/`pm ` as substrings, so "I am fine", "team
+  lunch?" and "grammar check" bypassed the cache entirely. Clock times are now
+  matched as clock times (`at 5 pm`, `9am`).
+
 ### A healthy key in the admin panel is a working key in the app
 
 - `OpenAiCompatibleClient` now speaks each provider's dialect, matching the

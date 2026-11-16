@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../domain/reply_request.dart';
@@ -19,9 +20,13 @@ class CachedReplies {
 /// here costs nothing at all.
 ///
 /// The three rules that keep it honest:
-/// - **Content never leaves the device to be cached.** The key is a hash of
-///   what the user already chose to send; the reply itself is stored locally,
-///   exactly like conversation memory, and deleted when it expires.
+/// - **Content never leaves the device to be cached, and the key cannot leak
+///   it either.** The box key is a SHA-256 of the request, not the request
+///   encoded: a Hive file anyone could read says "some request was answered",
+///   never what the message was. The reply itself is stored locally, exactly
+///   like conversation memory, and deleted when it expires. This is also why
+///   the box is `reply_cache_v2` — the v1 key *was* the message, base64'd, so
+///   it is deleted rather than migrated.
 /// - **A hit is labelled.** [CachedReplies] carries its timestamp so the UI can
 ///   say "from cache" and offer a real regenerate. A cached reply presented as
 ///   fresh would be a lie about what just happened.
@@ -42,7 +47,14 @@ class ReplyCache {
   /// what tests get when they do not care about caching.
   factory ReplyCache.disabled() => ReplyCache(box: null);
 
-  static const String boxName = 'reply_cache';
+  /// v2: the v1 keys were base64 of the message itself. Opening v2 deletes v1
+  /// from disk once, which is the only honest migration — a hash cannot be
+  /// computed from the old key without reading the text we are trying to stop
+  /// storing. The reply cache is a cache, so losing it costs one provider call.
+  static const String boxName = 'reply_cache_v2';
+
+  /// The box the previous scheme used. Deleted on first open.
+  static const String legacyBoxName = 'reply_cache';
   static const int _maxEntries = 300;
 
   /// The box replies are stored in, or null for a cache that stores nothing.
@@ -54,12 +66,29 @@ class ReplyCache {
   /// the cache can never take a preference with it.
   static Future<Box<dynamic>> openBox() async {
     if (Hive.isBoxOpen(boxName)) return Hive.box<dynamic>(boxName);
+    // Best-effort: a box that refuses to be deleted is not a reason to lose
+    // the cache, and a cache that cannot be opened is not a reason to fail a
+    // launch (main() already treats an unopened box as "no cache").
+    try {
+      if (Hive.isBoxOpen(legacyBoxName)) {
+        await Hive.box<dynamic>(legacyBoxName).deleteFromDisk();
+      } else {
+        await Hive.deleteBoxFromDisk(legacyBoxName);
+      }
+    } catch (_) {
+      // Nothing to delete, or the file is already gone.
+    }
     return Hive.openBox<dynamic>(boxName);
   }
 
   /// The cache key for a normal generation request. Rewrites are deliberately
   /// excluded by `CachedReplyRepository`, so their draft text is not persisted
   /// in a cache key. No timestamps or session ids participate in a normal key.
+  /// The box key: a SHA-256 (hex) of the request's meaning-bearing fields.
+  /// Two identical requests collide exactly; nothing about the text survives
+  /// the hash, which is what makes this cache compatible with the rule that
+  /// conversation memory is the only feature allowed to write message text to
+  /// disk.
   static String keyFor(ReplyRequest request) {
     final parts = <String>[
       request.trimmedMessage,
@@ -74,7 +103,7 @@ class ReplyCache {
       request.replyIntent?.name ?? '',
       request.mode.name,
     ];
-    return base64Url.encode(utf8.encode(parts.join('\u0002')));
+    return sha256.convert(utf8.encode(parts.join('\u0002'))).toString();
   }
 
   /// Word boundary used for the romanised markers: "kolkata" contains "kal" and
@@ -135,12 +164,16 @@ class ReplyCache {
       'मिनट',
       // English
       'today', 'tomorrow', 'yesterday', 'tonight', 'now', 'later', 'morning',
-      'evening', 'minute', 'hour', 'o\'clock', 'am ', 'pm ',
+      'evening', 'minute', 'hour', 'o\'clock',
     ];
     if (markers.any(text.contains)) return true;
-    // A clock time or a date is time-sensitive however it is written.
+    // A clock time or a date is time-sensitive however it is written. "am" and
+    // "pm" are matched as clock times ("at 5 pm"), never as substrings: the
+    // old `contains('am ')` made "I am fine" and "team lunch" bypass the
+    // cache entirely, which is most of what people type.
     return RegExp(r'\b\d{1,2}[:.]\d{2}\b').hasMatch(text) ||
-        RegExp(r'\b\d{1,2}[/-]\d{1,2}\b').hasMatch(text);
+        RegExp(r'\b\d{1,2}[/-]\d{1,2}\b').hasMatch(text) ||
+        RegExp(r'\b\d{1,2}\s*(?:am|pm)\b').hasMatch(text);
   }
 
   /// A cached answer for [request], or null when there is none, it expired, or

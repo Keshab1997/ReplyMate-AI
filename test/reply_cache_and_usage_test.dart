@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:replymate/core/constants/reply_options.dart';
@@ -6,6 +8,16 @@ import 'package:replymate/features/reply/data/reply_cache.dart';
 import 'package:replymate/features/reply/data/reply_repository.dart';
 import 'package:replymate/features/reply/domain/reply_intent.dart';
 import 'package:replymate/features/reply/domain/reply_request.dart';
+
+/// Decodes [value] as base64, or returns '' when it is not base64 at all —
+/// which is itself the proof that a key is not merely an encoding.
+String base64UrlDecodeToText(String value) {
+  try {
+    return utf8.decode(base64Url.decode(base64Url.normalize(value)));
+  } catch (_) {
+    return '';
+  }
+}
 
 ReplyRequest _request({
   String message = 'kal asbo?',
@@ -111,6 +123,21 @@ void main() {
       );
     });
 
+    test('the key is a hash: it cannot be read back into the message', () {
+      // The cache is on disk, so its keys are on disk. A base64 key was the
+      // message itself; conversation memory is the only feature allowed to
+      // write message text there.
+      const message = 'tomar sathe coffee kothay';
+      final key = ReplyCache.keyFor(_request(message: message));
+      expect(key, matches(RegExp(r'^[0-9a-f]{64}$')));
+      // The v1 scheme, for contrast: reversible in one line, no key needed.
+      final legacy = base64Url.encode(utf8.encode(message));
+      expect(base64UrlDecodeToText(legacy), message);
+      // And the current one is not.
+      expect(base64UrlDecodeToText(key), isNot(contains('coffee')));
+      expect(key.toLowerCase(), isNot(contains('coffee')));
+    });
+
     test('surrounding whitespace does not split the cache', () {
       // trimmedMessage is what the prompt sends, so it is what the key uses.
       expect(
@@ -128,6 +155,8 @@ void main() {
         'आज मिलेंगे?',
         'tomorrow at 5?',
         'see you at 18:30',
+        'call me at 5 pm',
+        'reach by 9am',
         'on 12/05 then',
         'in an hour',
       ]) {
@@ -136,6 +165,18 @@ void main() {
           isTrue,
           reason: '"$message" should be treated as time-sensitive',
         );
+      }
+    });
+
+    test('an "am"/"pm" inside a word is not a clock time', () {
+      // `contains('am ')` made all of these cache misses for no reason.
+      for (final message in [
+        'I am fine',
+        'team lunch?',
+        'shameless plug',
+        'grammar check please',
+      ]) {
+        expect(ReplyCache.isTimeSensitive(message), isFalse, reason: message);
       }
     });
 
