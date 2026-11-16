@@ -13,14 +13,15 @@ import '../../shared/widgets/screen_header.dart';
 /// promise.
 ///
 /// It answers three questions a bug report needs: what build, what it is meant
-/// to do, and what is known not to be finished. The version is not decorative;
-/// `test/app_info_test.dart` holds [AppInfo] to `pubspec.yaml`.
+/// to do, and what is known not to be finished. The version comes from the
+/// installed package metadata so it follows the Flutter build version.
 class AboutScreen extends ConsumerWidget {
   const AboutScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = ref.watch(appStringsProvider);
+    final versionLabel = ref.watch(appVersionLabelProvider).asData?.value;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
@@ -96,12 +97,13 @@ class AboutScreen extends ConsumerWidget {
                           spacing: AppTheme.spaceSm,
                           runSpacing: AppTheme.spaceSm,
                           children: <Widget>[
-                            _Pill(
-                              icon: Icons.tag_rounded,
-                              label: strings.versionLine(AppInfo.versionLabel),
-                              color: scheme.primary,
-                              isDark: isDark,
-                            ),
+                            if (versionLabel != null)
+                              _Pill(
+                                icon: Icons.tag_rounded,
+                                label: strings.versionLine(versionLabel),
+                                color: scheme.primary,
+                                isDark: isDark,
+                              ),
                             _Pill(
                               icon: Icons.science_outlined,
                               label: strings.statusDevelopment,

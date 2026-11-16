@@ -7,6 +7,8 @@ import 'package:replymate/core/l10n/app_strings.dart';
 import 'package:replymate/features/about/about_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+const testVersionLabel = '1.5.2+7';
+
 /// The About screen is the one place in the app that states what this build is
 /// and what it is not. Both halves are load-bearing: a version nobody can read
 /// makes a bug report useless, and a status line that is missing makes the app
@@ -20,7 +22,12 @@ Future<void> pumpAbout(WidgetTester tester, {String? language}) async {
   addTearDown(tester.view.reset);
 
   await tester.pumpWidget(
-    const ProviderScope(child: MaterialApp(home: AboutScreen())),
+    ProviderScope(
+      overrides: [
+        appVersionLabelProvider.overrideWith((ref) async => testVersionLabel),
+      ],
+      child: const MaterialApp(home: AboutScreen()),
+    ),
   );
   await tester.pumpAndSettle();
 }
@@ -30,9 +37,9 @@ void main() {
     await pumpAbout(tester);
 
     expect(find.text(AppInfo.name), findsOneWidget);
-    expect(find.text('Version ${AppInfo.versionLabel}'), findsOneWidget);
+    expect(find.text('Version $testVersionLabel'), findsOneWidget);
     // The number must be a version a maintainer can act on, not a label.
-    expect(AppInfo.versionLabel, matches(RegExp(r'^\d+\.\d+\.\d+\+\d+$')));
+    expect(testVersionLabel, matches(RegExp(r'^\d+\.\d+\.\d+\+\d+$')));
   });
 
   testWidgets('the status line admits it is a development build', (
@@ -89,7 +96,7 @@ void main() {
     expect(find.text(const EnglishStrings().aboutStatusTitle), findsNothing);
     expect(find.text(const EnglishStrings().statusDevelopment), findsNothing);
     // A version is a number in every language.
-    expect(find.text('ভার্সন ${AppInfo.versionLabel}'), findsOneWidget);
+    expect(find.text('ভার্সন $testVersionLabel'), findsOneWidget);
   });
 
   testWidgets('a narrow phone in bengali does not overflow', (tester) async {

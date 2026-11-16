@@ -47,6 +47,7 @@ class SettingsScreen extends ConsumerWidget {
     final strings = ref.watch(appStringsProvider);
     final preferences = ref.watch(preferencesProvider);
     final bubbleEnabled = ref.watch(bubbleEnabledProvider);
+    final versionLabel = ref.watch(appVersionLabelProvider).asData?.value;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
@@ -121,13 +122,15 @@ class SettingsScreen extends ConsumerWidget {
                                 runSpacing: 2,
                                 crossAxisAlignment: WrapCrossAlignment.center,
                                 children: <Widget>[
-                                  Text(
-                                    strings.versionLine(AppInfo.versionLabel),
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      fontSize: 11.5,
-                                      color: scheme.onSurfaceVariant,
+                                  if (versionLabel != null)
+                                    Text(
+                                      strings.versionLine(versionLabel),
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            fontSize: 11.5,
+                                            color: scheme.onSurfaceVariant,
+                                          ),
                                     ),
-                                  ),
                                   Text(
                                     strings.statusDevelopment,
                                     style: theme.textTheme.bodySmall?.copyWith(
