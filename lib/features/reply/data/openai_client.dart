@@ -64,8 +64,15 @@ class MalformedResponse extends AiCallException {
   bool get isRetryable => true;
 }
 
-/// Minimal OpenAI-compatible `/chat/completions` client - the wire format
-/// every provider in the key pool speaks (Gemini proxy, OpenRouter, custom).
+/// The HTTP client behind every pooled key, speaking each provider's own
+/// dialect rather than assuming they all do `/chat/completions`.
+///
+/// That assumption was the bug this comment exists to bury: the admin panel
+/// health-checks a `google` key against `generateContent` and prefixes a bare
+/// OpenRouter model with its vendor, so a key the admin screen called *healthy*
+/// could still fail every app call - a 404 on `/v1beta/chat/completions`, or a
+/// 400 for `gpt-4o-mini` where OpenRouter wants `openai/gpt-4o-mini`. A pool
+/// whose health check and whose caller disagree is worse than no health check.
 /// The HTTP client is injectable so tests can serve canned responses without
 /// a socket.
 class OpenAiCompatibleClient {
@@ -84,9 +91,19 @@ class OpenAiCompatibleClient {
     required String systemPrompt,
     required String userPrompt,
   }) async {
+    if (key.provider == 'google') {
+      return _completeGemini(
+        key: key,
+        systemPrompt: systemPrompt,
+        userPrompt: userPrompt,
+      );
+    }
     final uri = Uri.parse('${key.baseUrl}/chat/completions');
     final body = jsonEncode({
-      'model': key.model,
+      // OpenRouter addresses models as `provider/model`; a bare name pasted from
+      // another dashboard is rejected there. The package owns that mapping so
+      // the health check and the real call cannot drift apart again.
+      'model': resolveOpenRouterModel(key.baseUrl, key.model),
       'messages': [
         {'role': 'system', 'content': systemPrompt},
         {'role': 'user', 'content': userPrompt},
@@ -133,8 +150,88 @@ class OpenAiCompatibleClient {
     }
   }
 
-  /// The `choices[0].message.content` unwrap, shared with [http]'s other
-  /// caller (the BYOK repository) so both providers are read the same way.
+  /// Gemini speaks its own shape: the key rides in the query string, the
+  /// prompt is `contents`, and the reply is in `candidates[0].content.parts`.
+  /// Kept beside the OpenAI path rather than in a subclass because there are
+  /// exactly two dialects and a hierarchy for two is more code, not less.
+  Future<String> _completeGemini({
+    required AdminApiKey key,
+    required String systemPrompt,
+    required String userPrompt,
+  }) async {
+    final uri = Uri.parse(
+      '${key.baseUrl}/models/${key.model}:generateContent?key=${key.key}',
+    );
+    final http.Response response;
+    try {
+      response = await _http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json; charset=utf-8'},
+            body: jsonEncode({
+              'systemInstruction': {
+                'parts': [{'text': systemPrompt}],
+              },
+              'contents': [
+                {
+                  'role': 'user',
+                  'parts': [{'text': userPrompt}],
+                },
+              ],
+              'generationConfig': {
+                'maxOutputTokens': maxTokens,
+                // Constrained JSON: the shared prompt asks for the same
+                // envelope every other provider returns, and the parser in
+                // KeyPoolReplyRepository reads it.
+                'responseMimeType': 'application/json',
+                'responseSchema': {
+                  'type': 'OBJECT',
+                  'properties': {
+                    'replies': {
+                      'type': 'ARRAY',
+                      'items': {'type': 'STRING'},
+                    },
+                  },
+                  'required': ['replies'],
+                },
+              },
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+    } catch (error) {
+      throw const ServerError(0);
+    }
+    if (response.statusCode != 200) _throwForStatus(response.statusCode);
+    try {
+      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      final candidates = (decoded as Map)['candidates'] as List?;
+      final parts =
+          ((candidates?.first as Map?)?['content'] as Map?)?['parts'] as List?;
+      final text = parts
+          ?.whereType<Map>()
+          .map((part) => part['text'])
+          .whereType<String>()
+          .join();
+      if (text == null || text.trim().isEmpty) throw const MalformedResponse();
+      return text;
+    } catch (error) {
+      if (error is AiCallException) rethrow;
+      throw const MalformedResponse();
+    }
+  }
+
+  /// One place that decides what a status code means, so the two dialects
+  /// cannot classify 401 as retryable in one and not the other.
+  Never _throwForStatus(int statusCode) {
+    if (statusCode == 401 || statusCode == 403) {
+      throw AuthFailure(statusCode);
+    }
+    if (statusCode == 429) throw const RateLimited();
+    throw ServerError(statusCode);
+  }
+
+  /// The `choices[0].message.content` unwrap, used by callers that read an
+  /// OpenAI-compatible body themselves.
   static String extractContent(String body) => _decodeContent(body);
 
   String _extractContent(String body) => _decodeContent(body);

@@ -4,6 +4,21 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### A healthy key in the admin panel is a working key in the app
+
+- `OpenAiCompatibleClient` now speaks each provider's dialect, matching the
+  admin panel's own health check: a `google` key is called at
+  `models/<model>:generateContent` with the key in the query string and
+  constrained JSON output, and an OpenRouter key gets its bare model name
+  prefixed (`gpt-4o-mini` -> `openai/gpt-4o-mini` via the package's
+  `resolveOpenRouterModel`).
+- Before this, both cases passed the health check and failed every real call:
+  a 404 at `/v1beta/chat/completions`, or a 400 for a bare OpenRouter model.
+  That is the shape of "the admin screen says the key is fine but the app says
+  the provider is unavailable".
+- Status classification is one helper (`_throwForStatus`), so 401/403, 429 and
+  5xx mean the same thing on both paths.
+
 ### The bubble tucks itself away
 
 - A full-size bubble nobody has touched for five seconds now slides to the
