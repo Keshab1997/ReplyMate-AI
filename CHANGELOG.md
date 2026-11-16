@@ -4,6 +4,19 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### The admin key pool is the only AI path
+
+- Removed Settings → **Your own AI key** (BYOK). The card, its Hive box, the
+  own-key repository and its tests are gone; `main.dart` always builds
+  `KeyPoolReplyRepository` when Firebase is ready, so every AI call is served
+  by an admin key and rotates through the pool's failover and cooldowns.
+- Settings → **AI replies** now holds only usage and per-chat styles. The
+  `ownKeySection` string became `aiSection` in all three languages.
+- Consequence, stated plainly: a build with no reachable key pool has no AI.
+  Offline suggestions still work, and the failure copy already says why.
+- Nothing secret was ever on the device through this path, so there is no
+  cleanup step for existing installs beyond the removed Hive box.
+
 ### AI generation has no app-enforced daily cap
 
 - Removed the per-device 50-request hard stop. An informational local count

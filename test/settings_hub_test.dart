@@ -35,7 +35,7 @@ void main() {
     for (final title in <String>[
       strings.replyStyle,
       strings.captureSection,
-      strings.ownKeySection,
+      strings.aiSection,
       strings.conversationMemorySection,
       strings.privacySection,
       strings.appearanceTitle,

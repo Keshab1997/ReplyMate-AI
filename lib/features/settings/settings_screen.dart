@@ -174,7 +174,7 @@ class SettingsScreen extends ConsumerWidget {
                     const SizedBox(height: AppTheme.spaceSm),
                     SettingsTile(
                       icon: Icons.key_outlined,
-                      title: strings.ownKeySection,
+                      title: strings.aiSection,
                       subtitle: strings.settingsAiHint,
                       color: AppTheme.amber,
                       onTap: () => _open(context, const AiScreen()),

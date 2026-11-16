@@ -6,8 +6,6 @@ import 'core/firebase/firebase_bootstrap.dart';
 import 'core/firebase/firebase_providers.dart';
 
 import 'features/reply/data/ai_usage_tracker.dart';
-import 'features/reply/data/own_key_reply_repository.dart';
-import 'features/reply/data/own_key_store.dart';
 import 'features/reply/data/key_pool_reply_repository.dart';
 import 'features/reply/data/reply_cache.dart';
 import 'features/reply/data/reply_repository.dart';
@@ -25,8 +23,6 @@ void main() async {
   // Usage is informational only and never limits paid provider calls.
   final cache = ReplyCache(box: await _openBox(ReplyCache.openBox));
   final usage = AiUsageTracker(box: await _openBox(AiUsageTracker.openBox));
-  final ownKeyBox = await _openBox(OwnKeyStore.openBox);
-  final ownKeys = OwnKeyStore(box: ownKeyBox);
 
   runApp(
     ProviderScope(
@@ -34,13 +30,12 @@ void main() async {
         firebaseReadyProvider.overrideWithValue(firebaseReady),
         replyRepositoryProvider.overrideWithValue(
           CachedReplyRepository(
-            // A key the user pasted is tried first: it is theirs, it cannot
-            // leak from Firestore, and it is the only path that works with no
-            // Firebase project at all. `generate` returns a failure when no key
-            // is set, and the wrapper then falls back to offline suggestions.
-            inner: ownKeys.hasKey
-                ? OwnKeyReplyRepository(keys: ownKeys)
-                : firebaseReady
+            // Every AI call goes through the admin key pool: one place decides
+            // which key is healthy, one place rotates it, and no key belongs to
+            // the device. With no Firebase project there is no pool to read, so
+            // the honest answer is "not configured" and the wrapper still falls
+            // back to offline suggestions.
+            inner: firebaseReady
                 ? KeyPoolReplyRepository()
                 : const NotConfiguredReplyRepository(),
             cache: cache,

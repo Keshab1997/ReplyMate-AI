@@ -105,10 +105,13 @@ Devanagari vs Latin) is a few lines and removes a wrong setting the user would
 otherwise fix by hand. This is the single most "smart"-feeling change per line
 of code in this list.
 
-### 7. BYOK — bring your own key *(the security item above)*
-Settings → "Use my own AI key": the key goes to Hive, never to Firestore; the
-app skips the pool entirely. Consequences: no shared secret to leak, and the
-admin section becomes optional for anyone but the owner.
+### 7. BYOK — bring your own key *(built, then removed)*
+Settings → "Use my own AI key" shipped in 1.5.0: the key went to Hive, never to
+Firestore, and the app skipped the pool entirely. It was removed in 1.5.5 by
+product decision — the admin key pool is now the only AI path, so a single
+allowlisted place rotates keys and no secret lives on a phone. The cost is
+accepted deliberately: a build with no reachable pool has no AI, and falls back
+to offline suggestions.
 
 ### 8. Smart regenerate before spending tokens
 When the user taps *Regenerate*, first offer a **free variant**: re-order or

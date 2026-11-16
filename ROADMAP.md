@@ -113,8 +113,9 @@ Plan and ranking: [`docs/ZERO_BILL_FEATURES.md`](docs/ZERO_BILL_FEATURES.md).
 - [x] Cheaper requests: one suggestion by default, capped `max_tokens`, trimmed prompt
 - [x] On-device offline suggestions (works with no key, no Firebase, no network)
 - [x] Conservative local language detection, intent-based offline quick replies, on-demand draft refinement / follow-up questions and user-saved local templates
-- [x] BYOK — the user's own key in Hive, never in Firestore (the real fix for
-      the key-pool risk while there is no proxy)
+- [ ] ~~BYOK — the user's own key in Hive, never in Firestore~~ — shipped in
+      1.5.0, removed in 1.5.5: every AI call goes through the admin key pool,
+      so there is one place to rotate a key and nothing secret on the device
 
 ## Phase 8 — Future Features
 

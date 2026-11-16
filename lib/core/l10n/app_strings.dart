@@ -282,7 +282,7 @@ abstract class AppStrings {
   String get permissionGrantedBody;
   String get permissionMissingTitle;
   String get permissionMissingBody;
-  String get ownKeySection;
+  String get aiSection;
   String get aiUsageSection;
   String get settingsSubtitle;
   String get appsTitle;
@@ -863,7 +863,7 @@ class EnglishStrings extends AppStrings {
       'Without it, paste or select text manually - replies still work.';
 
   @override
-  String get ownKeySection => 'Your own AI key';
+  String get aiSection => 'AI replies';
 
   @override
   String get aiUsageSection => 'AI usage';
@@ -954,7 +954,7 @@ class EnglishStrings extends AppStrings {
   String get settingsCaptureHint =>
       'Notification access, the bubble, screen reading and allowed apps';
   @override
-  String get settingsAiHint => 'Your own key, today\'s usage, per-chat styles';
+  String get settingsAiHint => 'Today\'s usage and per-chat reply styles';
   @override
   String get settingsMemoryHint =>
       'Conversation memory and the replies you saved';
@@ -1597,7 +1597,7 @@ class BengaliStrings extends AppStrings {
       'এটা না দিলেও নিচে নিজে লেখা বা পেস্ট করা টেক্সট দিয়ে রিপ্লাই তৈরি হবে।';
 
   @override
-  String get ownKeySection => 'নিজের এআই কী';
+  String get aiSection => 'এআই রিপ্লাই';
 
   @override
   String get aiUsageSection => 'এআই ব্যবহার';
@@ -1687,7 +1687,7 @@ class BengaliStrings extends AppStrings {
   String get settingsCaptureHint =>
       'নোটিফিকেশন অ্যাক্সেস, বাবল, স্ক্রিন রিডিং আর অনুমোদিত অ্যাপ';
   @override
-  String get settingsAiHint => 'নিজের key, আজকের ব্যবহার, চ্যাট-ভিত্তিক স্টাইল';
+  String get settingsAiHint => 'আজকের ব্যবহার ও চ্যাট-ভিত্তিক স্টাইল';
   @override
   String get settingsMemoryHint =>
       'কথোপকথনের মেমরি আর আপনি যেসব রিপ্লাই সেভ করেছেন';
@@ -2327,7 +2327,7 @@ class HindiStrings extends AppStrings {
       'इसके बिना भी नीचे खुद लिखा या पेस्ट किया टेक्स्ट जवाब बनाने के लिए काम करता है।';
 
   @override
-  String get ownKeySection => 'अपनी खुद की AI कुंजी';
+  String get aiSection => 'AI जवाब';
 
   @override
   String get aiUsageSection => 'AI का इस्तेमाल';
@@ -2416,7 +2416,7 @@ class HindiStrings extends AppStrings {
   String get settingsCaptureHint =>
       'सूचना पहुँच, बबल, स्क्रीन रीडिंग और अनुमत ऐप';
   @override
-  String get settingsAiHint => 'अपनी key, आज का उपयोग, चैट-वार स्टाइल';
+  String get settingsAiHint => 'आज का उपयोग और चैट-वार स्टाइल';
   @override
   String get settingsMemoryHint => 'बातचीत की मेमोरी और आपके सहेजे हुए जवाब';
   @override

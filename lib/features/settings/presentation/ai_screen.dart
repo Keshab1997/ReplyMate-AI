@@ -4,15 +4,16 @@ import 'package:material_ui/material_ui.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../reply/presentation/chat_reply_styles_card.dart';
-import '../../reply/presentation/own_key_card.dart';
 import 'ai_usage_card.dart';
 import 'settings_sub_screen.dart';
 
-/// Settings → AI key & usage. Where the key comes from, today's local request
-/// count, and the styles saved per chat.
+/// Settings → AI replies. Today's local request count and the styles saved per
+/// chat.
 ///
-/// These cards keep the AI controls together instead of scattering them across
-/// several separate stops in one long scroll.
+/// There is no key to manage here: AI calls run on the admin key pool, so the
+/// user has nothing to paste, store or rotate. These cards keep the AI controls
+/// together instead of scattering them across several separate stops in one
+/// long scroll.
 class AiScreen extends ConsumerWidget {
   const AiScreen({super.key});
 
@@ -21,15 +22,11 @@ class AiScreen extends ConsumerWidget {
     final strings = ref.watch(appStringsProvider);
 
     return SettingsSubScreen(
-      title: strings.ownKeySection,
+      title: strings.aiSection,
       subtitle: strings.settingsAiHint,
       children: <Widget>[
         SettingsSection(
           topSpace: AppTheme.spaceSm,
-          label: strings.ownKeySection,
-          child: const OwnKeyCard(),
-        ),
-        SettingsSection(
           label: strings.aiUsageSection,
           child: const AiUsageCard(),
         ),

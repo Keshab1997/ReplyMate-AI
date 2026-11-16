@@ -72,8 +72,7 @@ class KeyPoolReplyRepository implements ReplyRepository {
     }
   }
 
-  /// Normalizes the structured reply contract shared by key-pool and BYOK
-  /// providers. Models may add Markdown fences, double-encode the JSON, or
+  /// Normalizes the structured reply contract shared by every provider. Models may add Markdown fences, double-encode the JSON, or
   /// truncate the final brackets. Recover complete message strings where safe;
   /// never turn a JSON envelope or malformed fragment into a user-facing reply.
   static List<String> parseReplies(String content, int count) {
