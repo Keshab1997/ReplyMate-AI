@@ -320,15 +320,18 @@ down here is never touched).
   `ScreenTextReader` takes no Android imports, so its heuristics stay
   provable on a plain JVM: keep it that way, and add a test there for
   every heuristic you change.
-- **Conversation memory** is the *only*
-  place message text may be written to disk, and it stays inside its four
-  walls: off by default (and turning it off deletes, not just stops),
-  allowlist-bound, on this device only (`android:allowBackup` stays false so
-  no cloud backup carries it off), and capped (40 lines/contact, 50 contacts,
-  7 days) with per-contact delete. No inferred personality profile - the
-  voice half is verbatim few-shot examples of the user's own replies, and it
-  needs screen reading to exist at all. Every other capture still follows the
-  old rule: thrown away when the panel closes.
+- **Conversation memory** is the *only* feature that may write message text to
+  disk. It is off by default, and turning it off deletes rather than pauses all
+  its records. Notification-derived contact memory is allowlist-bound, local
+  only (`android:allowBackup` stays false), and capped at 40 lines/contact, 50
+  contacts and 7 days, with per-contact delete. Standalone Create a message
+  chats are user-initiated and share the same opt-in/off switch; they live in a
+  separate local Hive box, capped at 50 chats, 40 turns/chat and 7 days, with
+  reopen/delete in the writer history list. No contact allowlist applies to
+  those user-written briefs. No inferred personality profile - the voice half
+  is verbatim few-shot examples of the user's own replies, and it needs screen
+  reading to exist at all. Every other capture still follows the old rule:
+  thrown away when the panel closes.
 - **Extra verification:** Phase 1 is not done until a real-device checklist
   has no outstanding rows — CI cannot see notifications, quick reply, the
   selection menu or the screen reader. The screen-reading rows are **evidence

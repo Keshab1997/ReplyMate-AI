@@ -5,6 +5,7 @@ import 'package:replymate/core/constants/app_constants.dart';
 import 'package:replymate/features/memory/data/conversation_memory_store.dart';
 import 'package:replymate/features/app_selection/providers/selected_apps_provider.dart';
 import 'package:replymate/features/memory/providers/conversation_memory_provider.dart';
+import 'package:replymate/features/reply/data/writer_chat_history_store.dart';
 import 'package:replymate/features/notifications/models/captured_notification.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -45,6 +46,7 @@ void main() {
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
 
   late _FakeBackend backend;
+  late _FakeBackend writerBackend;
   late ProviderContainer container;
 
   CapturedNotification capture({
@@ -85,10 +87,14 @@ void main() {
       },
     );
     backend = _FakeBackend();
+    writerBackend = _FakeBackend();
     container = ProviderContainer(
       overrides: [
         conversationMemoryStoreProvider.overrideWithValue(
           ConversationMemoryStore(backend: backend),
+        ),
+        writerChatHistoryStoreProvider.overrideWithValue(
+          WriterChatHistoryStore(backend: writerBackend),
         ),
       ],
     );
@@ -273,11 +279,14 @@ void main() {
     },
   );
 
-  test('turning the switch off empties the list too', () async {
+  test('turning the switch off deletes memory and writer history', () async {
     await build(memoryOn: true);
     await container
         .read(conversationMemoryControllerProvider)
         .rememberCapture(capture());
+    writerBackend.records['writer::history'] = <String, Object?>{
+      'id': 'history',
+    };
 
     await container
         .read(conversationMemoryEnabledProvider.notifier)
@@ -287,6 +296,7 @@ void main() {
       await container.read(conversationMemoryContactsProvider.future),
       isEmpty,
     );
+    expect(writerBackend.records, isEmpty);
   });
 
   test(

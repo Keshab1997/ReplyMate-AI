@@ -128,6 +128,11 @@ abstract class AppStrings {
   String get writeSomethingNew;
   String get writeSomethingNewSubtitle;
   String get createMessageTitle;
+  String get writerHistory;
+  String get noWriterHistory;
+  String get writerHistoryPrivacyNote;
+  String get deleteWriterChat;
+  String writerHistoryTurnCount(int count);
   String get createMessagePromptLabel;
   String get createMessagePromptHint;
   String get createMessageExamples;
@@ -544,6 +549,18 @@ class EnglishStrings extends AppStrings {
   @override
   String get createMessageTitle => 'Create a message';
   @override
+  String get writerHistory => 'Writing history';
+  @override
+  String get noWriterHistory => 'No saved writing chats yet.';
+  @override
+  String get writerHistoryPrivacyNote =>
+      'Saved on this device only while Conversation memory is on. Turning it off deletes saved chats.';
+  @override
+  String get deleteWriterChat => 'Delete writing chat';
+  @override
+  String writerHistoryTurnCount(int count) =>
+      count == 1 ? '1 turn' : '$count turns';
+  @override
   String get createMessagePromptLabel => 'What would you like to write?';
   @override
   String get createMessagePromptHint =>
@@ -677,7 +694,7 @@ class EnglishStrings extends AppStrings {
   String get rememberRecentChats => 'Remember recent chats';
   @override
   String get rememberRecentChatsBody =>
-      'Keeps the last few messages of each chat - and replies you accept - so the next draft follows the conversation and sounds like you. Stored on this device only, never uploaded, and never in a backup. Off by default; turning it off deletes everything it kept.';
+      'Keeps the last few messages of each chat - and replies you accept - so the next draft follows the conversation and sounds like you. It also saves standalone writing chats (up to 50 chats, 40 turns each, for 7 days). Stored on this device only, never uploaded, and never in a backup. Off by default; turning it off deletes everything it kept.';
   @override
   String get nothingRememberedYet =>
       'Nothing remembered yet. Open a reply for a chat and it will show up here.';
@@ -1276,6 +1293,17 @@ class BengaliStrings extends AppStrings {
   @override
   String get createMessageTitle => 'একটি মেসেজ লিখুন';
   @override
+  String get writerHistory => 'লেখার ইতিহাস';
+  @override
+  String get noWriterHistory => 'এখনো কোনো লেখার চ্যাট সেভ করা নেই।';
+  @override
+  String get writerHistoryPrivacyNote =>
+      'কথোপকথনের স্মৃতি চালু থাকলেই শুধু এই ডিভাইসে সেভ হবে। এটি বন্ধ করলে সেভ করা চ্যাট মুছে যাবে।';
+  @override
+  String get deleteWriterChat => 'লেখার চ্যাট মুছুন';
+  @override
+  String writerHistoryTurnCount(int count) => '$countটি বার্তা';
+  @override
   String get createMessagePromptLabel => 'কী লিখতে চান?';
   @override
   String get createMessagePromptHint =>
@@ -1408,7 +1436,7 @@ class BengaliStrings extends AppStrings {
   String get rememberRecentChats => 'সাম্প্রতিক চ্যাট মনে রাখুন';
   @override
   String get rememberRecentChatsBody =>
-      'প্রতি চ্যাটের শেষ কয়েকটি মেসেজ - আর আপনি যে জবাবগুলো নেন - মনে রাখে, যাতে পরের ড্রাফট কথোপকথন ধরে আর আপনার মতো শোনায়। শুধু এই ডিভাইসে রাখা হয়, কোথাও আপলোড হয় না, ব্যাকআপেও যায় না। ডিফল্টভাবে বন্ধ; বন্ধ করলে সব মুছে যায়।';
+      'প্রতি চ্যাটের শেষ কয়েকটি মেসেজ - আর আপনি যে জবাবগুলো নেন - মনে রাখে, যাতে পরের ড্রাফট কথোপকথন ধরে আর আপনার মতো শোনায়। আলাদা লেখার চ্যাটও সেভ হয় (সর্বোচ্চ ৫০টি, প্রতিটিতে ৪০টি বার্তা, ৭ দিন পর্যন্ত)। শুধু এই ডিভাইসে রাখা হয়, কোথাও আপলোড হয় না, ব্যাকআপেও যায় না। ডিফল্টভাবে বন্ধ; বন্ধ করলে সব মুছে যায়।';
   @override
   String get nothingRememberedYet =>
       'এখনো কিছু মনে রাখা হয়নি। কোনো চ্যাটের জবাব খুললে সেটি এখানে দেখা যাবে।';
@@ -1997,6 +2025,17 @@ class HindiStrings extends AppStrings {
   @override
   String get createMessageTitle => 'एक संदेश लिखें';
   @override
+  String get writerHistory => 'लिखने का इतिहास';
+  @override
+  String get noWriterHistory => 'अभी कोई लिखने वाली चैट सेव नहीं है।';
+  @override
+  String get writerHistoryPrivacyNote =>
+      'केवल बातचीत की याद चालू होने पर इसी डिवाइस पर सेव होती है। इसे बंद करने पर सेव चैट मिट जाएँगी।';
+  @override
+  String get deleteWriterChat => 'लिखने वाली चैट हटाएँ';
+  @override
+  String writerHistoryTurnCount(int count) => '$count संदेश';
+  @override
   String get createMessagePromptLabel => 'आप क्या लिखना चाहते हैं?';
   @override
   String get createMessagePromptHint =>
@@ -2127,7 +2166,7 @@ class HindiStrings extends AppStrings {
   String get rememberRecentChats => 'हाल की चैट याद रखें';
   @override
   String get rememberRecentChatsBody =>
-      'हर चैट के पिछले कुछ संदेश - और आपके स्वीकार किए जवाब - याद रखता है, ताकि अगला ड्राफ़्ट बातचीत को आगे बढ़ाए और आप जैसा लगे। केवल इसी डिवाइस पर, कहीं अपलोड नहीं, बैकअप में भी नहीं। डिफ़ॉल्ट रूप से बंद; बंद करने पर सब मिट जाता है।';
+      'हर चैट के पिछले कुछ संदेश - और आपके स्वीकार किए जवाब - याद रखता है, ताकि अगला ड्राफ़्ट बातचीत को आगे बढ़ाए और आप जैसा लगे। अलग से लिखने वाली चैट भी सेव होती हैं (अधिकतम 50 चैट, हर एक में 40 संदेश, 7 दिनों तक)। केवल इसी डिवाइस पर, कहीं अपलोड नहीं, बैकअप में भी नहीं। डिफ़ॉल्ट रूप से बंद; बंद करने पर सब मिट जाता है।';
   @override
   String get nothingRememberedYet =>
       'अभी कुछ याद नहीं रखा गया। किसी चैट का जवाब खोलें, वह यहाँ दिखेगा।';

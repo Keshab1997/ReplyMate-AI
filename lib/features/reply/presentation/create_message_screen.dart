@@ -5,7 +5,11 @@ import '../../../app/theme/app_theme.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../shared/widgets/screen_header.dart';
 import '../../settings/providers/preferences_provider.dart';
+import '../../memory/providers/conversation_memory_provider.dart';
 import '../data/reply_repository.dart';
+import '../data/writer_chat_history_store.dart';
+import '../providers/writer_chat_history_provider.dart';
+import 'create_message_history_screen.dart';
 import '../domain/reply_request.dart';
 import 'suggestions_screen.dart';
 
@@ -27,6 +31,7 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
   final List<_ChatTurn> _turns = <_ChatTurn>[];
   bool _generating = false;
   String? _inputError;
+  String? _historyId;
 
   @override
   void dispose() {
@@ -96,6 +101,75 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
         : history.sublist(history.length - 12);
   }
 
+  Future<void> _openHistory() async {
+    final saved = await Navigator.of(context).push<WriterChatHistory>(
+      MaterialPageRoute<WriterChatHistory>(
+        builder: (_) => const CreateMessageHistoryScreen(),
+      ),
+    );
+    if (!mounted || saved == null) return;
+    final preferences = ref.read(preferencesProvider);
+    final restored = <_ChatTurn>[];
+    final contextLines = <String>[];
+    for (final savedTurn in saved.turns) {
+      final request = ReplyRequest(
+        message: savedTurn.prompt,
+        language: preferences.language,
+        tone: preferences.tone,
+        length: preferences.length,
+        count: preferences.suggestionCount,
+        priorMessages: List<String>.unmodifiable(contextLines),
+        mode: ReplyMode.createMessage,
+      );
+      restored.add(
+        _ChatTurn(
+          prompt: savedTurn.prompt,
+          request: request,
+          replies: savedTurn.replies,
+          isGenerating: false,
+        ),
+      );
+      contextLines.add('User: ${savedTurn.prompt}');
+      for (final reply in savedTurn.replies) {
+        contextLines.add('Assistant: $reply');
+      }
+    }
+    setState(() {
+      _historyId = saved.id;
+      _turns
+        ..clear()
+        ..addAll(restored);
+      _inputError = null;
+      _promptController.clear();
+    });
+    _scrollToBottom();
+  }
+
+  Future<void> _persistHistory() async {
+    final memorySwitch = ref.read(conversationMemoryEnabledProvider.notifier);
+    await memorySwitch.ready;
+    if (!mounted || !ref.read(conversationMemoryEnabledProvider)) return;
+    final savedTurns = _turns
+        .where((turn) => !turn.isGenerating)
+        .map(
+          (turn) => WriterChatTurn(prompt: turn.prompt, replies: turn.replies),
+        )
+        .toList(growable: false);
+    if (savedTurns.isEmpty) return;
+    final id = _historyId ?? DateTime.now().microsecondsSinceEpoch.toString();
+    _historyId = id;
+    await ref
+        .read(writerChatHistoryStoreProvider)
+        .save(
+          WriterChatHistory(
+            id: id,
+            updatedAt: DateTime.now(),
+            turns: savedTurns,
+          ),
+        );
+    if (mounted) ref.invalidate(writerChatHistoryProvider);
+  }
+
   Future<void> _send({String? prompt}) async {
     if (_generating) return;
     final writingPrompt = (prompt ?? _promptController.text).trim();
@@ -151,6 +225,7 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
       }
     });
     _scrollToBottom();
+    await _persistHistory();
   }
 
   void _scrollToBottom() {
@@ -490,6 +565,12 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
                 child: ScreenHeader(
                   title: _strings.createMessageTitle,
                   showBack: true,
+                  trailing: IconButton(
+                    key: const Key('openCreateMessageHistory'),
+                    tooltip: _strings.writerHistory,
+                    onPressed: _openHistory,
+                    icon: const Icon(Icons.history_rounded),
+                  ),
                 ),
               ),
               Expanded(

@@ -6,6 +6,7 @@ import '../../notifications/models/captured_notification.dart';
 import '../data/conversation_memory_store.dart';
 import '../domain/conversation_memory.dart';
 import '../domain/memory_recorder.dart';
+import '../../reply/data/writer_chat_history_store.dart';
 
 /// The store, one per app run. A single instance matters: two stores over one
 /// box would each think they own the contact cap.
@@ -82,6 +83,7 @@ class ConversationMemorySwitch extends Notifier<bool> {
     }
     if (!enabled) {
       await ref.read(conversationMemoryStoreProvider).forgetAll();
+      await ref.read(writerChatHistoryStoreProvider).clearAll();
     }
   }
 }

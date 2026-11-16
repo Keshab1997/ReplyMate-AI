@@ -6,14 +6,14 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../domain/conversation_memory.dart';
 
-/// The raw storage a [ConversationMemoryStore] sits on.
-/// An interface, for the same reason `KeySource` is one: the store's rules -
-/// the per-contact cap, eviction when there are too many contacts, "a broken
-/// record costs nobody their reply" - are the parts worth testing, and none of
-/// them need a real box on a real device to be proven.
+/// Raw key/JSON storage shared by bounded, device-local stores.
+/// An interface, for the same reason `KeySource` is one: each store's rules -
+/// contact windows, writer-history retention, eviction, and "a broken record
+/// costs nobody their reply" - are the parts worth testing, and none of them
+/// need a real box on a real device to be proven.
 abstract interface class MemoryBackend {
-  /// Every stored contact, id -> its JSON. Unreadable entries are dropped by
-  /// the implementation rather than thrown: the store must always be openable.
+  /// Every stored record, id -> its JSON. Unreadable entries are dropped by
+  /// the implementation rather than thrown: a store must always be openable.
   Future<Map<String, Map<Object?, Object?>>> loadAll();
 
   Future<void> put(String id, Map<String, Object?> json);
