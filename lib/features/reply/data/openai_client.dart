@@ -90,12 +90,15 @@ class OpenAiCompatibleClient {
     required AdminApiKey key,
     required String systemPrompt,
     required String userPrompt,
+    int? maxOutputTokens,
   }) async {
+    final budget = maxOutputTokens ?? maxTokens;
     if (key.provider == 'google') {
       return _completeGemini(
         key: key,
         systemPrompt: systemPrompt,
         userPrompt: userPrompt,
+        maxOutputTokens: budget,
       );
     }
     final uri = Uri.parse('${key.baseUrl}/chat/completions');
@@ -112,7 +115,7 @@ class OpenAiCompatibleClient {
       // A chat reply is a line or two. Without a cap, providers bill the model's
       // default completion length even when it stops early, and one generous
       // default is the difference between a free month and a bill.
-      'max_tokens': maxTokens,
+      'max_tokens': budget,
     });
     final http.Response response;
     try {
@@ -158,6 +161,7 @@ class OpenAiCompatibleClient {
     required AdminApiKey key,
     required String systemPrompt,
     required String userPrompt,
+    required int maxOutputTokens,
   }) async {
     final uri = Uri.parse(
       '${key.baseUrl}/models/${key.model}:generateContent?key=${key.key}',
@@ -183,7 +187,7 @@ class OpenAiCompatibleClient {
                 },
               ],
               'generationConfig': {
-                'maxOutputTokens': maxTokens,
+                'maxOutputTokens': maxOutputTokens,
                 // Constrained JSON: the shared prompt asks for the same
                 // envelope every other provider returns, and the parser in
                 // KeyPoolReplyRepository reads it.

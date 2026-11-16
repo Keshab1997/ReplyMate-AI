@@ -102,6 +102,8 @@ class ReplyCache {
       request.priorMessages.join('\u0001'),
       request.replyIntent?.name ?? '',
       request.mode.name,
+      // A letter and a chat message are different answers to the same brief.
+      request.format.name,
     ];
     return sha256.convert(utf8.encode(parts.join('\u0002'))).toString();
   }

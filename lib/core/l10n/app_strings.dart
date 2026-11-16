@@ -141,6 +141,11 @@ abstract class AppStrings {
   String get exampleGoodMorning;
   String get exampleMissYou;
   String get exampleMakeHerSmile;
+  String get writingFormatLabel;
+  String get formatChat;
+  String get formatEmail;
+  String get formatLetter;
+  String get formatApplication;
   String get noMessageCaptured;
   String get newReply;
   String get messageLabel;
@@ -578,6 +583,16 @@ class EnglishStrings extends AppStrings {
   String get exampleMissYou => 'I miss you';
   @override
   String get exampleMakeHerSmile => 'Make her smile';
+  @override
+  String get writingFormatLabel => 'Write as';
+  @override
+  String get formatChat => 'Chat message';
+  @override
+  String get formatEmail => 'Email';
+  @override
+  String get formatLetter => 'Letter';
+  @override
+  String get formatApplication => 'Application';
   @override
   String get noMessageCaptured =>
       'No message was captured. ReplyMate only keeps a message while the app is open, so paste the text below to reply to something yourself.';
@@ -1322,6 +1337,16 @@ class BengaliStrings extends AppStrings {
   @override
   String get exampleMakeHerSmile => 'হাসিমুখে রাখুন';
   @override
+  String get writingFormatLabel => 'কী হিসেবে লিখবে';
+  @override
+  String get formatChat => 'চ্যাট মেসেজ';
+  @override
+  String get formatEmail => 'ইমেইল';
+  @override
+  String get formatLetter => 'চিঠি';
+  @override
+  String get formatApplication => 'আবেদনপত্র';
+  @override
   String get noMessageCaptured =>
       'কোনো মেসেজ ধরা পড়েনি। ReplyMate মেসেজ রাখে শুধু অ্যাপ খোলা থাকা পর্যন্ত, তাই নিচে টেক্সট পেস্ট করে নিজে উত্তর দিন।';
   @override
@@ -2053,6 +2078,16 @@ class HindiStrings extends AppStrings {
   String get exampleMissYou => 'याद आ रही है';
   @override
   String get exampleMakeHerSmile => 'उसे मुस्कुराएँ';
+  @override
+  String get writingFormatLabel => 'किस रूप में लिखें';
+  @override
+  String get formatChat => 'चैट संदेश';
+  @override
+  String get formatEmail => 'ईमेल';
+  @override
+  String get formatLetter => 'पत्र';
+  @override
+  String get formatApplication => 'आवेदन';
   @override
   String get noMessageCaptured =>
       'कोई संदेश कैप्चर नहीं हुआ। ReplyMate संदेश केवल ऐप खुला रहने तक रखता है, इसलिए नीचे पाठ पेस्ट करके खुद जवाब दें।';

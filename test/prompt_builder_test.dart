@@ -4,6 +4,7 @@ import 'package:replymate/features/reply/data/prompt_builder.dart';
 import 'package:replymate/features/reply/domain/reply_intent.dart';
 import 'package:replymate/features/reply/domain/reply_request.dart';
 import 'package:replymate/features/reply/domain/reply_refinement.dart';
+import 'package:replymate/features/reply/domain/writing_format.dart';
 
 void main() {
   const request = ReplyRequest(
@@ -13,6 +14,86 @@ void main() {
     length: ReplyLength.short,
     count: 3,
   );
+
+  group('writing formats', () {
+    test('a chat brief carries no document rules', () {
+      final system = ReplyPrompt.system(
+        1,
+        ReplyTone.friendly,
+        mode: ReplyMode.createMessage,
+      );
+      expect(system, isNot(contains('Subject:')));
+      expect(system, isNot(contains('recipient block')));
+    });
+
+    test('an email brief asks for a subject line and a sign-off', () {
+      final system = ReplyPrompt.system(
+        1,
+        ReplyTone.polite,
+        mode: ReplyMode.createMessage,
+        format: WritingFormat.email,
+      );
+      expect(system, contains('Subject:'));
+      expect(system, contains('sign-off'));
+      expect(system, contains('placeholder signature'));
+    });
+
+    test('a letter brief asks for a date line and a salutation', () {
+      final system = ReplyPrompt.system(
+        1,
+        ReplyTone.friendly,
+        mode: ReplyMode.createMessage,
+        format: WritingFormat.letter,
+      );
+      expect(system, contains('date line'));
+      expect(system, contains('salutation'));
+      expect(system, isNot(contains('Subject:')));
+    });
+
+    test(
+      'an application brief asks for a recipient block and no invented facts',
+      () {
+        final system = ReplyPrompt.system(
+          1,
+          ReplyTone.professional,
+          mode: ReplyMode.createMessage,
+          format: WritingFormat.application,
+        );
+        expect(system, contains('recipient block'));
+        expect(system, contains('Subject:'));
+        // The placeholders rule is the honest half: a missing roll number must
+        // come back as a placeholder, never as an invented one.
+        expect(system, contains('bracketed placeholder'));
+      },
+    );
+
+    test('document formats get a bigger token budget, and it is capped', () {
+      const chat = ReplyRequest(
+        message: 'Write something.',
+        language: ReplyLanguage.english,
+        tone: ReplyTone.friendly,
+        length: ReplyLength.short,
+        count: 3,
+        mode: ReplyMode.createMessage,
+      );
+      expect(ReplyPrompt.maxTokensFor(chat), 300);
+
+      final letter = chat.copyWith(format: WritingFormat.letter);
+      expect(ReplyPrompt.maxTokensFor(letter), greaterThan(300));
+
+      final three = letter.copyWith(count: 3);
+      final many = letter.copyWith(count: 9);
+      expect(
+        ReplyPrompt.maxTokensFor(many),
+        ReplyPrompt.maxTokensFor(three),
+        reason: 'count is clamped, so one tap cannot buy nine letters',
+      );
+      expect(
+        ReplyPrompt.maxTokensFor(three),
+        lessThanOrEqualTo(ReplyPrompt.documentMaxTokens),
+      );
+    });
+  });
 
   test('the system prompt carries the documented prompt rules', () {
     final system = ReplyPrompt.system(3, ReplyTone.professional);

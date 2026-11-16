@@ -19,6 +19,22 @@ class _Backend implements MemoryBackend {
 }
 
 void main() {
+  test('a turn remembers which format it was written in', () {
+    // A reopened letter must not come back as a chat message: the format is
+    // part of the draft, not decoration.
+    final saved = const WriterChatTurn(
+      prompt: 'Write a leave application for three days.',
+      replies: ['To,\nThe Principal…'],
+      format: 'application',
+    ).toJson();
+    final restored = WriterChatTurn.fromJson(saved);
+    expect(restored?.format, 'application');
+    expect(restored?.prompt, contains('leave application'));
+
+    // Turns written before formats existed simply have none.
+    expect(WriterChatTurn.fromJson({'prompt': 'hi'})?.format, isNull);
+  });
+
   test('saves, reopens, deletes, and enforces retention and caps', () async {
     final backend = _Backend();
     final store = WriterChatHistoryStore(

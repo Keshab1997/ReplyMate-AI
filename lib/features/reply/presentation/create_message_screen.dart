@@ -12,6 +12,7 @@ import '../data/writer_chat_history_store.dart';
 import '../providers/writer_chat_history_provider.dart';
 import 'create_message_history_screen.dart';
 import '../domain/reply_request.dart';
+import '../domain/writing_format.dart';
 import 'suggestions_screen.dart';
 
 /// A private, ephemeral AI chat for creating messages from a writing brief.
@@ -34,6 +35,12 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
   String? _inputError;
   String? _historyId;
 
+  /// What the next draft should be. Chat by default (the screen's original
+  /// job); email, letter and application change the prompt contract, not just
+  /// the wording, because a letter has a date line and an application has a
+  /// recipient block.
+  WritingFormat _format = WritingFormat.chat;
+
   @override
   void dispose() {
     _promptController.dispose();
@@ -41,8 +48,137 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
     super.dispose();
   }
 
+  String _formatLabel(WritingFormat format) {
+    final strings = _strings;
+    return switch (format) {
+      WritingFormat.chat => strings.formatChat,
+      WritingFormat.email => strings.formatEmail,
+      WritingFormat.letter => strings.formatLetter,
+      WritingFormat.application => strings.formatApplication,
+    };
+  }
+
+  /// Ideas that show the chosen format rather than a chat message. A quick idea
+  /// is also the only tutorial most people read, so it should look like the
+  /// thing they are about to get.
+  List<({String label, String prompt})> _documentIdeas() {
+    final strings = _strings;
+    return switch (_format) {
+      WritingFormat.email => [
+        (
+          label: switch (strings.language) {
+            AppLanguage.english => 'Email to a teacher',
+            AppLanguage.bengali => 'শিক্ষককে ইমেইল',
+            AppLanguage.hindi => 'शिक्षक को ईमेल',
+          },
+          prompt: switch (strings.language) {
+            AppLanguage.english =>
+              'Write an email to my teacher asking for two extra days to submit '
+                  'my assignment because I was unwell.',
+            AppLanguage.bengali =>
+              'আমার শিক্ষককে ইমেইল লিখে দাও—অসুস্থ থাকায় অ্যাসাইনমেন্ট জমা দিতে '
+                  'আরও দুই দিন সময় চেয়ে।',
+            AppLanguage.hindi =>
+              'मेरे शिक्षक को ईमेल लिखो — बीमार होने के कारण असाइनमेंट जमा करने के '
+                  'लिए दो दिन और समय माँगते हुए।',
+          },
+        ),
+        (
+          label: switch (strings.language) {
+            AppLanguage.english => 'Email to a landlord',
+            AppLanguage.bengali => 'বাড়িওয়ালাকে ইমেইল',
+            AppLanguage.hindi => 'मकान मालिक को ईमेल',
+          },
+          prompt: switch (strings.language) {
+            AppLanguage.english =>
+              'Write a polite email to my landlord asking him to repair the '
+                  'leaking tap in the bathroom.',
+            AppLanguage.bengali =>
+              'বাথরুমের কলের লিক মেরামতের অনুরোধ জানিয়ে বাড়িওয়ালাকে ভদ্রভাবে '
+                  'একটি ইমেইল লিখে দাও।',
+            AppLanguage.hindi =>
+              'बाथरूम के नल की मरम्मत के लिए मकान मालिक को विनम्र ईमेल लिखो।',
+          },
+        ),
+      ],
+      WritingFormat.letter => [
+        (
+          label: switch (strings.language) {
+            AppLanguage.english => 'Letter to a friend',
+            AppLanguage.bengali => 'বন্ধুকে চিঠি',
+            AppLanguage.hindi => 'मित्र को पत्र',
+          },
+          prompt: switch (strings.language) {
+            AppLanguage.english =>
+              'Write a warm letter to my old friend telling him I miss our '
+                  'college days.',
+            AppLanguage.bengali =>
+              'পুরোনো বন্ধুকে একটি আন্তরিক চিঠি লিখে দাও—কলেজের দিনগুলো মিস করছি '
+                  'বলে।',
+            AppLanguage.hindi => 'पुराने मित्र को भावपूर्ण पत्र लिखो कि मैं कॉलेज के दिन याद करता हूँ।',
+          },
+        ),
+        (
+          label: switch (strings.language) {
+            AppLanguage.english => 'Thank-you letter',
+            AppLanguage.bengali => 'ধন্যবাদপত্র',
+            AppLanguage.hindi => 'धन्यवाद पत्र',
+          },
+          prompt: switch (strings.language) {
+            AppLanguage.english => 'Write a letter thanking my uncle for helping me during my exams.',
+            AppLanguage.bengali =>
+              'পরীক্ষার সময় সাহায্য করার জন্য মামাকে ধন্যবাদ জানিয়ে একটি চিঠি '
+                  'লিখে দাও।',
+            AppLanguage.hindi =>
+              'परीक्षा के दौरान मदद के लिए मामा जी को धन्यवाद पत्र लिखो।',
+          },
+        ),
+      ],
+      WritingFormat.application => [
+        (
+          label: switch (strings.language) {
+            AppLanguage.english => 'Leave application',
+            AppLanguage.bengali => 'ছুটির আবেদন',
+            AppLanguage.hindi => 'अवकाश आवेदन',
+          },
+          prompt: switch (strings.language) {
+            AppLanguage.english =>
+              'Write a leave application to my principal for three days because '
+                  'of fever. I am in class 10, roll 23.',
+            AppLanguage.bengali =>
+              'জ্বরে তিন দিনের ছুটি চেয়ে অধ্যক্ষ বরাবর একটি আবেদনপত্র লিখে দাও। '
+                  'আমি দশম শ্রেণির, রোল ২৩।',
+            AppLanguage.hindi =>
+              'बुखार के कारण तीन दिन के अवकाश के लिए प्रधानाचार्य को आवेदन लिखो। '
+                  'मैं दसवीं कक्षा में हूँ, रोल 23।',
+          },
+        ),
+        (
+          label: switch (strings.language) {
+            AppLanguage.english => 'Job application',
+            AppLanguage.bengali => 'চাকরির আবেদন',
+            AppLanguage.hindi => 'नौकरी आवेदन',
+          },
+          prompt: switch (strings.language) {
+            AppLanguage.english =>
+              'Write a job application for a junior Flutter developer role. I '
+                  'have two years of experience and have shipped three apps.',
+            AppLanguage.bengali =>
+              'জুনিয়র ফ্লাটার ডেভেলপার পদে চাকরির আবেদন লিখে দাও। আমার দুই বছরের '
+                  'অভিজ্ঞতা এবং তিনটি অ্যাপ প্রকাশ করা আছে।',
+            AppLanguage.hindi =>
+              'जूनियर फ्लटर डेवलपर पद के लिए नौकरी आवेदन लिखो। मेरे दो साल का '
+                  'अनुभव है और तीन ऐप प्रकाशित हैं।',
+          },
+        ),
+      ],
+      WritingFormat.chat => const [],
+    };
+  }
+
   List<({String label, String prompt})> _quickIdeas() {
     final strings = _strings;
+    if (_format != WritingFormat.chat) return _documentIdeas();
     return [
       (
         label: strings.exampleRomanticQuote,
@@ -88,6 +224,15 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
     ];
   }
 
+  /// A saved turn's format, defaulting to chat for turns written before formats
+  /// existed.
+  WritingFormat _formatFromId(String? id) {
+    for (final format in WritingFormat.values) {
+      if (format.id == id) return format;
+    }
+    return WritingFormat.chat;
+  }
+
   List<String> _conversationHistory() {
     final history = <String>[];
     for (final turn in _turns) {
@@ -121,6 +266,7 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
         count: preferences.suggestionCount,
         priorMessages: List<String>.unmodifiable(contextLines),
         mode: ReplyMode.createMessage,
+        format: _formatFromId(savedTurn.format),
       );
       restored.add(
         _ChatTurn(
@@ -153,7 +299,11 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
     final savedTurns = _turns
         .where((turn) => !turn.isGenerating)
         .map(
-          (turn) => WriterChatTurn(prompt: turn.prompt, replies: turn.replies),
+          (turn) => WriterChatTurn(
+            prompt: turn.prompt,
+            replies: turn.replies,
+            format: turn.request.format.id,
+          ),
         )
         .toList(growable: false);
     if (savedTurns.isEmpty) return;
@@ -188,6 +338,7 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
       count: preferences.suggestionCount,
       priorMessages: _conversationHistory(),
       mode: ReplyMode.createMessage,
+      format: _format,
     );
     final problems = request.validate();
     if (problems.isNotEmpty) {
@@ -500,6 +651,30 @@ class _CreateMessageScreenState extends ConsumerState<CreateMessageScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Four formats, always visible: this is the difference between "a
+          // message" and "an application", and hiding it behind a menu made the
+          // screen look like it could only write one of them.
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppTheme.spaceSm),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Wrap(
+                spacing: AppTheme.spaceXs,
+                runSpacing: AppTheme.spaceXs,
+                children: [
+                  for (final format in WritingFormat.values)
+                    ChoiceChip(
+                      key: ValueKey<String>('writingFormat-${format.id}'),
+                      label: Text(_formatLabel(format)),
+                      selected: _format == format,
+                      onSelected: _generating
+                          ? null
+                          : (_) => setState(() => _format = format),
+                    ),
+                ],
+              ),
+            ),
+          ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [

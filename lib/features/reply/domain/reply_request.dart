@@ -1,6 +1,7 @@
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/reply_options.dart';
 import 'reply_intent.dart';
+import 'writing_format.dart';
 
 /// Whether a request answers an incoming message or creates a fresh message
 /// from the user's own writing brief.
@@ -23,6 +24,7 @@ class ReplyRequest {
     this.refinementInstruction,
     this.replyIntent,
     this.mode = ReplyMode.replyToMessage,
+    this.format = WritingFormat.chat,
   });
 
   final String message;
@@ -58,6 +60,10 @@ class ReplyRequest {
   /// separate, prompt-based writing tool.
   final ReplyMode mode;
 
+  /// What a [ReplyMode.createMessage] request should produce. Ignored for the
+  /// reply-to-a-message flow, where the shape is always a chat reply.
+  final WritingFormat format;
+
   String get trimmedMessage => message.trim();
   String get trimmedDraftToRefine => draftToRefine?.trim() ?? '';
 
@@ -70,6 +76,7 @@ class ReplyRequest {
     String? refinementInstruction,
     ReplyIntent? replyIntent,
     ReplyMode? mode,
+    WritingFormat? format,
   }) => ReplyRequest(
     message: message,
     language: language ?? this.language,
@@ -82,6 +89,7 @@ class ReplyRequest {
     refinementInstruction: refinementInstruction ?? this.refinementInstruction,
     replyIntent: replyIntent ?? this.replyIntent,
     mode: mode ?? this.mode,
+    format: format ?? this.format,
   );
 
   /// All problems with this request, empty when it is sendable. Returning a

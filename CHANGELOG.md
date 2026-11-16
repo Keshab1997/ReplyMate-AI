@@ -2,6 +2,30 @@
 
 All notable project changes are recorded here.
 
+## [Unreleased]
+
+### Create a message writes letters, emails and applications too
+
+- The chat screen has four formats, one tap apart: **Chat message**, **Email**,
+  **Letter**, **Application**. The format is part of the request
+  (`WritingFormat`), not a phrase in the brief, so it changes the prompt
+  contract, the token budget and the cache key:
+  - *Email* → `Subject:` line, greeting, short body, sign-off.
+  - *Letter* → date line, salutation, body, closing.
+  - *Application* → recipient block, `Subject:`, salutation, purpose/facts/
+    request/closing, and **bracketed placeholders** where the user gave no
+    fact (dates, roll number, address) instead of invented ones.
+- Quick ideas follow the format: choosing Email offers "Email to a teacher" and
+  "Email to a landlord", Application offers "Leave application" and "Job
+  application", instead of romantic lines.
+- Token budget grows for documents (500 + 450 per draft, capped, count clamped
+  to 3). A truncated letter is worse than no letter: the parser salvages
+  nothing from cut-off JSON, so the user would have seen "empty suggestion
+  list" instead of most of a letter.
+- The format is also part of the reply-cache key and of saved writer history, so
+  a reopened letter regenerates as a letter and a letter is never served as a
+  chat reply.
+
 ## [1.5.6] - 2026-11-16
 
 ### "Not quite right" has a free answer

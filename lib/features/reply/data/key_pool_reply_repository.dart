@@ -60,6 +60,7 @@ class KeyPoolReplyRepository implements ReplyRepository {
           key: key,
           systemPrompt: systemPrompt,
           userPrompt: userPrompt,
+          maxOutputTokens: ReplyPrompt.maxTokensFor(request),
         );
         final replies = parseReplies(content, request.count);
         if (replies.isEmpty) {

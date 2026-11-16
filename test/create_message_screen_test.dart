@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:replymate/core/l10n/app_strings.dart';
 import 'package:replymate/features/reply/data/reply_repository.dart';
 import 'package:replymate/features/reply/domain/reply_request.dart';
+import 'package:replymate/features/reply/domain/writing_format.dart';
 import 'package:replymate/features/reply/presentation/create_message_screen.dart';
 import 'package:replymate/features/reply/data/writer_chat_history_store.dart';
 import 'package:replymate/features/memory/data/conversation_memory_store.dart';
@@ -96,6 +97,65 @@ void main() {
       'Write a short, sweet quote for my girlfriend in Bengali.',
     );
     expect(find.text('তুমি আমার দিনের সবচেয়ে সুন্দর ভাবনা।'), findsOneWidget);
+  });
+
+  testWidgets('every writing format is one tap away and reaches the request', (
+    tester,
+  ) async {
+    final repository = _RecordingCreateRepository();
+    await pumpCreateScreen(tester, repository);
+
+    // Chat is the default, and it is what the screen shipped as.
+    expect(
+      tester
+          .widget<ChoiceChip>(
+            find.byKey(const ValueKey<String>('writingFormat-chat')),
+          )
+          .selected,
+      isTrue,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('writingFormat-application')),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('createMessagePromptField')),
+      'Write a leave application for three days.',
+    );
+    await tester.tap(find.byKey(const Key('createMessageSendButton')));
+    await tester.pumpAndSettle();
+
+    expect(repository.request?.format, WritingFormat.application);
+    expect(repository.request?.mode, ReplyMode.createMessage);
+  });
+
+  testWidgets('a document format offers document ideas, not chat ideas', (
+    tester,
+  ) async {
+    final repository = _RecordingCreateRepository();
+    await pumpCreateScreen(tester, repository);
+
+    // A chat format's inspiration is romantic lines; an application's is
+    // applications. Showing the wrong one is how a feature looks broken.
+    expect(
+      find.text(const EnglishStrings().exampleRomanticQuote),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('writingFormat-email')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(const EnglishStrings().exampleRomanticQuote),
+      findsNothing,
+    );
+    expect(find.text('Email to a teacher'), findsOneWidget);
+
+    await tester.tap(find.text('Email to a teacher'));
+    await tester.pumpAndSettle();
+    expect(repository.request?.format, WritingFormat.email);
+    expect(repository.request?.message, contains('email'));
   });
 
   testWidgets('copies a generated draft directly from the chat', (

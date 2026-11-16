@@ -5,24 +5,38 @@ import '../../memory/data/conversation_memory_store.dart';
 /// A standalone writing chat. It is deliberately stored apart from contact
 /// memory, but shares its opt-in switch and its local-only, bounded lifetime.
 class WriterChatTurn {
-  const WriterChatTurn({required this.prompt, this.replies = const <String>[]});
+  const WriterChatTurn({
+    required this.prompt,
+    this.replies = const <String>[],
+    this.format,
+  });
 
   final String prompt;
   final List<String> replies;
 
+  /// The writing format this turn was produced in, as [WritingFormat.id].
+  ///
+  /// Null for turns saved before formats existed, and for chat messages written
+  /// by builds that had only one format. A reopened letter must not be
+  /// regenerated as a chat message, so this rides along with the text.
+  final String? format;
+
   Map<String, Object?> toJson() => <String, Object?>{
     'prompt': prompt,
     'replies': replies,
+    if (format != null) 'format': format,
   };
 
   static WriterChatTurn? fromJson(Object? raw) {
     if (raw is! Map || raw['prompt'] is! String) return null;
     final replies = raw['replies'];
+    final format = raw['format'];
     return WriterChatTurn(
       prompt: raw['prompt'] as String,
       replies: replies is List
           ? replies.whereType<String>().toList(growable: false)
           : const <String>[],
+      format: format is String ? format : null,
     );
   }
 }
