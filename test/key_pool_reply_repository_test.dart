@@ -12,30 +12,46 @@ import 'package:replymate/features/reply/data/reply_repository.dart';
 import 'package:replymate/features/reply/domain/reply_request.dart';
 
 class FakeKeySource implements KeySource {
-  FakeKeySource(this._key);
+  FakeKeySource(this._key) : _queue = null;
+
+  /// Hands out [keys] in order, then null - the shape a real pool has when its
+  /// first key is on cooldown and the next one is free.
+  FakeKeySource.queue(List<AdminApiKey> keys)
+    : _key = null,
+      _queue = List<AdminApiKey>.of(keys);
 
   final AdminApiKey? _key;
+  final List<AdminApiKey>? _queue;
   final List<int> reportedFailures = [];
+  final List<String> reportedKeyIds = [];
   int successes = 0;
+  int nextCalls = 0;
 
   @override
-  AdminApiKey? next() => _key;
+  AdminApiKey? next() {
+    nextCalls++;
+    final queue = _queue;
+    if (queue == null) return _key;
+    return queue.isEmpty ? null : queue.removeAt(0);
+  }
 
   @override
   void reportSuccess(AdminApiKey key) => successes++;
 
   @override
-  void reportFailure(AdminApiKey key, int statusCode) =>
-      reportedFailures.add(statusCode);
+  void reportFailure(AdminApiKey key, int statusCode) {
+    reportedFailures.add(statusCode);
+    reportedKeyIds.add(key.id);
+  }
 }
 
-AdminApiKey key() => AdminApiKey(
-  id: 'k1',
+AdminApiKey key({String id = 'k1', String provider = 'custom'}) => AdminApiKey(
+  id: id,
   name: 'test',
   key: 'sk-test',
   baseUrl: 'https://provider.example/v1',
   model: 'm',
-  provider: 'custom',
+  provider: provider,
   isActive: true,
   priority: 1,
   usageCount: 0,
@@ -150,6 +166,135 @@ void main() {
     final result = await repository.generate(request());
     expect((result as ReplyFailure).isRetryable, isFalse);
     expect(keys.reportedFailures, [401]);
+  });
+
+  test('an empty answer reports the key and tries the next one', () async {
+    // The user-facing bug: one provider returning `{"replies": []}` made every
+    // tap fail forever, because the key was never taken out of rotation.
+    final keys = FakeKeySource.queue([key(), key(id: 'k2')]);
+    var calls = 0;
+    final repository = KeyPoolReplyRepository(
+      keys: keys,
+      client: OpenAiCompatibleClient(
+        httpClient: MockClient((request) async {
+          calls++;
+          final content = calls == 1
+              ? '{"replies": []}'
+              : '{"replies": ["দ্বিতীয় কী থেকে"]}';
+          return http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': content},
+                },
+              ],
+            }),
+            200,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        }),
+      ),
+    );
+
+    final result = await repository.generate(request());
+    expect(result, isA<ReplySuccess>());
+    expect((result as ReplySuccess).replies, ['দ্বিতীয় কী থেকে']);
+    expect(keys.reportedKeyIds, ['k1']);
+    expect(calls, 2);
+  });
+
+  test('a dead pool reports the honest failure after all keys are tried',
+      () async {
+    final keys = FakeKeySource.queue([
+      key(),
+      key(id: 'k2'),
+      key(id: 'k3'),
+      key(id: 'k4'),
+    ]);
+    final repository = repositoryWith(
+      keys,
+      200,
+      jsonEncode({
+        'choices': [
+          {
+            'message': {'content': '{"replies": []}'},
+          },
+        ],
+      }),
+    );
+    final result = await repository.generate(request());
+    expect(result, isA<ReplyFailure>());
+    expect((result as ReplyFailure).message, contains('empty'));
+    // Bounded: three attempts, never the whole pool.
+    expect(keys.reportedKeyIds, ['k1', 'k2', 'k3']);
+    expect(keys.nextCalls, 3);
+  });
+
+  test('a one-key pool is not retried against itself', () async {
+    // The fake hands the same key back forever, which a pool whose only key is
+    // cooling down effectively does. One provider call, then stop: the second
+    // `next()` is the probe that discovers there is nothing else to try.
+    final keys = FakeKeySource(key());
+    var calls = 0;
+    final repository = KeyPoolReplyRepository(
+      keys: keys,
+      client: OpenAiCompatibleClient(
+        httpClient: MockClient((request) async {
+          calls++;
+          return http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': '{"replies": []}'},
+                },
+              ],
+            }),
+            200,
+          );
+        }),
+      ),
+    );
+    final result = await repository.generate(request());
+    expect(result, isA<ReplyFailure>());
+    expect(calls, 1);
+    expect(keys.reportedKeyIds, ['k1']);
+  });
+
+  test('a rejected key stops the loop instead of burning the pool', () async {
+    final keys = FakeKeySource.queue([key(), key(id: 'k2')]);
+    final repository = repositoryWith(keys, 401, '{}');
+    final result = await repository.generate(request());
+    expect(result, isA<ReplyFailure>());
+    expect((result as ReplyFailure).isRetryable, isFalse);
+    expect(keys.reportedKeyIds, ['k1']);
+  });
+
+  test('a rate-limited key is followed by the next healthy one', () async {
+    final keys = FakeKeySource.queue([key(), key(id: 'k2')]);
+    var calls = 0;
+    final repository = KeyPoolReplyRepository(
+      keys: keys,
+      client: OpenAiCompatibleClient(
+        httpClient: MockClient((request) async {
+          calls++;
+          if (calls == 1) return http.Response('{}', 429);
+          return http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {'content': '{"replies": ["ok then"]}'},
+                },
+              ],
+            }),
+            200,
+          );
+        }),
+      ),
+    );
+    final result = await repository.generate(request());
+    expect(result, isA<ReplySuccess>());
+    expect(keys.reportedKeyIds, ['k1']);
+    expect(keys.successes, 1);
   });
 
   test('an empty suggestion list is a failure, not a silent success', () async {

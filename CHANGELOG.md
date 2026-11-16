@@ -4,6 +4,29 @@ All notable project changes are recorded here.
 
 ## [Unreleased]
 
+### Pooled AI works for a device that has never signed in
+
+- The bootstrap signs the device in **anonymously** at launch. `firestore.rules` allows
+  the key pool to be read by any *signed-in* user, and the only sign-in in the app was the
+  admin gate's Google flow — so on a fresh install with Firebase configured, the pool read
+  came back `permission-denied`, `getNextKey()` was null, and every AI request failed with
+  "no healthy API key". It worked on the owner's phone because that device had signed in
+  as admin and cached the pool.
+- Bounded (8 s) and best-effort: a disabled Anonymous provider or an offline launch logs
+  and continues, and the pool reports its own honest failure.
+- Admin gate: a Google sign-in over the anonymous session is **linked**, keeping the uid
+  the pool keyed its cooldowns on, and falls back to a plain sign-in when the Google
+  account is already in use.
+
+### One bad key is no longer the user's whole answer
+
+- `KeyPoolReplyRepository` now tries up to three keys per request. A provider that answers
+  200 with an unusable body is reported to the pool (previously not reported at all, so the
+  key was handed out again on the next tap, forever) and the next key is tried.
+- Bounded twice: three attempts, and no key twice in one call — which is also what keeps a
+  one-key pool from looping on itself. An auth failure (401/403) still stops immediately
+  instead of burning the rest of the pool.
+
 ### The reply cache can no longer say what the message was
 
 - Cache keys were `base64Url(message + options)` — an encoding of the text, not

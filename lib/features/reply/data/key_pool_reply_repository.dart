@@ -32,45 +32,77 @@ class KeyPoolReplyRepository implements ReplyRepository {
     if (problems.isNotEmpty) {
       return ReplyFailure(problems.join(' '));
     }
-    final key = _keys.next();
-    if (key == null) {
-      return const ReplyFailure(
-        'No healthy API key is available right now. The admin key pool is '
-        'empty, cooling down, or not configured on this install.',
-        isRetryable: true,
-      );
-    }
-    try {
-      final content = await _client.complete(
-        key: key,
-        systemPrompt: ReplyPrompt.system(
-          request.count,
-          request.tone,
-          styleExamples: request.styleExamples,
-          mode: request.mode,
-        ),
-        userPrompt: ReplyPrompt.user(request),
-      );
-      _keys.reportSuccess(key);
-      final replies = parseReplies(content, request.count);
-      if (replies.isEmpty) {
-        return const ReplyFailure(
-          'The AI provider returned an empty suggestion list.',
+    final systemPrompt = ReplyPrompt.system(
+      request.count,
+      request.tone,
+      styleExamples: request.styleExamples,
+      mode: request.mode,
+    );
+    final userPrompt = ReplyPrompt.user(request);
+
+    // One bad key must not be the user's whole answer. A single attempt meant a
+    // provider that answers 200 with an unusable body - or one that is briefly
+    // unhealthy in a way its own health check cannot see - kept being handed
+    // out by the pool while the user read the same error every time.
+    //
+    // Bounded twice over: [maxAttempts] caps the work, and a key is never tried
+    // twice in one call (`tried`), which is also what stops a one-key pool from
+    // looping on itself.
+    ReplyFailure? lastFailure;
+    final tried = <String>{};
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      final key = _keys.next();
+      if (key == null) break;
+      if (!tried.add(key.id)) break;
+
+      try {
+        final content = await _client.complete(
+          key: key,
+          systemPrompt: systemPrompt,
+          userPrompt: userPrompt,
+        );
+        final replies = parseReplies(content, request.count);
+        if (replies.isEmpty) {
+          // A 200 with nothing usable is a provider failure, not a success: the
+          // key is reported so the pool cools it down, and the loop moves on.
+          _keys.reportFailure(key, 0);
+          lastFailure = const ReplyFailure(
+            'The AI provider returned an empty suggestion list.',
+            isRetryable: true,
+          );
+          continue;
+        }
+        _keys.reportSuccess(key);
+        return ReplySuccess(replies);
+      } on AiCallException catch (error) {
+        _keys.reportFailure(key, error.statusCode);
+        lastFailure = ReplyFailure(
+          error.userMessage,
+          isRetryable: error.isRetryable,
+        );
+        // A rejected key will be rejected again: burning the rest of the pool
+        // on it teaches the user nothing and spends someone else's quota.
+        if (!error.isRetryable) return lastFailure;
+      } catch (error) {
+        _keys.reportFailure(key, 0);
+        lastFailure = const ReplyFailure(
+          'Network problem while reaching the AI provider.',
           isRetryable: true,
         );
       }
-      return ReplySuccess(replies);
-    } on AiCallException catch (error) {
-      _keys.reportFailure(key, error.statusCode);
-      return ReplyFailure(error.userMessage, isRetryable: error.isRetryable);
-    } catch (error) {
-      _keys.reportFailure(key, 0);
-      return const ReplyFailure(
-        'Network problem while reaching the AI provider.',
-        isRetryable: true,
-      );
     }
+
+    return lastFailure ??
+        const ReplyFailure(
+          'No healthy API key is available right now. The admin key pool is '
+          'empty, cooling down, or not configured on this install.',
+          isRetryable: true,
+        );
   }
+
+  /// Attempts per request. Three is enough to step over one dead key and one
+  /// misbehaving provider without turning a tap into a stampede of paid calls.
+  static const int maxAttempts = 3;
 
   /// Normalizes the structured reply contract shared by every provider. Models may add Markdown fences, double-encode the JSON, or
   /// truncate the final brackets. Recover complete message strings where safe;

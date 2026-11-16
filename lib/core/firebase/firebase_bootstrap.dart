@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:admin_api_key_manager/admin_api_key_manager.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -38,7 +39,8 @@ Future<bool> _initializeGoogleSignIn() async {
 /// - Android initializes only when `google-services.json` is present and the
 ///   gradle plugin processed it; any failure flips the app into guest mode
 ///   instead of crashing the first frame.
-/// When Firebase is up, the key-pool package is wired immediately so the
+/// When Firebase is up, the device is signed in anonymously (the pool's rules
+/// require *some* auth) and the key-pool package is wired immediately so the
 /// first AI call does not race the Firestore listener.
 Future<bool> bootstrapFirebase() async {
   if (kIsWeb) return false;
@@ -48,6 +50,26 @@ Future<bool> bootstrapFirebase() async {
     debugPrint('ReplyMate: Firebase not configured on this install ($error)');
     return false;
   }
+  // The pool's rules are `allow read: if request.auth != null`, so a device
+  // that is not signed in has no AI at all - and until this existed, only the
+  // admin gate ever signed anyone in, which meant the pooled key path worked
+  // for the owner and for nobody else. Anonymous auth is the least-friction
+  // way to be signed in: no screen, no taps, and the admin gate can still
+  // upgrade the same account to Google later.
+  //
+  // Bounded and best-effort: if the provider is disabled in the console or the
+  // device is offline, the app continues exactly as before and the pool read
+  // reports its own honest failure.
+  try {
+    if (FirebaseAuth.instance.currentUser == null) {
+      await FirebaseAuth.instance
+          .signInAnonymously()
+          .timeout(const Duration(seconds: 8));
+    }
+  } catch (error) {
+    debugPrint('ReplyMate: anonymous sign-in unavailable ($error)');
+  }
+
   // Local plugin init, no network: start it now so the admin gate never
   // blocks on it, but do not make the first frame wait for it.
   unawaited(ensureGoogleSignInReady());

@@ -157,9 +157,10 @@ copy rules say capability claims must stay honest.
 
 The current MVP lets a signed-in client read a Firestore key pool and call AI providers
 directly. The server-side proxy and rate limiting are **planned hardening, not implemented**.
-That trade-off is why BYOK shipped first: a key in your own storage cannot leak out of a
-shared pool, has no Firestore rules to get wrong, and burns nobody else's quota. See
-[API security in the roadmap](ROADMAP.md) and [`docs/ZERO_BILL_FEATURES.md`](docs/ZERO_BILL_FEATURES.md).
+Every AI call now goes through that pool: BYOK shipped in 1.5.0 and was removed in
+1.5.5, so key selection, cooldowns and failover live in one place and no key is stored on
+a phone. See [API security in the roadmap](ROADMAP.md) and
+[`docs/ZERO_BILL_FEATURES.md`](docs/ZERO_BILL_FEATURES.md).
 
 ## 🛠 Build and run
 
@@ -170,7 +171,16 @@ flutter run          # guest shell: every screen works, AI + admin explain what 
 
 The repo intentionally ships **without `google-services.json`**. Drop your own Firebase
 file into `android/app/` and Firebase Auth, the Firestore key pool and the admin gate come
-online. Nothing else changes — and with a BYOK key set, replies generate with no Firebase at all.
+online. Nothing else changes; without it the app is a full guest shell with offline
+suggestions and no AI.
+
+Two Firebase Console settings are required for pooled AI to work on a fresh install:
+
+1. **Authentication → Sign-in method → Anonymous: enabled.** The bootstrap signs each
+   device in anonymously at launch, because the pool's rules are
+   `allow read: if request.auth != null` — signed out means no key, which means no AI.
+2. **`admin_config/access`** with your email and/or uid, so the admin gate can manage the
+   pool. Signing in with Google from that gate upgrades the anonymous session in place.
 
 **Checks that are worth your time**
 

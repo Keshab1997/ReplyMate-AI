@@ -29,7 +29,25 @@ class AdminGateScreen extends ConsumerWidget {
       final idToken = account.authentication.idToken;
       if (idToken == null) return 'Google did not return an identity token.';
       final credential = GoogleAuthProvider.credential(idToken: idToken);
-      await FirebaseAuth.instance.signInWithCredential(credential);
+      final auth = FirebaseAuth.instance;
+      final current = auth.currentUser;
+      if (current != null && current.isAnonymous) {
+        // The bootstrap signs every device in anonymously so the key pool is
+        // readable. Linking keeps that uid (and the cooldown/cache state the
+        // pool keyed on it) instead of silently swapping accounts; a Google
+        // account that already has a user record is not linkable, and for that
+        // one, signing in is the right answer.
+        try {
+          await current.linkWithCredential(credential);
+          return null;
+        } on FirebaseAuthException catch (error) {
+          if (error.code != 'credential-already-in-use' &&
+              error.code != 'email-already-in-use') {
+            rethrow;
+          }
+        }
+      }
+      await auth.signInWithCredential(credential);
       return null;
     } on GoogleSignInException catch (error) {
       // A configuration error (wrong SHA-1, wrong package, no web client) is
