@@ -13,10 +13,10 @@ class AppInfo {
   static const String name = 'ReplyMate AI';
 
   /// Must equal the `version:` field in pubspec.yaml, before the `+`.
-  static const String version = '1.5.1';
+  static const String version = '1.5.2';
 
   /// Must equal the build number after the `+` in pubspec.yaml.
-  static const String buildNumber = '6';
+  static const String buildNumber = '7';
 
   /// What a user reads on the About screen and quotes in a bug report.
   static const String versionLabel = '$version+$buildNumber';
