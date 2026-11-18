@@ -19,9 +19,8 @@ permissions:
 jobs:
   build:
     uses: Keshab1997/flutter-builder/.github/workflows/flutter-build.yml@v1.18.2
-      with:
-        java-version: "21"
     with:
+      java-version: "21"
       flutter-channel: stable
       working-directory: "."
       # JDK 21, not the reusable workflow's default of 17. The Android Gradle
@@ -30,7 +29,6 @@ jobs:
       # compiled against JDK 21 - on 17 the task dies with
       # 'NoSuchMethodError: java.lang.Object java.util.List.removeLast()'.
       # Nothing in the app needs 21; the toolchain does.
-      java-version: "21"
       build-apk: ${{ inputs.format == 'apk' }}
       build-aab: ${{ inputs.format == 'aab' }}
       artifact-retention-days: 14
